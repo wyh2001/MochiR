@@ -1,0 +1,6 @@
+@MochiR.Api_HostAddress = http://localhost:5261
+
+GET {{MochiR.Api_HostAddress}}/
+Accept: application/json
+
+###
