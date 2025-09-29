@@ -8,6 +8,7 @@ namespace MochiR.Api.Entities
         public string? DisplayName { get; set; }
         [PersonalData]
         public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+        [PersonalData]
+        public string? AvatarUrl { get; set; }
     }
-    //public class ApplicationRole : IdentityRole { }
 }
