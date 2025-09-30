@@ -38,5 +38,9 @@ app.MapGet("/", () => "MochiR API is running...")
 app.MapAuthEndpoints();
 app.MapUsersEndpoints();
 app.MapRatingsEndpoints();
+app.MapSubjectTypesEndpoints();
+app.MapSubjectsEndpoints();
+app.MapCriteriaTemplatesEndpoints();
+app.MapReviewsEndpoints();
 
 app.Run();
