@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using MochiR.Api.Entities;
+using MochiR.Api.Infrastructure;
 using static MochiR.Api.Dtos.AuthDtos;
 namespace MochiR.Api.Endpoints
 {
@@ -10,8 +11,9 @@ namespace MochiR.Api.Endpoints
             var group = routes.MapGroup("/api/auth").WithTags("Auth");
 
             group.MapPost("/register", async (
-                RegisterDto registerDto, 
-                UserManager<ApplicationUser> userManager) =>
+                RegisterDto registerDto,
+                UserManager<ApplicationUser> userManager,
+                HttpContext httpContext) =>
             {
                 var user = new ApplicationUser
                 {
@@ -20,13 +22,29 @@ namespace MochiR.Api.Endpoints
                     CreatedAtUtc = DateTime.UtcNow
                 };
                 var result = await userManager.CreateAsync(user, registerDto.Password);
-                return result.Succeeded ? Results.Ok() : Results.BadRequest(result.Errors);
+                if (result.Succeeded)
+                {
+                    var response = new RegisterResponseDto(user.Id, user.UserName, user.Email);
+                    return ApiResults.Ok(response, httpContext);
+                }
+
+                var details = result.Errors
+                    .GroupBy(error => error.Code)
+                    .ToDictionary(group => group.Key, group => group.Select(error => error.Description).ToArray());
+
+                return ApiResults.Failure(
+                    "AUTH_REGISTER_FAILED",
+                    "User registration failed.",
+                    httpContext,
+                    StatusCodes.Status400BadRequest,
+                    details);
             });
 
             group.MapPost("/login", async (
-                LoginDto loginDto, 
-                SignInManager<ApplicationUser> signInManager, 
-                UserManager<ApplicationUser> userManager) =>
+                LoginDto loginDto,
+                SignInManager<ApplicationUser> signInManager,
+                UserManager<ApplicationUser> userManager,
+                HttpContext httpContext) =>
             {
                 var userNameOrEmail = loginDto.UserNameOrEmail.Trim();
                 var password = loginDto.Password;
@@ -41,23 +59,43 @@ namespace MochiR.Api.Endpoints
                     lockoutOnFailure: true);
 
                 if (result.Succeeded)
-                    return Results.Ok();
+                    return ApiResults.Ok(new LoginResponseDto(true), httpContext);
                 if (result.IsLockedOut)
-                    return Results.StatusCode(423);
-                if (result.RequiresTwoFactor)
-                    return Results.StatusCode(403); // TBD: handle 2FA
+                    return ApiResults.Failure(
+                        "AUTH_ACCOUNT_LOCKED",
+                        "Account is locked. Please try again later.",
+                        httpContext,
+                        StatusCodes.Status423Locked);
+                if (result.RequiresTwoFactor) // TBD: handle 2FA
+                    return ApiResults.Failure(
+                        "AUTH_REQUIRES_2FA",
+                        "Two-factor authentication is required.",
+                        httpContext,
+                        StatusCodes.Status403Forbidden);
                 if (result.IsNotAllowed)
-                    return Results.Forbid();
+                    return ApiResults.Failure(
+                        "AUTH_NOT_ALLOWED",
+                        "Sign-in is not allowed for this account.",
+                        httpContext,
+                        StatusCodes.Status403Forbidden);
 
-                return Results.BadRequest();
+                return ApiResults.Failure(
+                    "AUTH_INVALID_CREDENTIALS",
+                    "Invalid username or password.",
+                    httpContext,
+                    StatusCodes.Status400BadRequest);
             });
 
-            group.MapPost("/logout", async (SignInManager<ApplicationUser> signInManager) =>
+            group.MapPost("/logout", async (SignInManager<ApplicationUser> signInManager, HttpContext httpContext) =>
             {
                 await signInManager.SignOutAsync();
-                return Results.Ok();
+                return ApiResults.Ok(new LogoutResponseDto(true), httpContext);
             }).WithOpenApi()
             .RequireAuthorization();
         }
     }
+
+    internal sealed record RegisterResponseDto(string? UserId, string? UserName, string? Email);
+    internal sealed record LoginResponseDto(bool SignedIn);
+    internal sealed record LogoutResponseDto(bool SignedOut);
 }

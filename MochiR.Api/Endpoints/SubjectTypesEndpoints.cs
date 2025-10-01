@@ -10,20 +10,26 @@ namespace MochiR.Api.Endpoints
         {
             var group = routes.MapGroup("/api/subject-types").WithTags("SubjectTypes");
 
-            group.MapGet("/", async (ApplicationDbContext db, CancellationToken ct) =>
+            group.MapGet("/", async (ApplicationDbContext db, HttpContext httpContext, CancellationToken ct) =>
             {
-                return await db.SubjectTypes
+                var subjectTypes = await db.SubjectTypes
                     .AsNoTracking()
                     .OrderBy(st => st.Id)
                     .Select(st => new SubjectTypeSummaryDto(st.Id, st.Key, st.DisplayName))
                     .ToListAsync(ct);
+
+                return ApiResults.Ok(subjectTypes, httpContext);
             }).WithOpenApi();
 
-            group.MapPost("/", async (CreateSubjectTypeDto dto, ApplicationDbContext db, CancellationToken ct) =>
+            group.MapPost("/", async (CreateSubjectTypeDto dto, ApplicationDbContext db, HttpContext httpContext, CancellationToken ct) =>
             {
                 if (string.IsNullOrWhiteSpace(dto.Key) || string.IsNullOrWhiteSpace(dto.DisplayName))
                 {
-                    return Results.BadRequest(new { message = "Key and DisplayName are required." });
+                    return ApiResults.Failure(
+                        "SUBJECT_TYPE_INVALID_INPUT",
+                        "Key and DisplayName are required.",
+                        httpContext,
+                        StatusCodes.Status400BadRequest);
                 }
 
                 var normalizedKey = dto.Key.Trim();
@@ -34,7 +40,11 @@ namespace MochiR.Api.Endpoints
 
                 if (exists)
                 {
-                    return Results.Conflict(new { message = "Subject type key already exists." });
+                    return ApiResults.Failure(
+                        "SUBJECT_TYPE_DUPLICATE_KEY",
+                        "Subject type key already exists.",
+                        httpContext,
+                        StatusCodes.Status409Conflict);
                 }
 
                 var subjectType = new SubjectType
@@ -46,7 +56,8 @@ namespace MochiR.Api.Endpoints
                 db.SubjectTypes.Add(subjectType);
                 await db.SaveChangesAsync(ct);
 
-                return Results.Created($"/api/subject-types/{subjectType.Id}", new SubjectTypeSummaryDto(subjectType.Id, subjectType.Key, subjectType.DisplayName));
+                var payload = new SubjectTypeSummaryDto(subjectType.Id, subjectType.Key, subjectType.DisplayName);
+                return ApiResults.Created($"/api/subject-types/{subjectType.Id}", payload, httpContext);
             }).WithOpenApi();
         }
 

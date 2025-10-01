@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MochiR.Api.Endpoints;
 using MochiR.Api.Entities;
@@ -33,7 +31,8 @@ if (app.Environment.IsDevelopment())
     app.MapIdentityApi<ApplicationUser>();
 }
 
-app.MapGet("/", () => "MochiR API is running...")
+app.MapGet("/", (HttpContext httpContext) =>
+    ApiResults.Ok(new { message = "MochiR API is running..." }, httpContext))
     .WithOpenApi()
     .RequireAuthorization();
 

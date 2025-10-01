@@ -14,7 +14,7 @@ namespace MochiR.Api.Endpoints
         {
             var group = routes.MapGroup("/api/reviews").WithTags("Reviews");
 
-            group.MapGet("/", async (int? subjectId, string? userId, ApplicationDbContext db, CancellationToken cancellationToken) =>
+            group.MapGet("/", async (int? subjectId, string? userId, ApplicationDbContext db, HttpContext httpContext, CancellationToken cancellationToken) =>
             {
                 var query = db.Reviews
                     .AsNoTracking()
@@ -38,7 +38,8 @@ namespace MochiR.Api.Endpoints
                     query = query.Where(review => review.UserId == userId);
                 }
 
-                return await query.ToListAsync(cancellationToken);
+                var reviews = await query.ToListAsync(cancellationToken);
+                return ApiResults.Ok(reviews, httpContext);
             }).WithOpenApi();
 
             group.MapPost("/", async (
@@ -46,24 +47,37 @@ namespace MochiR.Api.Endpoints
                 ApplicationDbContext db,
                 UserManager<ApplicationUser> userManager,
                 ClaimsPrincipal user,
+                HttpContext httpContext,
                 CancellationToken cancellationToken) =>
             {
                 var userId = userManager.GetUserId(user);
                 if (string.IsNullOrEmpty(userId))
                 {
-                    return Results.Unauthorized();
+                    return ApiResults.Failure(
+                        "AUTH_UNAUTHORIZED",
+                        "User is not authenticated.",
+                        httpContext,
+                        StatusCodes.Status401Unauthorized);
                 }
 
                 var subjectExists = await db.Subjects.AnyAsync(subject => subject.Id == dto.SubjectId, cancellationToken);
                 if (!subjectExists)
                 {
-                    return Results.BadRequest(new { message = "Subject does not exist." });
+                    return ApiResults.Failure(
+                        "REVIEW_SUBJECT_NOT_FOUND",
+                        "Subject does not exist.",
+                        httpContext,
+                        StatusCodes.Status400BadRequest);
                 }
 
                 var duplicate = await db.Reviews.AnyAsync(review => review.SubjectId == dto.SubjectId && review.UserId == userId && !review.IsDeleted, cancellationToken);
                 if (duplicate)
                 {
-                    return Results.Conflict(new { message = "You have already submitted a review for this subject." });
+                    return ApiResults.Failure(
+                        "REVIEW_DUPLICATE",
+                        "You have already submitted a review for this subject.",
+                        httpContext,
+                        StatusCodes.Status409Conflict);
                 }
 
                 var review = new Review
@@ -84,14 +98,16 @@ namespace MochiR.Api.Endpoints
 
                 await AggregateService.UpdateSubjectAggregateAsync(db, review.SubjectId, cancellationToken);
 
-                return Results.Created($"/api/reviews/{review.Id}", new ReviewSummaryDto(
+                var payload = new ReviewSummaryDto(
                     review.Id,
                     review.SubjectId,
                     review.UserId,
                     review.Title,
                     review.Content,
                     review.Status,
-                    review.CreatedAt));
+                    review.CreatedAt);
+
+                return ApiResults.Created($"/api/reviews/{review.Id}", payload, httpContext);
             }).RequireAuthorization().WithOpenApi();
 
             group.MapPut("/{id:long}", async (
@@ -100,28 +116,45 @@ namespace MochiR.Api.Endpoints
                 ApplicationDbContext db,
                 UserManager<ApplicationUser> userManager,
                 ClaimsPrincipal user,
+                HttpContext httpContext,
                 CancellationToken cancellationToken) =>
             {
                 var userId = userManager.GetUserId(user);
                 if (string.IsNullOrEmpty(userId))
                 {
-                    return Results.Unauthorized();
+                    return ApiResults.Failure(
+                        "AUTH_UNAUTHORIZED",
+                        "User is not authenticated.",
+                        httpContext,
+                        StatusCodes.Status401Unauthorized);
                 }
 
                 if (string.IsNullOrWhiteSpace(dto.Title))
                 {
-                    return Results.BadRequest(new { message = "Title is required." });
+                    return ApiResults.Failure(
+                        "REVIEW_INVALID_INPUT",
+                        "Title is required.",
+                        httpContext,
+                        StatusCodes.Status400BadRequest);
                 }
 
                 var review = await db.Reviews.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
                 if (review is null || review.IsDeleted)
                 {
-                    return Results.NotFound();
+                    return ApiResults.Failure(
+                        "REVIEW_NOT_FOUND",
+                        "Review not found.",
+                        httpContext,
+                        StatusCodes.Status404NotFound);
                 }
 
                 if (!string.Equals(review.UserId, userId, StringComparison.Ordinal))
                 {
-                    return Results.Forbid();
+                    return ApiResults.Failure(
+                        "AUTH_FORBIDDEN",
+                        "You are not allowed to modify this review.",
+                        httpContext,
+                        StatusCodes.Status403Forbidden);
                 }
 
                 review.Title = dto.Title.Trim();
@@ -134,14 +167,16 @@ namespace MochiR.Api.Endpoints
 
                 await AggregateService.UpdateSubjectAggregateAsync(db, review.SubjectId, cancellationToken);
 
-                return Results.Ok(new ReviewSummaryDto(
+                var payload = new ReviewSummaryDto(
                     review.Id,
                     review.SubjectId,
                     review.UserId,
                     review.Title,
                     review.Content,
                     review.Status,
-                    review.CreatedAt));
+                    review.CreatedAt);
+
+                return ApiResults.Ok(payload, httpContext);
             }).RequireAuthorization().WithOpenApi();
 
             group.MapDelete("/{id:long}", async (
@@ -149,23 +184,36 @@ namespace MochiR.Api.Endpoints
                 ApplicationDbContext db,
                 UserManager<ApplicationUser> userManager,
                 ClaimsPrincipal user,
+                HttpContext httpContext,
                 CancellationToken cancellationToken) =>
             {
                 var userId = userManager.GetUserId(user);
                 if (string.IsNullOrEmpty(userId))
                 {
-                    return Results.Unauthorized();
+                    return ApiResults.Failure(
+                        "AUTH_UNAUTHORIZED",
+                        "User is not authenticated.",
+                        httpContext,
+                        StatusCodes.Status401Unauthorized);
                 }
 
                 var review = await db.Reviews.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
                 if (review is null || review.IsDeleted)
                 {
-                    return Results.NotFound();
+                    return ApiResults.Failure(
+                        "REVIEW_NOT_FOUND",
+                        "Review not found.",
+                        httpContext,
+                        StatusCodes.Status404NotFound);
                 }
 
                 if (!string.Equals(review.UserId, userId, StringComparison.Ordinal))
                 {
-                    return Results.Forbid();
+                    return ApiResults.Failure(
+                        "AUTH_FORBIDDEN",
+                        "You are not allowed to delete this review.",
+                        httpContext,
+                        StatusCodes.Status403Forbidden);
                 }
 
                 review.IsDeleted = true;
@@ -176,10 +224,10 @@ namespace MochiR.Api.Endpoints
 
                 await AggregateService.UpdateSubjectAggregateAsync(db, review.SubjectId, cancellationToken);
 
-                return Results.NoContent();
+                return ApiResults.Ok(new ReviewDeleteResultDto(id, true), httpContext);
             }).RequireAuthorization().WithOpenApi();
 
-            group.MapGet("/{id:long}", async (long id, ApplicationDbContext db, CancellationToken cancellationToken) =>
+            group.MapGet("/{id:long}", async (long id, ApplicationDbContext db, HttpContext httpContext, CancellationToken cancellationToken) =>
             {
                 var review = await db.Reviews
                     .AsNoTracking()
@@ -190,7 +238,11 @@ namespace MochiR.Api.Endpoints
 
                 if (review is null)
                 {
-                    return Results.NotFound();
+                    return ApiResults.Failure(
+                        "REVIEW_NOT_FOUND",
+                        "Review not found.",
+                        httpContext,
+                        StatusCodes.Status404NotFound);
                 }
 
                 JsonElement? ratings = review.Ratings?.RootElement.Clone();
@@ -198,7 +250,7 @@ namespace MochiR.Api.Endpoints
                     .Select(m => new ReviewMediaDto(m.Id, m.Url, m.Type, m.Metadata?.RootElement.Clone()))
                     .ToList();
 
-                return Results.Ok(new ReviewDetailDto(
+                var payload = new ReviewDetailDto(
                     review.Id,
                     review.SubjectId,
                     review.Subject?.Name,
@@ -211,7 +263,9 @@ namespace MochiR.Api.Endpoints
                     review.Status,
                     review.CreatedAt,
                     review.UpdatedAt,
-                    media));
+                    media);
+
+                return ApiResults.Ok(payload, httpContext);
             }).WithOpenApi();
         }
 
@@ -220,5 +274,6 @@ namespace MochiR.Api.Endpoints
         private record UpdateReviewDto(string Title, string? Content, JsonDocument? Ratings);
         private record ReviewDetailDto(long Id, int SubjectId, string? SubjectName, string? SubjectSlug, string UserId, string? UserName, string? Title, string? Content, JsonElement? Ratings, ReviewStatus Status, DateTime CreatedAt, DateTime UpdatedAt, IReadOnlyList<ReviewMediaDto> Media);
         private record ReviewMediaDto(long Id, string Url, MediaType Type, JsonElement? Metadata);
+        private record ReviewDeleteResultDto(long Id, bool Deleted);
     }
 }

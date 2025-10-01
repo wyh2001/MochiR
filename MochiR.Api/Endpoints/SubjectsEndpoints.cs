@@ -11,9 +11,9 @@ namespace MochiR.Api.Endpoints
         {
             var group = routes.MapGroup("/api/subjects").WithTags("Subjects");
 
-            group.MapGet("/", async (ApplicationDbContext db, CancellationToken ct) =>
+            group.MapGet("/", async (ApplicationDbContext db, HttpContext httpContext, CancellationToken ct) =>
             {
-                return await db.Subjects
+                var subjects = await db.Subjects
                     .AsNoTracking()
                     .OrderBy(s => s.Id)
                     .Select(s => new SubjectSummaryDto(
@@ -22,19 +22,29 @@ namespace MochiR.Api.Endpoints
                         s.Slug,
                         s.SubjectTypeId))
                     .ToListAsync(ct);
+
+                return ApiResults.Ok(subjects, httpContext);
             }).WithOpenApi();
 
-            group.MapPost("/", async (CreateSubjectDto dto, ApplicationDbContext db, CancellationToken ct) =>
+            group.MapPost("/", async (CreateSubjectDto dto, ApplicationDbContext db, HttpContext httpContext, CancellationToken ct) =>
             {
                 if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Slug))
                 {
-                    return Results.BadRequest(new { message = "Name and Slug are required." });
+                    return ApiResults.Failure(
+                        "SUBJECT_INVALID_INPUT",
+                        "Name and Slug are required.",
+                        httpContext,
+                        StatusCodes.Status400BadRequest);
                 }
 
                 var subjectTypeExists = await db.SubjectTypes.AnyAsync(st => st.Id == dto.SubjectTypeId, ct);
                 if (!subjectTypeExists)
                 {
-                    return Results.BadRequest(new { message = "Subject type does not exist." });
+                    return ApiResults.Failure(
+                        "SUBJECT_TYPE_NOT_FOUND",
+                        "Subject type does not exist.",
+                        httpContext,
+                        StatusCodes.Status400BadRequest);
                 }
 
                 var normalizedName = dto.Name.Trim();
@@ -43,7 +53,11 @@ namespace MochiR.Api.Endpoints
                 var slugExists = await db.Subjects.AnyAsync(s => s.Slug == normalizedSlug, ct);
                 if (slugExists)
                 {
-                    return Results.Conflict(new { message = "Subject slug already exists." });
+                    return ApiResults.Failure(
+                        "SUBJECT_DUPLICATE_SLUG",
+                        "Subject slug already exists.",
+                        httpContext,
+                        StatusCodes.Status409Conflict);
                 }
 
                 var subject = new Subject
@@ -57,10 +71,11 @@ namespace MochiR.Api.Endpoints
                 db.Subjects.Add(subject);
                 await db.SaveChangesAsync(ct);
 
-                return Results.Created($"/api/subjects/{subject.Id}", new SubjectSummaryDto(subject.Id, subject.Name, subject.Slug, subject.SubjectTypeId));
+                var payload = new SubjectSummaryDto(subject.Id, subject.Name, subject.Slug, subject.SubjectTypeId);
+                return ApiResults.Created($"/api/subjects/{subject.Id}", payload, httpContext);
             }).WithOpenApi();
 
-            group.MapGet("/{id:int}", async (int id, ApplicationDbContext db, CancellationToken cancellationToken) =>
+            group.MapGet("/{id:int}", async (int id, ApplicationDbContext db, HttpContext httpContext, CancellationToken cancellationToken) =>
             {
                 var subject = await db.Subjects
                     .AsNoTracking()
@@ -69,12 +84,16 @@ namespace MochiR.Api.Endpoints
 
                 if (subject is null)
                 {
-                    return Results.NotFound();
+                    return ApiResults.Failure(
+                        "SUBJECT_NOT_FOUND",
+                        "Subject not found.",
+                        httpContext,
+                        StatusCodes.Status404NotFound);
                 }
 
                 JsonElement? extra = subject.Extra?.RootElement.Clone();
 
-                return Results.Ok(new SubjectDetailDto(
+                var payload = new SubjectDetailDto(
                     subject.Id,
                     subject.Name,
                     subject.Slug,
@@ -82,7 +101,9 @@ namespace MochiR.Api.Endpoints
                     subject.SubjectType?.Key,
                     subject.SubjectType?.DisplayName,
                     extra,
-                    subject.CreatedAt));
+                    subject.CreatedAt);
+
+                return ApiResults.Ok(payload, httpContext);
             }).WithOpenApi();
         }
 
