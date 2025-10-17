@@ -261,7 +261,10 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(detail, httpContext);
             }).WithOpenApi();
 
-            adminGroup.MapPost("/{id}/lock", async (string id, LockUserRequestDto dto, UserManager<ApplicationUser> userManager, HttpContext httpContext) =>
+            adminGroup.MapPost("/{id}/lock", async (
+                string id, LockUserRequestDto dto,
+                UserManager<ApplicationUser> userManager,
+                HttpContext httpContext) =>
             {
                 var user = await userManager.FindByIdAsync(id);
                 if (user is not { IsDeleted: false })
@@ -317,7 +320,9 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(new UserLockResponseDto(user.Id, until), httpContext);
             }).WithOpenApi();
 
-            adminGroup.MapDelete("/{id}", async (string id, UserManager<ApplicationUser> userManager, HttpContext httpContext) =>
+            adminGroup.MapDelete("/{id}", async (
+                string id, UserManager<ApplicationUser> userManager,
+                HttpContext httpContext) =>
             {
                 var user = await userManager.FindByIdAsync(id);
                 if (user is not { IsDeleted: false })
