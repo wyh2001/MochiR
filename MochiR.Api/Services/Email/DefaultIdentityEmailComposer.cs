@@ -2,7 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 
-namespace MochiR.Api.Services
+namespace MochiR.Api.Services.Email
 {
     public sealed class DefaultIdentityEmailComposer : IIdentityEmailComposer
     {

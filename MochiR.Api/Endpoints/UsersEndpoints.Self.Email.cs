@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
-using MochiR.Api.Services;
+using MochiR.Api.Services.Email;
 using System.Net.Mail;
 
 namespace MochiR.Api.Endpoints

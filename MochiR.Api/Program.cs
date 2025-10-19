@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using MochiR.Api.Endpoints;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
-using MochiR.Api.Services;
+using MochiR.Api.Services.Email;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);

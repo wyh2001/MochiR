@@ -1,4 +1,4 @@
-namespace MochiR.Api.Services
+namespace MochiR.Api.Services.Email
 {
     public sealed class IdentityEmailOptions
     {
