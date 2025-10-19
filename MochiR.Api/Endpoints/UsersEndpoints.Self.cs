@@ -57,6 +57,8 @@ namespace MochiR.Api.Endpoints
 
                 return ApiResults.Ok(ToSelfProfile(user), httpContext);
             }).WithOpenApi();
+
+            MapSelfEmailEndpoints(selfGroup);
         }
 
         private static SelfProfileDto ToSelfProfile(ApplicationUser user) => new(
@@ -78,6 +80,8 @@ namespace MochiR.Api.Endpoints
             "Unable to resolve the current user.",
             httpContext,
             StatusCodes.Status401Unauthorized);
+
+    static partial void MapSelfEmailEndpoints(RouteGroupBuilder selfGroup);
 
         private record SelfProfileDto(
             string Id,

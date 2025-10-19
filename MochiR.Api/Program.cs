@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using MochiR.Api.Endpoints;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
+using MochiR.Api.Services;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +21,10 @@ builder.Services.AddIdentityApiEndpoints<ApplicationUser>(options =>
 })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
+
+builder.Services.AddSingleton<IEmailSender, ConsoleEmailSender>();
+builder.Services.AddSingleton<IIdentityEmailComposer, DefaultIdentityEmailComposer>();
+builder.Services.Configure<IdentityEmailOptions>(builder.Configuration.GetSection("IdentityEmail"));
 
 var app = builder.Build();
 
