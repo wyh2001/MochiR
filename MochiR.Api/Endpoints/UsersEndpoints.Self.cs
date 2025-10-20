@@ -58,6 +58,7 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(ToSelfProfile(user), httpContext);
             }).WithOpenApi();
 
+            MapSelfPasswordEndpoints(selfGroup);
             MapSelfEmailEndpoints(selfGroup);
         }
 
@@ -81,7 +82,8 @@ namespace MochiR.Api.Endpoints
             httpContext,
             StatusCodes.Status401Unauthorized);
 
-    static partial void MapSelfEmailEndpoints(RouteGroupBuilder selfGroup);
+        static partial void MapSelfPasswordEndpoints(RouteGroupBuilder selfGroup);
+        static partial void MapSelfEmailEndpoints(RouteGroupBuilder selfGroup);
 
         private record SelfProfileDto(
             string Id,
