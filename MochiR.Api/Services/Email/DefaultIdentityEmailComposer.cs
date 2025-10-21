@@ -18,13 +18,22 @@ namespace MochiR.Api.Services.Email
             var subject = purpose switch
             {
                 EmailTokenPurpose.Change => "Confirm your new email address",
+                EmailTokenPurpose.ResetPassword => "Reset your password",
                 _ => "Confirm your email address"
             };
 
             var action = purpose switch
             {
                 EmailTokenPurpose.Change => "confirm your new email address",
+                EmailTokenPurpose.ResetPassword => "reset your password",
                 _ => "confirm your email address"
+            };
+
+            var closing = purpose switch
+            {
+                EmailTokenPurpose.Change => "If you did not request this change, you can ignore this email.",
+                EmailTokenPurpose.ResetPassword => "If you did not request a password reset, you can ignore this email.",
+                _ => "If you did not request this change, you can ignore this email."
             };
 
             var builder = new StringBuilder();
@@ -35,7 +44,7 @@ namespace MochiR.Api.Services.Email
             builder.AppendLine(BuildLink(recipient, purpose, token));
             builder.AppendLine();
             builder.AppendLine();
-            builder.Append("If you did not request this change, you can ignore this email.");
+            builder.Append(closing);
 
             return new EmailTemplate(subject, builder.ToString());
         }
@@ -51,7 +60,9 @@ namespace MochiR.Api.Services.Email
                 ["token"] = token
             };
 
-            if (!string.IsNullOrEmpty(recipient) && string.Equals(purpose, EmailTokenPurpose.Change, StringComparison.Ordinal))
+            if (!string.IsNullOrEmpty(recipient) &&
+                (string.Equals(purpose, EmailTokenPurpose.Change, StringComparison.Ordinal) ||
+                 string.Equals(purpose, EmailTokenPurpose.ResetPassword, StringComparison.Ordinal)))
             {
                 parameters["email"] = recipient;
             }
@@ -70,13 +81,19 @@ namespace MochiR.Api.Services.Email
             var path = purpose switch
             {
                 EmailTokenPurpose.Change => options.ChangePath,
+                EmailTokenPurpose.ResetPassword => options.ResetPasswordPath,
                 _ => options.ConfirmPath
             } ?? string.Empty;
 
             path = path.Trim();
             if (path.Length == 0)
             {
-                path = "/account/email/confirm";
+                path = purpose switch
+                {
+                    EmailTokenPurpose.Change => "/account/email/change",
+                    EmailTokenPurpose.ResetPassword => "/account/password/reset",
+                    _ => "/account/email/confirm"
+                };
             }
 
             if (!path.StartsWith('/'))

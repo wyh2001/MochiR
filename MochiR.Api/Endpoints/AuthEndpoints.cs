@@ -4,7 +4,7 @@ using MochiR.Api.Infrastructure;
 using static MochiR.Api.Dtos.AuthDtos;
 namespace MochiR.Api.Endpoints
 {
-    public static class AuthEndpoints
+    public static partial class AuthEndpoints
     {
         public static void MapAuthEndpoints(this IEndpointRouteBuilder routes)
         {
@@ -92,7 +92,11 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(new LogoutResponseDto(true), httpContext);
             }).WithOpenApi()
             .RequireAuthorization();
+
+            MapPasswordResetEndpoints(group);
         }
+
+        static partial void MapPasswordResetEndpoints(RouteGroupBuilder group);
     }
 
     internal sealed record RegisterResponseDto(string? UserId, string? UserName, string? Email);
