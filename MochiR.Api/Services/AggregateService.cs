@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
@@ -7,7 +6,9 @@ namespace MochiR.Api.Services
 {
     public static class AggregateService
     {
-        public static async Task UpdateSubjectAggregateAsync(ApplicationDbContext db, int subjectId, CancellationToken cancellationToken)
+        public static async Task UpdateSubjectAggregateAsync(
+            ApplicationDbContext db, int subjectId,
+            CancellationToken cancellationToken)
         {
             var reviews = await db.Reviews
                 .AsNoTracking()
@@ -27,37 +28,21 @@ namespace MochiR.Api.Services
                 return;
             }
 
-            decimal overallSum = 0m;
-            int overallCount = 0;
-
-            foreach (var review in reviews)
-            {
-                if (review.Ratings is null)
-                {
-                    continue;
-                }
-
-                if (review.Ratings.RootElement.TryGetProperty("overall", out var overallElement))
-                {
-                    if (overallElement.TryGetDecimal(out var value))
+            var metricGroups = reviews
+                .SelectMany(r => r.Ratings)
+                .GroupBy(r => r.Key, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    g => g.Key,
+                    g => new
                     {
-                        overallSum += value;
-                        overallCount++;
-                    }
-                }
-            }
+                        Average = Math.Round(g.Average(x => x.Score), 2, MidpointRounding.AwayFromZero),
+                        Count = g.Count()
+                    },
+                    StringComparer.OrdinalIgnoreCase);
 
-            decimal averageOverall = overallCount > 0
-                ? Math.Round(overallSum / overallCount, 2, MidpointRounding.AwayFromZero)
+            decimal averageOverall = metricGroups.TryGetValue("overall", out var overall) // TBD: magic string here, should be configurable
+                ? overall.Average
                 : 0m;
-
-            var breakdownPayload = new
-            {
-                overallAverage = averageOverall,
-                overallCount
-            };
-
-            JsonDocument breakdownDocument = JsonSerializer.SerializeToDocument(breakdownPayload);
 
             if (aggregate is null)
             {
@@ -70,7 +55,12 @@ namespace MochiR.Api.Services
 
             aggregate.CountReviews = reviews.Count;
             aggregate.AvgOverall = averageOverall;
-            aggregate.Breakdown = breakdownDocument;
+            aggregate.Metrics = metricGroups.Select(kv => new AggregateMetric
+            {
+                Key = kv.Key,
+                Value = kv.Value.Average,
+                Count = kv.Value.Count
+            }).ToList();
             aggregate.UpdatedAt = DateTime.UtcNow;
 
             await db.SaveChangesAsync(cancellationToken);

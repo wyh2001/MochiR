@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
-using System.Text.Json;
 
 namespace MochiR.Api.Endpoints
 {
@@ -65,7 +64,12 @@ namespace MochiR.Api.Endpoints
                     Name = normalizedName,
                     Slug = normalizedSlug,
                     SubjectTypeId = dto.SubjectTypeId,
-                    Extra = dto.Extra
+                    Attributes = dto.Attributes?.Select(a => new SubjectAttribute
+                    {
+                        Key = a.Key,
+                        Value = a.Value,
+                        Note = a.Note
+                    })?.ToList() ?? new List<SubjectAttribute>()
                 };
 
                 db.Subjects.Add(subject);
@@ -91,8 +95,6 @@ namespace MochiR.Api.Endpoints
                         StatusCodes.Status404NotFound);
                 }
 
-                JsonElement? extra = subject.Extra?.RootElement.Clone();
-
                 var payload = new SubjectDetailDto(
                     subject.Id,
                     subject.Name,
@@ -100,15 +102,16 @@ namespace MochiR.Api.Endpoints
                     subject.SubjectTypeId,
                     subject.SubjectType?.Key,
                     subject.SubjectType?.DisplayName,
-                    extra,
+                    subject.Attributes.Select(a => new SubjectAttributeDto(a.Key, a.Value, a.Note)).ToList(),
                     subject.CreatedAt);
 
                 return ApiResults.Ok(payload, httpContext);
             }).WithOpenApi();
         }
 
-        private record CreateSubjectDto(string Name, string Slug, int SubjectTypeId, JsonDocument? Extra);
+        private record SubjectAttributeDto(string Key, string? Value, string? Note);
+        private record CreateSubjectDto(string Name, string Slug, int SubjectTypeId, IReadOnlyList<SubjectAttributeDto>? Attributes);
         private record SubjectSummaryDto(int Id, string Name, string Slug, int SubjectTypeId);
-        private record SubjectDetailDto(int Id, string Name, string Slug, int SubjectTypeId, string? SubjectTypeKey, string? SubjectTypeDisplayName, JsonElement? Extra, DateTime CreatedAt);
+        private record SubjectDetailDto(int Id, string Name, string Slug, int SubjectTypeId, string? SubjectTypeKey, string? SubjectTypeDisplayName, IReadOnlyList<SubjectAttributeDto> Attributes, DateTime CreatedAt);
     }
 }

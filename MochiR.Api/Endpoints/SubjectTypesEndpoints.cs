@@ -50,7 +50,13 @@ namespace MochiR.Api.Endpoints
                 var subjectType = new SubjectType
                 {
                     Key = normalizedKey,
-                    DisplayName = normalizedDisplayName
+                    DisplayName = normalizedDisplayName,
+                    Settings = dto.Settings?.Select(s => new SubjectTypeSetting
+                    {
+                        Key = s.Key,
+                        Value = s.Value,
+                        Note = s.Note
+                    })?.ToList() ?? new List<SubjectTypeSetting>()
                 };
 
                 db.SubjectTypes.Add(subjectType);
@@ -61,7 +67,8 @@ namespace MochiR.Api.Endpoints
             }).WithOpenApi();
         }
 
-        private record CreateSubjectTypeDto(string Key, string DisplayName);
+        private record SubjectTypeSettingDto(string Key, string? Value, string? Note);
+        private record CreateSubjectTypeDto(string Key, string DisplayName, IReadOnlyList<SubjectTypeSettingDto>? Settings);
         private record SubjectTypeSummaryDto(int Id, string Key, string DisplayName);
     }
 }

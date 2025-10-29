@@ -1,6 +1,4 @@
-﻿using System.Text.Json;
-
-namespace MochiR.Api.Entities
+﻿namespace MochiR.Api.Entities
 {
     public class Subject
     {
@@ -13,10 +11,17 @@ namespace MochiR.Api.Entities
         public required string Name { get; set; }
         public required string Slug { get; set; }
 
-        // JSON data for type-specific attributes (e.g., brand, model, campus, cuisine...)
-        public JsonDocument? Extra { get; set; }
+        // Type-specific attributes stored as key/value pairs
+        public ICollection<SubjectAttribute> Attributes { get; set; } = new List<SubjectAttribute>();
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public bool IsDeleted { get; set; }
+    }
+
+    public class SubjectAttribute
+    {
+        public string Key { get; set; } = string.Empty;
+        public string? Value { get; set; }
+        public string? Note { get; set; }
     }
 }

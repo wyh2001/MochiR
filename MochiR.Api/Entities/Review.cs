@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace MochiR.Api.Entities
 {
     public enum ReviewStatus
@@ -23,8 +21,8 @@ namespace MochiR.Api.Entities
         public string? Title { get; set; }
         public string? Content { get; set; }
 
-        // JSON ratings map, e.g., { "overall":4.5, "taste":4 }
-        public JsonDocument? Ratings { get; set; }
+        // Collection of per-criteria ratings, including overall
+        public ICollection<ReviewRating> Ratings { get; set; } = new List<ReviewRating>();
 
         public int MediaCount { get; set; }
 
@@ -36,4 +34,13 @@ namespace MochiR.Api.Entities
 
         public ICollection<ReviewMedia> Media { get; set; } = new List<ReviewMedia>();
     }
+
+    public class ReviewRating
+    {
+        public string Key { get; set; } = string.Empty;
+        public decimal Score { get; set; }
+        public string? Label { get; set; }
+    }
 }
+
+

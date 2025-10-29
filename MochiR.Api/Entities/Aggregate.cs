@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace MochiR.Api.Entities
 {
     // Quick lookup aggregate for a Subject, updated on write or asynchronously
@@ -13,12 +11,20 @@ namespace MochiR.Api.Entities
         // Average of overall score (0-5). Using decimal for precision.
         public decimal AvgOverall { get; set; }
 
-        // JSON breakdown: per-criteria averages/medians/distributions
-        public JsonDocument? Breakdown { get; set; }
+        // Breakdown metrics, e.g., per-criteria averages/medians/distributions
+        public ICollection<AggregateMetric> Metrics { get; set; } = new List<AggregateMetric>();
 
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Optional navigation
         public Subject? Subject { get; set; }
+    }
+
+    public class AggregateMetric
+    {
+        public string Key { get; set; } = string.Empty;
+        public decimal? Value { get; set; }
+        public int? Count { get; set; }
+        public string? Note { get; set; }
     }
 }

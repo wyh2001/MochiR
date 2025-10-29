@@ -2,9 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
-using MochiR.Api.Services;
 using System.Security.Claims;
-using System.Text.Json;
 
 namespace MochiR.Api.Endpoints
 {
@@ -86,7 +84,12 @@ namespace MochiR.Api.Endpoints
                     UserId = userId,
                     Title = dto.Title?.Trim(),
                     Content = dto.Content?.Trim(),
-                    Ratings = dto.Ratings,
+                    Ratings = dto.Ratings?.Select(r => new ReviewRating
+                    {
+                        Key = r.Key,
+                        Score = r.Score,
+                        Label = r.Label
+                    })?.ToList() ?? new List<ReviewRating>(),
                     Status = ReviewStatus.Pending,
                     MediaCount = 0,
                     CreatedAt = DateTime.UtcNow,
@@ -95,8 +98,6 @@ namespace MochiR.Api.Endpoints
 
                 db.Reviews.Add(review);
                 await db.SaveChangesAsync(cancellationToken);
-
-                await AggregateService.UpdateSubjectAggregateAsync(db, review.SubjectId, cancellationToken);
 
                 var payload = new ReviewSummaryDto(
                     review.Id,
@@ -159,13 +160,16 @@ namespace MochiR.Api.Endpoints
 
                 review.Title = dto.Title.Trim();
                 review.Content = string.IsNullOrWhiteSpace(dto.Content) ? null : dto.Content.Trim();
-                review.Ratings = dto.Ratings;
+                review.Ratings = dto.Ratings?.Select(r => new ReviewRating
+                {
+                    Key = r.Key,
+                    Score = r.Score,
+                    Label = r.Label
+                })?.ToList() ?? new List<ReviewRating>();
                 review.Status = ReviewStatus.Pending;
                 review.UpdatedAt = DateTime.UtcNow;
 
                 await db.SaveChangesAsync(cancellationToken);
-
-                await AggregateService.UpdateSubjectAggregateAsync(db, review.SubjectId, cancellationToken);
 
                 var payload = new ReviewSummaryDto(
                     review.Id,
@@ -222,8 +226,6 @@ namespace MochiR.Api.Endpoints
 
                 await db.SaveChangesAsync(cancellationToken);
 
-                await AggregateService.UpdateSubjectAggregateAsync(db, review.SubjectId, cancellationToken);
-
                 return ApiResults.Ok(new ReviewDeleteResultDto(id, true), httpContext);
             }).RequireAuthorization().WithOpenApi();
 
@@ -245,9 +247,16 @@ namespace MochiR.Api.Endpoints
                         StatusCodes.Status404NotFound);
                 }
 
-                JsonElement? ratings = review.Ratings?.RootElement.Clone();
                 var media = review.Media
-                    .Select(m => new ReviewMediaDto(m.Id, m.Url, m.Type, m.Metadata?.RootElement.Clone()))
+                    .Select(m => new ReviewMediaDto(
+                        m.Id,
+                        m.Url,
+                        m.Type,
+                        m.Metadata.Select(md => new ReviewMediaMetadataDto(md.Key, md.Value, md.Note)).ToList()))
+                    .ToList();
+
+                var ratings = review.Ratings
+                    .Select(r => new ReviewRatingDto(r.Key, r.Score, r.Label))
                     .ToList();
 
                 var payload = new ReviewDetailDto(
@@ -269,11 +278,13 @@ namespace MochiR.Api.Endpoints
             }).WithOpenApi();
         }
 
-        private record CreateReviewDto(int SubjectId, string? Title, string? Content, JsonDocument? Ratings);
+        private record CreateReviewDto(int SubjectId, string? Title, string? Content, IReadOnlyList<ReviewRatingDto>? Ratings);
         private record ReviewSummaryDto(long Id, int SubjectId, string UserId, string? Title, string? Content, ReviewStatus Status, DateTime CreatedAt);
-        private record UpdateReviewDto(string Title, string? Content, JsonDocument? Ratings);
-        private record ReviewDetailDto(long Id, int SubjectId, string? SubjectName, string? SubjectSlug, string UserId, string? UserName, string? Title, string? Content, JsonElement? Ratings, ReviewStatus Status, DateTime CreatedAt, DateTime UpdatedAt, IReadOnlyList<ReviewMediaDto> Media);
-        private record ReviewMediaDto(long Id, string Url, MediaType Type, JsonElement? Metadata);
+        private record UpdateReviewDto(string Title, string? Content, IReadOnlyList<ReviewRatingDto>? Ratings);
+        private record ReviewDetailDto(long Id, int SubjectId, string? SubjectName, string? SubjectSlug, string UserId, string? UserName, string? Title, string? Content, IReadOnlyList<ReviewRatingDto> Ratings, ReviewStatus Status, DateTime CreatedAt, DateTime UpdatedAt, IReadOnlyList<ReviewMediaDto> Media);
+        private record ReviewMediaDto(long Id, string Url, MediaType Type, IReadOnlyList<ReviewMediaMetadataDto> Metadata);
+        private record ReviewMediaMetadataDto(string Key, string? Value, string? Note);
+        private record ReviewRatingDto(string Key, decimal Score, string? Label);
         private record ReviewDeleteResultDto(long Id, bool Deleted);
     }
 }

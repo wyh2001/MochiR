@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
-using System.Text.Json;
 
 namespace MochiR.Api.Endpoints
 {
@@ -11,7 +10,11 @@ namespace MochiR.Api.Endpoints
         {
             var group = routes.MapGroup("/api/ratings").WithTags("Ratings");
 
-            group.MapGet("/subjects/{subjectId:int}", async (int subjectId, ApplicationDbContext db, HttpContext httpContext, CancellationToken cancellationToken) =>
+            // Get aggregate ratings for a subject
+            group.MapGet("/subjects/{subjectId:int}", async (
+                int subjectId, ApplicationDbContext db,
+                HttpContext httpContext,
+                CancellationToken cancellationToken) =>
             {
                 var aggregate = await db.Aggregates
                     .AsNoTracking()
@@ -26,18 +29,17 @@ namespace MochiR.Api.Endpoints
                         StatusCodes.Status404NotFound);
                 }
 
-                JsonElement? breakdown = aggregate.Breakdown?.RootElement.Clone();
-
                 var payload = new SubjectAggregateDto(
                     aggregate.SubjectId,
                     aggregate.CountReviews,
                     aggregate.AvgOverall,
-                    breakdown,
+                    aggregate.Metrics.Select(m => new AggregateMetricDto(m.Key, m.Value, m.Count, m.Note)).ToList(),
                     aggregate.UpdatedAt);
 
                 return ApiResults.Ok(payload, httpContext);
             }).WithOpenApi();
 
+            // Upsert aggregate ratings for a subject, usually called by internal services
             group.MapPost("/subjects/{subjectId:int}", async (
                 int subjectId,
                 UpsertAggregateDto dto,
@@ -82,7 +84,13 @@ namespace MochiR.Api.Endpoints
                         SubjectId = subjectId,
                         CountReviews = dto.CountReviews,
                         AvgOverall = dto.AvgOverall,
-                        Breakdown = dto.Breakdown,
+                        Metrics = dto.Metrics?.Select(m => new AggregateMetric
+                        {
+                            Key = m.Key,
+                            Value = m.Value,
+                            Count = m.Count,
+                            Note = m.Note
+                        })?.ToList() ?? new List<AggregateMetric>(),
                         UpdatedAt = DateTime.UtcNow
                     };
                     db.Aggregates.Add(aggregate);
@@ -91,26 +99,31 @@ namespace MochiR.Api.Endpoints
                 {
                     aggregate.CountReviews = dto.CountReviews;
                     aggregate.AvgOverall = dto.AvgOverall;
-                    aggregate.Breakdown = dto.Breakdown;
+                    aggregate.Metrics = dto.Metrics?.Select(m => new AggregateMetric
+                    {
+                        Key = m.Key,
+                        Value = m.Value,
+                        Count = m.Count,
+                        Note = m.Note
+                    })?.ToList() ?? new List<AggregateMetric>();
                     aggregate.UpdatedAt = DateTime.UtcNow;
                 }
 
                 await db.SaveChangesAsync(cancellationToken);
 
-                JsonElement? breakdown = aggregate.Breakdown?.RootElement.Clone();
-
                 var payload = new SubjectAggregateDto(
                     aggregate.SubjectId,
                     aggregate.CountReviews,
                     aggregate.AvgOverall,
-                    breakdown,
+                    aggregate.Metrics.Select(m => new AggregateMetricDto(m.Key, m.Value, m.Count, m.Note)).ToList(),
                     aggregate.UpdatedAt);
 
                 return ApiResults.Ok(payload, httpContext);
             }).WithOpenApi();
         }
 
-        private record SubjectAggregateDto(int SubjectId, int CountReviews, decimal AvgOverall, JsonElement? Breakdown, DateTime UpdatedAt);
-        private record UpsertAggregateDto(int CountReviews, decimal AvgOverall, JsonDocument? Breakdown);
+        private record SubjectAggregateDto(int SubjectId, int CountReviews, decimal AvgOverall, IReadOnlyList<AggregateMetricDto> Metrics, DateTime UpdatedAt);
+        private record UpsertAggregateDto(int CountReviews, decimal AvgOverall, IReadOnlyList<AggregateMetricDto>? Metrics);
+        private record AggregateMetricDto(string Key, decimal? Value, int? Count, string? Note);
     }
 }

@@ -52,3 +52,5 @@ app.MapCriteriaTemplatesEndpoints();
 app.MapReviewsEndpoints();
 
 app.Run();
+
+public partial class Program;
