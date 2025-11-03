@@ -14,6 +14,7 @@ namespace MochiR.Api.Endpoints
             {
                 var subjects = await db.Subjects
                     .AsNoTracking()
+                    .Where(s => !s.IsDeleted)
                     .OrderBy(s => s.Id)
                     .Select(s => new SubjectSummaryDto(
                         s.Id,
@@ -86,7 +87,7 @@ namespace MochiR.Api.Endpoints
                     .Include(s => s.SubjectType)
                     .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
 
-                if (subject is null)
+                if (subject is null || subject.IsDeleted)
                 {
                     return ApiResults.Failure(
                         "SUBJECT_NOT_FOUND",
@@ -107,11 +108,114 @@ namespace MochiR.Api.Endpoints
 
                 return ApiResults.Ok(payload, httpContext);
             }).WithOpenApi();
+
+            group.MapPut("/{id:int}", async (int id, UpdateSubjectDto dto, ApplicationDbContext db, HttpContext httpContext, CancellationToken ct) =>
+            {
+                if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Slug))
+                {
+                    return ApiResults.Failure(
+                        "SUBJECT_INVALID_INPUT",
+                        "Name and Slug are required.",
+                        httpContext,
+                        StatusCodes.Status400BadRequest);
+                }
+
+                var subject = await db.Subjects
+                    .Include(s => s.Attributes)
+                    .FirstOrDefaultAsync(s => s.Id == id, ct);
+
+                if (subject is null || subject.IsDeleted)
+                {
+                    return ApiResults.Failure(
+                        "SUBJECT_NOT_FOUND",
+                        "Subject not found.",
+                        httpContext,
+                        StatusCodes.Status404NotFound);
+                }
+
+                var subjectTypeExists = await db.SubjectTypes.AnyAsync(st => st.Id == dto.SubjectTypeId, ct);
+                if (!subjectTypeExists)
+                {
+                    return ApiResults.Failure(
+                        "SUBJECT_TYPE_NOT_FOUND",
+                        "Subject type does not exist.",
+                        httpContext,
+                        StatusCodes.Status400BadRequest);
+                }
+
+                var normalizedName = dto.Name.Trim();
+                var normalizedSlug = dto.Slug.Trim();
+
+                var slugInUse = await db.Subjects
+                    .Where(s => s.Id != id)
+                    .AnyAsync(s => s.Slug == normalizedSlug, ct);
+                if (slugInUse)
+                {
+                    return ApiResults.Failure(
+                        "SUBJECT_DUPLICATE_SLUG",
+                        "Subject slug already exists.",
+                        httpContext,
+                        StatusCodes.Status409Conflict);
+                }
+
+                subject.Name = normalizedName;
+                subject.Slug = normalizedSlug;
+                subject.SubjectTypeId = dto.SubjectTypeId;
+                subject.Attributes = dto.Attributes?.Select(a => new SubjectAttribute
+                {
+                    Key = a.Key,
+                    Value = a.Value,
+                    Note = a.Note
+                })?.ToList() ?? new List<SubjectAttribute>();
+
+                await db.SaveChangesAsync(ct);
+
+                var payload = new SubjectSummaryDto(subject.Id, subject.Name, subject.Slug, subject.SubjectTypeId);
+                return ApiResults.Ok(payload, httpContext);
+            }).RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
+
+            group.MapDelete("/{id:int}", async (int id, ApplicationDbContext db, HttpContext httpContext, CancellationToken ct) =>
+            {
+                var subject = await db.Subjects.FirstOrDefaultAsync(s => s.Id == id, ct);
+                if (subject is null || subject.IsDeleted)
+                {
+                    return ApiResults.Failure(
+                        "SUBJECT_NOT_FOUND",
+                        "Subject not found.",
+                        httpContext,
+                        StatusCodes.Status404NotFound);
+                }
+
+                subject.IsDeleted = true;
+
+                var reviews = await db.Reviews
+                    .Where(r => r.SubjectId == id && !r.IsDeleted)
+                    .ToListAsync(ct);
+
+                foreach (var review in reviews)
+                {
+                    review.IsDeleted = true;
+                    review.Status = ReviewStatus.Pending;
+                    review.UpdatedAt = DateTime.UtcNow;
+                }
+
+                var aggregate = await db.Aggregates.FirstOrDefaultAsync(a => a.SubjectId == id, ct);
+                if (aggregate is not null)
+                {
+                    db.Aggregates.Remove(aggregate);
+                }
+
+                await db.SaveChangesAsync(ct);
+
+                return ApiResults.Ok(new SubjectDeleteResultDto(id, true), httpContext);
+            }).RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
         }
 
         private record SubjectAttributeDto(string Key, string? Value, string? Note);
         private record CreateSubjectDto(string Name, string Slug, int SubjectTypeId, IReadOnlyList<SubjectAttributeDto>? Attributes);
+        private record UpdateSubjectDto(string Name, string Slug, int SubjectTypeId, IReadOnlyList<SubjectAttributeDto>? Attributes);
         private record SubjectSummaryDto(int Id, string Name, string Slug, int SubjectTypeId);
         private record SubjectDetailDto(int Id, string Name, string Slug, int SubjectTypeId, string? SubjectTypeKey, string? SubjectTypeDisplayName, IReadOnlyList<SubjectAttributeDto> Attributes, DateTime CreatedAt);
+        private record SubjectDeleteResultDto(int Id, bool Deleted);
     }
 }
