@@ -84,7 +84,7 @@ namespace MochiR.Api.Endpoints
                     $"/api/criteria-templates/{template.Id}",
                     payload,
                     httpContext);
-            }).WithOpenApi();
+            }).RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
 
             group.MapGet("/{id:int}", async (int id, ApplicationDbContext db, HttpContext httpContext, CancellationToken cancellationToken) =>
             {

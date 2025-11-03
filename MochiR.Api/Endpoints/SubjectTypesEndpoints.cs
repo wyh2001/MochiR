@@ -64,7 +64,7 @@ namespace MochiR.Api.Endpoints
 
                 var payload = new SubjectTypeSummaryDto(subjectType.Id, subjectType.Key, subjectType.DisplayName);
                 return ApiResults.Created($"/api/subject-types/{subjectType.Id}", payload, httpContext);
-            }).WithOpenApi();
+            }).RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
         }
 
         private record SubjectTypeSettingDto(string Key, string? Value, string? Note);

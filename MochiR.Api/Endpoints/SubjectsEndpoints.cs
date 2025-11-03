@@ -77,7 +77,7 @@ namespace MochiR.Api.Endpoints
 
                 var payload = new SubjectSummaryDto(subject.Id, subject.Name, subject.Slug, subject.SubjectTypeId);
                 return ApiResults.Created($"/api/subjects/{subject.Id}", payload, httpContext);
-            }).WithOpenApi();
+            }).RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
 
             group.MapGet("/{id:int}", async (int id, ApplicationDbContext db, HttpContext httpContext, CancellationToken cancellationToken) =>
             {

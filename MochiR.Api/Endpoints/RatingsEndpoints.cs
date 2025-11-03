@@ -119,7 +119,7 @@ namespace MochiR.Api.Endpoints
                     aggregate.UpdatedAt);
 
                 return ApiResults.Ok(payload, httpContext);
-            }).WithOpenApi();
+            }).RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
         }
 
         private record SubjectAggregateDto(int SubjectId, int CountReviews, decimal AvgOverall, IReadOnlyList<AggregateMetricDto> Metrics, DateTime UpdatedAt);
