@@ -17,13 +17,16 @@ public static class TestAuthHelper
     public static Task<ApplicationUser> SignInAsUserAsync(this HttpClient client, CustomWebApplicationFactory factory)
         => client.SignInAsync(factory, isAdmin: false);
 
+    public static Task<ApplicationUser> SignInAsUserAsync(this HttpClient client, CustomWebApplicationFactory factory, string password)
+        => client.SignInAsync(factory, isAdmin: false, password: password);
+
     public static HttpClient CreateClientWithCookies(this CustomWebApplicationFactory factory)
         => factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             HandleCookies = true
         });
 
-    private static async Task<ApplicationUser> SignInAsync(this HttpClient client, CustomWebApplicationFactory factory, bool isAdmin)
+    private static async Task<ApplicationUser> SignInAsync(this HttpClient client, CustomWebApplicationFactory factory, bool isAdmin, string? password = null)
     {
         using var scope = factory.Services.CreateScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
@@ -40,7 +43,7 @@ public static class TestAuthHelper
             LockoutEnabled = false
         };
 
-        var createResult = await userManager.CreateAsync(user, DefaultPassword);
+        var createResult = await userManager.CreateAsync(user, password ?? DefaultPassword);
         Assert.True(createResult.Succeeded, string.Join(",", createResult.Errors.Select(e => e.Description)));
 
         if (isAdmin)
@@ -55,7 +58,7 @@ public static class TestAuthHelper
             Assert.True(addRoleResult.Succeeded, string.Join(",", addRoleResult.Errors.Select(e => e.Description)));
         }
 
-        var loginPayload = new AuthDtos.LoginDto(userName, DefaultPassword);
+        var loginPayload = new AuthDtos.LoginDto(userName, password ?? DefaultPassword);
         var response = await client.PostAsJsonAsync("/api/auth/login", loginPayload);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
