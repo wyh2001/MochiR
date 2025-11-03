@@ -16,6 +16,7 @@ namespace MochiR.Api.Endpoints
             {
                 var query = db.Reviews
                     .AsNoTracking()
+                    .Where(review => !review.IsDeleted)
                     .OrderByDescending(review => review.CreatedAt)
                     .Select(review => new ReviewSummaryDto(
                         review.Id,
@@ -238,7 +239,7 @@ namespace MochiR.Api.Endpoints
                     .Include(r => r.Media)
                     .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
-                if (review is null)
+                if (review is null || review.IsDeleted)
                 {
                     return ApiResults.Failure(
                         "REVIEW_NOT_FOUND",
