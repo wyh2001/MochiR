@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using MochiR.Api.Entities;
 
@@ -84,7 +83,7 @@ namespace MochiR.Api.Infrastructure
                 // Filtered unique index: UNIQUE(UserId, SubjectId) WHERE IsDeleted = 0
                 e.HasIndex(r => new { r.UserId, r.SubjectId })
                     .IsUnique()
-                    .HasFilter("[IsDeleted] = 0");
+                    .HasFilter("\"IsDeleted\" = false");
 
                 e.Property(r => r.Status)
                     .HasConversion<int>();
@@ -99,8 +98,8 @@ namespace MochiR.Api.Infrastructure
                     .HasForeignKey(r => r.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                e.Property(r => r.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
-                e.Property(r => r.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
+                e.Property(r => r.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+                e.Property(r => r.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                 e.OwnsMany(r => r.Ratings, ratingsBuilder =>
                 {
@@ -136,7 +135,7 @@ namespace MochiR.Api.Infrastructure
             {
                 e.HasKey(a => a.SubjectId);
                 e.Property(a => a.AvgOverall).HasColumnType("decimal(4,2)");
-                e.Property(a => a.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
+                e.Property(a => a.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                 e.OwnsMany(a => a.Metrics, metricsBuilder =>
                 {

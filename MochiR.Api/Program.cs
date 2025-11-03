@@ -12,8 +12,20 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-builder.Services.AddDbContext<ApplicationDbContext>(
-    options => options.UseInMemoryDatabase("AppDb"));
+var useInMemory = builder.Configuration.GetValue("UseInMemory", false);
+if (useInMemory)
+{
+    builder.Services.AddDbContext<ApplicationDbContext>(
+        options => options.UseInMemoryDatabase("AppDb"));
+}
+else
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+    builder.Services.AddDbContext<ApplicationDbContext>(
+        options => options.UseNpgsql(connectionString));
+}
 builder.Services.AddAuthorization();
 builder.Services.AddIdentityApiEndpoints<ApplicationUser>(options =>
 {
