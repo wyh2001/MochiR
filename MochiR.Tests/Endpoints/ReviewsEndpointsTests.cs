@@ -264,6 +264,26 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.Equal(ReviewStatus.Pending, deleted.Status);
     }
 
+    [Fact]
+    public async Task GetReviewById_WhenDeleted_ReturnsNotFound()
+    {
+        var subject = await CreateSubjectAsync();
+        var password = "Valid123!";
+        using var client = factory.CreateClientWithCookies();
+        var user = await client.SignInAsUserAsync(factory, password);
+        var review = await CreateReviewAsync(subject.Id, user.Id, "Owner Review");
+
+        var deleteResponse = await client.DeleteAsync($"/api/reviews/{review.Id}");
+        Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
+
+        var getResponse = await client.GetAsync($"/api/reviews/{review.Id}");
+
+        Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
+        var json = await getResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.False(json.GetProperty("success").GetBoolean());
+        Assert.Equal("REVIEW_NOT_FOUND", json.GetProperty("error").GetProperty("code").GetString());
+    }
+
     private async Task<Subject> CreateSubjectAsync()
     {
         using var scope = factory.Services.CreateScope();
