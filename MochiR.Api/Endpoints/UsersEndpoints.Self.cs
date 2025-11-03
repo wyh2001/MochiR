@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 
 namespace MochiR.Api.Endpoints
 {
@@ -24,24 +25,31 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(ToSelfProfile(user), httpContext);
             }).WithOpenApi();
 
-            selfGroup.MapPatch("/", async (JsonObject? payload, UserManager<ApplicationUser> userManager, HttpContext httpContext) =>
+            selfGroup.MapPatch("/", async (SelfProfilePatchRequestDto dto, UserManager<ApplicationUser> userManager, HttpContext httpContext) =>
             {
-                payload ??= new JsonObject();
-
                 var user = await GetCurrentUserAsync(userManager, httpContext);
                 if (user is null)
                 {
                     return SelfNotFound(httpContext);
                 }
 
-                if (!TryApplyString(payload, "displayName", value => user.DisplayName = value) ||
-                    !TryApplyString(payload, "avatarUrl", value => user.AvatarUrl = value))
+                if (!dto.IsValid)
                 {
                     return ApiResults.Failure(
                         "SELF_INVALID_PAYLOAD",
                         "One or more fields are invalid.",
                         httpContext,
                         StatusCodes.Status400BadRequest);
+                }
+
+                if (dto.DisplayNameSpecified)
+                {
+                    user.DisplayName = dto.DisplayName;
+                }
+
+                if (dto.AvatarUrlSpecified)
+                {
+                    user.AvatarUrl = dto.AvatarUrl;
                 }
 
                 var updateResult = await userManager.UpdateAsync(user);
@@ -98,5 +106,58 @@ namespace MochiR.Api.Endpoints
             bool LockoutEnabled,
             DateTimeOffset? LockoutEnd,
             DateTime CreatedAtUtc);
+
+        private sealed record SelfProfilePatchRequestDto
+        {
+            public string? DisplayName { get; init; }
+            public string? AvatarUrl { get; init; }
+
+            [JsonIgnore]
+            public bool DisplayNameSpecified { get; init; }
+
+            [JsonIgnore]
+            public bool AvatarUrlSpecified { get; init; }
+
+            [JsonIgnore]
+            public bool IsValid { get; init; }
+
+            public static async ValueTask<SelfProfilePatchRequestDto?> BindAsync(HttpContext context)
+            {
+                var payload = await context.Request.ReadFromJsonAsync<JsonObject>(cancellationToken: context.RequestAborted) ?? new JsonObject();
+
+                var isValid = true;
+
+                string? displayName = null;
+                var displaySpecified = false;
+                if (TryGetNode(payload, "displayName", out var displayNode))
+                {
+                    displaySpecified = true;
+                    if (!TryReadTrimmedString(displayNode, out displayName))
+                    {
+                        isValid = false;
+                    }
+                }
+
+                string? avatarUrl = null;
+                var avatarSpecified = false;
+                if (TryGetNode(payload, "avatarUrl", out var avatarNode))
+                {
+                    avatarSpecified = true;
+                    if (!TryReadTrimmedString(avatarNode, out avatarUrl))
+                    {
+                        isValid = false;
+                    }
+                }
+
+                return new SelfProfilePatchRequestDto
+                {
+                    DisplayName = displayName,
+                    AvatarUrl = avatarUrl,
+                    DisplayNameSpecified = displaySpecified,
+                    AvatarUrlSpecified = avatarSpecified,
+                    IsValid = isValid
+                };
+            }
+        }
     }
 }
