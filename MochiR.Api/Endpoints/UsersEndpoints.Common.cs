@@ -65,6 +65,57 @@ namespace MochiR.Api.Endpoints
         }
 
         /// <summary>
+        /// Reads an optional string property from the payload, accepting explicit nulls.
+        /// </summary>
+        private static bool TryReadOptionalString(JsonObject payload, string key, out string? value, out bool specified)
+        {
+            value = null;
+            specified = false;
+
+            if (!TryGetNode(payload, key, out var node))
+            {
+                return true;
+            }
+
+            specified = true;
+            if (TryReadTrimmedString(node, out var parsed))
+            {
+                value = parsed;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Reads an optional boolean property from the payload, ignoring explicit nulls.
+        /// </summary>
+        private static bool TryReadOptionalBool(JsonObject payload, string key, out bool? value, out bool specified)
+        {
+            value = null;
+            specified = false;
+
+            if (!TryGetNode(payload, key, out var node))
+            {
+                return true;
+            }
+
+            if (node is null || node.GetValueKind() == JsonValueKind.Null)
+            {
+                return true;
+            }
+
+            if (node is JsonValue valueNode && valueNode.TryGetValue<bool>(out var parsed))
+            {
+                value = parsed;
+                specified = true;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Attempts to fetch a property value using camelCase or PascalCase naming.
         /// </summary>
         private static bool TryGetNode(JsonObject payload, string key, out JsonNode? node)

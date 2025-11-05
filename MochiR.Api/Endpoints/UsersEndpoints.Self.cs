@@ -129,26 +129,14 @@ namespace MochiR.Api.Endpoints
 
                 var isValid = true;
 
-                string? displayName = null;
-                var displaySpecified = false;
-                if (TryGetNode(payload, "displayName", out var displayNode))
+                if (!TryReadOptionalString(payload, "displayName", out var displayName, out var displaySpecified))
                 {
-                    displaySpecified = true;
-                    if (!TryReadTrimmedString(displayNode, out displayName))
-                    {
-                        isValid = false;
-                    }
+                    isValid = false;
                 }
 
-                string? avatarUrl = null;
-                var avatarSpecified = false;
-                if (TryGetNode(payload, "avatarUrl", out var avatarNode))
+                if (!TryReadOptionalString(payload, "avatarUrl", out var avatarUrl, out var avatarSpecified))
                 {
-                    avatarSpecified = true;
-                    if (!TryReadTrimmedString(avatarNode, out avatarUrl))
-                    {
-                        isValid = false;
-                    }
+                    isValid = false;
                 }
 
                 return new SelfProfilePatchRequestDto

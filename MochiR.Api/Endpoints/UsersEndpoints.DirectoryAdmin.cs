@@ -544,93 +544,39 @@ namespace MochiR.Api.Endpoints
 
                 var isValid = true;
 
-                string? displayName = null;
-                var displaySpecified = false;
-                if (TryGetNode(payload, "displayName", out var displayNode))
+                if (!TryReadOptionalString(payload, "displayName", out var displayName, out var displaySpecified))
                 {
-                    displaySpecified = true;
-                    if (!TryReadTrimmedString(displayNode, out displayName))
-                    {
-                        isValid = false;
-                    }
+                    isValid = false;
                 }
 
-                string? avatarUrl = null;
-                var avatarSpecified = false;
-                if (TryGetNode(payload, "avatarUrl", out var avatarNode))
+                if (!TryReadOptionalString(payload, "avatarUrl", out var avatarUrl, out var avatarSpecified))
                 {
-                    avatarSpecified = true;
-                    if (!TryReadTrimmedString(avatarNode, out avatarUrl))
-                    {
-                        isValid = false;
-                    }
+                    isValid = false;
                 }
 
-                string? phoneNumber = null;
-                var phoneSpecified = false;
-                if (TryGetNode(payload, "phoneNumber", out var phoneNode))
+                if (!TryReadOptionalString(payload, "phoneNumber", out var phoneNumber, out var phoneSpecified))
                 {
-                    phoneSpecified = true;
-                    if (!TryReadTrimmedString(phoneNode, out phoneNumber))
-                    {
-                        isValid = false;
-                    }
+                    isValid = false;
                 }
 
-                string? email = null;
-                var emailSpecified = false;
-                if (TryGetNode(payload, "email", out var emailNode))
+                if (!TryReadOptionalString(payload, "email", out var email, out var emailSpecified))
                 {
-                    emailSpecified = true;
-                    if (!TryReadTrimmedString(emailNode, out email))
-                    {
-                        isValid = false;
-                    }
+                    isValid = false;
                 }
 
-                bool? emailConfirmed = null;
-                var emailConfirmedSpecified = false;
-                if (TryGetNode(payload, "emailConfirmed", out var emailConfirmedNode))
+                if (!TryReadOptionalBool(payload, "emailConfirmed", out var emailConfirmed, out var emailConfirmedSpecified))
                 {
-                    if (emailConfirmedNode is JsonValue emailConfirmedValue && emailConfirmedValue.TryGetValue<bool>(out var flag))
-                    {
-                        emailConfirmed = flag;
-                        emailConfirmedSpecified = true;
-                    }
-                    else if (emailConfirmedNode is not null && emailConfirmedNode.GetValueKind() != JsonValueKind.Null)
-                    {
-                        isValid = false;
-                    }
+                    isValid = false;
                 }
 
-                bool? phoneNumberConfirmed = null;
-                var phoneConfirmedSpecified = false;
-                if (TryGetNode(payload, "phoneNumberConfirmed", out var phoneConfirmedNode))
+                if (!TryReadOptionalBool(payload, "phoneNumberConfirmed", out var phoneNumberConfirmed, out var phoneConfirmedSpecified))
                 {
-                    if (phoneConfirmedNode is JsonValue phoneConfirmedValue && phoneConfirmedValue.TryGetValue<bool>(out var flag))
-                    {
-                        phoneNumberConfirmed = flag;
-                        phoneConfirmedSpecified = true;
-                    }
-                    else if (phoneConfirmedNode is not null && phoneConfirmedNode.GetValueKind() != JsonValueKind.Null)
-                    {
-                        isValid = false;
-                    }
+                    isValid = false;
                 }
 
-                bool? twoFactorEnabled = null;
-                var twoFactorSpecified = false;
-                if (TryGetNode(payload, "twoFactorEnabled", out var twoFactorNode))
+                if (!TryReadOptionalBool(payload, "twoFactorEnabled", out var twoFactorEnabled, out var twoFactorSpecified))
                 {
-                    if (twoFactorNode is JsonValue twoFactorValue && twoFactorValue.TryGetValue<bool>(out var flag))
-                    {
-                        twoFactorEnabled = flag;
-                        twoFactorSpecified = true;
-                    }
-                    else if (twoFactorNode is not null && twoFactorNode.GetValueKind() != JsonValueKind.Null)
-                    {
-                        isValid = false;
-                    }
+                    isValid = false;
                 }
 
                 List<string> roles;
