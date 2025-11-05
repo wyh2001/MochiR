@@ -1,10 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
+using MochiR.Api.Infrastructure.Validation;
 
 namespace MochiR.Api.Endpoints
 {
-    public static class CriteriaTemplatesEndpoints
+    public static partial class CriteriaTemplatesEndpoints
     {
         public static void MapCriteriaTemplatesEndpoints(this IEndpointRouteBuilder routes)
         {
@@ -33,15 +34,6 @@ namespace MochiR.Api.Endpoints
 
             group.MapPost("/", async (CreateCriteriaTemplateDto dto, ApplicationDbContext db, HttpContext httpContext, CancellationToken cancellationToken) =>
             {
-                if (string.IsNullOrWhiteSpace(dto.Key) || string.IsNullOrWhiteSpace(dto.DisplayName))
-                {
-                    return ApiResults.Failure(
-                        "CRITERIA_TEMPLATE_INVALID_INPUT",
-                        "Key and DisplayName are required.",
-                        httpContext,
-                        StatusCodes.Status400BadRequest);
-                }
-
                 var subjectTypeExists = await db.SubjectTypes.AnyAsync(st => st.Id == dto.SubjectTypeId, cancellationToken);
                 if (!subjectTypeExists)
                 {
@@ -84,7 +76,11 @@ namespace MochiR.Api.Endpoints
                     $"/api/criteria-templates/{template.Id}",
                     payload,
                     httpContext);
-            }).RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
+            })
+            .AddValidation<CreateCriteriaTemplateDto>(
+                "CRITERIA_TEMPLATE_INVALID_INPUT",
+                "Key and display name are required.")
+            .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
 
             group.MapGet("/{id:int}", async (int id, ApplicationDbContext db, HttpContext httpContext, CancellationToken cancellationToken) =>
             {
@@ -115,7 +111,7 @@ namespace MochiR.Api.Endpoints
             }).WithOpenApi();
         }
 
-        private record CreateCriteriaTemplateDto(int SubjectTypeId, string Key, string DisplayName, bool IsRequired);
+        internal record CreateCriteriaTemplateDto(int SubjectTypeId, string Key, string DisplayName, bool IsRequired);
         private record CriteriaTemplateSummaryDto(int Id, int SubjectTypeId, string Key, string DisplayName, bool IsRequired);
         private record CriteriaTemplateDetailDto(int Id, int SubjectTypeId, string? SubjectTypeKey, string? SubjectTypeDisplayName, string Key, string DisplayName, bool IsRequired);
     }

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
+using MochiR.Api.Infrastructure.Validation;
 
 namespace MochiR.Api.Endpoints
 {
@@ -17,15 +18,6 @@ namespace MochiR.Api.Endpoints
                 if (user is null)
                 {
                     return SelfNotFound(httpContext);
-                }
-
-                if (string.IsNullOrWhiteSpace(dto.CurrentPassword) || string.IsNullOrWhiteSpace(dto.NewPassword))
-                {
-                    return ApiResults.Failure(
-                        "SELF_PASSWORD_INVALID_PAYLOAD",
-                        "Current and new passwords are required.",
-                        httpContext,
-                        StatusCodes.Status400BadRequest);
                 }
 
                 var changeResult = await userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
@@ -52,10 +44,14 @@ namespace MochiR.Api.Endpoints
 
                 var refreshed = await userManager.FindByIdAsync(user.Id) ?? user;
                 return ApiResults.Ok(ToSelfProfile(refreshed), httpContext);
-            }).WithOpenApi();
+            })
+            .AddValidation<SelfPasswordChangeRequestDto>(
+                "SELF_PASSWORD_INVALID_PAYLOAD",
+                "Current and new passwords are required.")
+            .WithOpenApi();
         }
 
-        private sealed record SelfPasswordChangeRequestDto
+        internal sealed record SelfPasswordChangeRequestDto
         {
             public required string CurrentPassword { get; init; }
             public required string NewPassword { get; init; }

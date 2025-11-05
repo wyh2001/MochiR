@@ -2,11 +2,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
+using MochiR.Api.Infrastructure.Validation;
 using System.Security.Claims;
 
 namespace MochiR.Api.Endpoints
 {
-    public static class ReviewsEndpoints
+    public static partial class ReviewsEndpoints
     {
         public static void MapReviewsEndpoints(this IEndpointRouteBuilder routes)
         {
@@ -110,7 +111,11 @@ namespace MochiR.Api.Endpoints
                     review.CreatedAt);
 
                 return ApiResults.Created($"/api/reviews/{review.Id}", payload, httpContext);
-            }).RequireAuthorization().WithOpenApi();
+            })
+            .AddValidation<CreateReviewDto>(
+                "REVIEW_INVALID_INPUT",
+                "One or more fields are invalid.")
+            .RequireAuthorization().WithOpenApi();
 
             group.MapPut("/{id:long}", async (
                 long id,
@@ -129,15 +134,6 @@ namespace MochiR.Api.Endpoints
                         "User is not authenticated.",
                         httpContext,
                         StatusCodes.Status401Unauthorized);
-                }
-
-                if (string.IsNullOrWhiteSpace(dto.Title))
-                {
-                    return ApiResults.Failure(
-                        "REVIEW_INVALID_INPUT",
-                        "Title is required.",
-                        httpContext,
-                        StatusCodes.Status400BadRequest);
                 }
 
                 var review = await db.Reviews.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
@@ -182,7 +178,11 @@ namespace MochiR.Api.Endpoints
                     review.CreatedAt);
 
                 return ApiResults.Ok(payload, httpContext);
-            }).RequireAuthorization().WithOpenApi();
+            })
+            .AddValidation<UpdateReviewDto>(
+                "REVIEW_INVALID_INPUT",
+                "One or more fields are invalid.")
+            .RequireAuthorization().WithOpenApi();
 
             group.MapDelete("/{id:long}", async (
                 long id,
@@ -279,13 +279,13 @@ namespace MochiR.Api.Endpoints
             }).WithOpenApi();
         }
 
-        private record CreateReviewDto(int SubjectId, string? Title, string? Content, IReadOnlyList<ReviewRatingDto>? Ratings);
+        internal record CreateReviewDto(int SubjectId, string? Title, string? Content, IReadOnlyList<ReviewRatingDto>? Ratings);
         private record ReviewSummaryDto(long Id, int SubjectId, string UserId, string? Title, string? Content, ReviewStatus Status, DateTime CreatedAt);
-        private record UpdateReviewDto(string Title, string? Content, IReadOnlyList<ReviewRatingDto>? Ratings);
+        internal record UpdateReviewDto(string Title, string? Content, IReadOnlyList<ReviewRatingDto>? Ratings);
         private record ReviewDetailDto(long Id, int SubjectId, string? SubjectName, string? SubjectSlug, string UserId, string? UserName, string? Title, string? Content, IReadOnlyList<ReviewRatingDto> Ratings, ReviewStatus Status, DateTime CreatedAt, DateTime UpdatedAt, IReadOnlyList<ReviewMediaDto> Media);
         private record ReviewMediaDto(long Id, string Url, MediaType Type, IReadOnlyList<ReviewMediaMetadataDto> Metadata);
         private record ReviewMediaMetadataDto(string Key, string? Value, string? Note);
-        private record ReviewRatingDto(string Key, decimal Score, string? Label);
+        internal record ReviewRatingDto(string Key, decimal Score, string? Label);
         private record ReviewDeleteResultDto(long Id, bool Deleted);
     }
 }

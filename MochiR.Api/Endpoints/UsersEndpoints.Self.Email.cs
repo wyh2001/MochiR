@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
+using MochiR.Api.Infrastructure.Validation;
 using MochiR.Api.Services.Email;
 using System.Net.Mail;
 
@@ -126,15 +127,7 @@ namespace MochiR.Api.Endpoints
                     return SelfNotFound(httpContext);
                 }
 
-                var token = dto.Token?.Trim();
-                if (string.IsNullOrWhiteSpace(token))
-                {
-                    return ApiResults.Failure(
-                        "SELF_EMAIL_TOKEN_REQUIRED",
-                        "A valid token is required.",
-                        httpContext,
-                        StatusCodes.Status400BadRequest);
-                }
+                var token = dto.Token.Trim();
 
                 var targetEmail = dto.Email?.Trim();
                 IdentityResult operationResult;
@@ -200,7 +193,11 @@ namespace MochiR.Api.Endpoints
 
                 var refreshed = await userManager.FindByIdAsync(user.Id) ?? user;
                 return ApiResults.Ok(ToSelfProfile(refreshed), httpContext);
-            }).WithOpenApi();
+            })
+            .AddValidation<SelfEmailConfirmRequestDto>(
+                "SELF_EMAIL_TOKEN_REQUIRED",
+                "A valid token is required.")
+            .WithOpenApi();
         }
 
         private static bool IsValidEmail(string value)
@@ -230,7 +227,7 @@ namespace MochiR.Api.Endpoints
 
         private sealed record SelfEmailTokenDispatchResponseDto(string UserId, string Email, string Purpose);
 
-        private sealed record SelfEmailConfirmRequestDto
+        internal sealed record SelfEmailConfirmRequestDto
         {
             public string? Email { get; init; }
             public required string Token { get; init; }

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
+using MochiR.Api.Infrastructure.Validation;
 using static MochiR.Api.Dtos.AuthDtos;
 namespace MochiR.Api.Endpoints
 {
@@ -38,7 +39,11 @@ namespace MochiR.Api.Endpoints
                     httpContext,
                     StatusCodes.Status400BadRequest,
                     details);
-            });
+            })
+            .AddValidation<RegisterDto>(
+                "AUTH_REGISTER_INVALID",
+                "User name, email, and password are required.")
+            .WithOpenApi();
 
             group.MapPost("/login", async (
                 LoginDto loginDto,
@@ -84,7 +89,11 @@ namespace MochiR.Api.Endpoints
                     "Invalid username or password.",
                     httpContext,
                     StatusCodes.Status400BadRequest);
-            });
+            })
+            .AddValidation<LoginDto>(
+                "AUTH_LOGIN_INVALID",
+                "User name or email and password are required.")
+            .WithOpenApi();
 
             group.MapPost("/logout", async (SignInManager<ApplicationUser> signInManager, HttpContext httpContext) =>
             {

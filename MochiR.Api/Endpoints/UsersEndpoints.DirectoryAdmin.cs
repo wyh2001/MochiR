@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
+using MochiR.Api.Infrastructure.Validation;
 using System.Text.Json.Serialization;
 
 namespace MochiR.Api.Endpoints
@@ -155,7 +156,11 @@ namespace MochiR.Api.Endpoints
 
                 var detail = await BuildAdminDetailAsync(userManager, user.Id);
                 return ApiResults.Created($"/api/users/{user.Id}", detail, httpContext);
-            }).WithOpenApi();
+            })
+            .AddValidation<CreateUserDto>(
+                "USER_CREATE_INVALID_PAYLOAD",
+                "User name, email, and password are required.")
+            .WithOpenApi();
 
             adminGroup.MapPatch("/{id}", async (
                 string id,
@@ -255,6 +260,9 @@ namespace MochiR.Api.Endpoints
             .WithMetadata(new InvalidPayloadMetadata(
                 "USER_INVALID_PAYLOAD",
                 "One or more fields are invalid."))
+            .AddValidation<DirectoryAdminPatchRequestDto>(
+                "USER_INVALID_PAYLOAD",
+                "One or more fields are invalid.")
             .WithOpenApi();
 
             adminGroup.MapPost("/{id}/lock", async (
@@ -438,7 +446,7 @@ namespace MochiR.Api.Endpoints
 
         private record UserDirectoryResponseDto(DirectoryUserDetailDto Public, SensitiveUserInfoDto? Sensitive);
 
-        private sealed record CreateUserDto
+        internal sealed record CreateUserDto
         {
             public required string UserName { get; init; }
             public required string Email { get; init; }
@@ -459,7 +467,7 @@ namespace MochiR.Api.Endpoints
 
         private record UserDeleteResponseDto(string UserId, bool IsDeleted);
 
-        private sealed record DirectoryAdminPatchRequestDto
+        internal sealed record DirectoryAdminPatchRequestDto
         {
             [JsonConverter(typeof(OptionalConverterFactory))]
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]

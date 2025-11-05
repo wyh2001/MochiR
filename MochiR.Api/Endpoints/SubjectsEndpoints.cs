@@ -1,10 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
+using MochiR.Api.Infrastructure.Validation;
 
 namespace MochiR.Api.Endpoints
 {
-    public static class SubjectsEndpoints
+    public static partial class SubjectsEndpoints
     {
         public static void MapSubjectsEndpoints(this IEndpointRouteBuilder routes)
         {
@@ -28,15 +29,6 @@ namespace MochiR.Api.Endpoints
 
             group.MapPost("/", async (CreateSubjectDto dto, ApplicationDbContext db, HttpContext httpContext, CancellationToken ct) =>
             {
-                if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Slug))
-                {
-                    return ApiResults.Failure(
-                        "SUBJECT_INVALID_INPUT",
-                        "Name and Slug are required.",
-                        httpContext,
-                        StatusCodes.Status400BadRequest);
-                }
-
                 var subjectTypeExists = await db.SubjectTypes.AnyAsync(st => st.Id == dto.SubjectTypeId, ct);
                 if (!subjectTypeExists)
                 {
@@ -78,7 +70,11 @@ namespace MochiR.Api.Endpoints
 
                 var payload = new SubjectSummaryDto(subject.Id, subject.Name, subject.Slug, subject.SubjectTypeId);
                 return ApiResults.Created($"/api/subjects/{subject.Id}", payload, httpContext);
-            }).RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
+            })
+            .AddValidation<CreateSubjectDto>(
+                "SUBJECT_INVALID_INPUT",
+                "Name and Slug are required.")
+            .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
 
             group.MapGet("/{id:int}", async (int id, ApplicationDbContext db, HttpContext httpContext, CancellationToken cancellationToken) =>
             {
@@ -111,15 +107,6 @@ namespace MochiR.Api.Endpoints
 
             group.MapPut("/{id:int}", async (int id, UpdateSubjectDto dto, ApplicationDbContext db, HttpContext httpContext, CancellationToken ct) =>
             {
-                if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Slug))
-                {
-                    return ApiResults.Failure(
-                        "SUBJECT_INVALID_INPUT",
-                        "Name and Slug are required.",
-                        httpContext,
-                        StatusCodes.Status400BadRequest);
-                }
-
                 var subject = await db.Subjects
                     .Include(s => s.Attributes)
                     .FirstOrDefaultAsync(s => s.Id == id, ct);
@@ -172,7 +159,11 @@ namespace MochiR.Api.Endpoints
 
                 var payload = new SubjectSummaryDto(subject.Id, subject.Name, subject.Slug, subject.SubjectTypeId);
                 return ApiResults.Ok(payload, httpContext);
-            }).RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
+            })
+            .AddValidation<UpdateSubjectDto>(
+                "SUBJECT_INVALID_INPUT",
+                "Name and Slug are required.")
+            .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
 
             group.MapDelete("/{id:int}", async (int id, ApplicationDbContext db, HttpContext httpContext, CancellationToken ct) =>
             {
@@ -211,9 +202,9 @@ namespace MochiR.Api.Endpoints
             }).RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
         }
 
-        private record SubjectAttributeDto(string Key, string? Value, string? Note);
-        private record CreateSubjectDto(string Name, string Slug, int SubjectTypeId, IReadOnlyList<SubjectAttributeDto>? Attributes);
-        private record UpdateSubjectDto(string Name, string Slug, int SubjectTypeId, IReadOnlyList<SubjectAttributeDto>? Attributes);
+        internal record SubjectAttributeDto(string Key, string? Value, string? Note);
+        internal record CreateSubjectDto(string Name, string Slug, int SubjectTypeId, IReadOnlyList<SubjectAttributeDto>? Attributes);
+        internal record UpdateSubjectDto(string Name, string Slug, int SubjectTypeId, IReadOnlyList<SubjectAttributeDto>? Attributes);
         private record SubjectSummaryDto(int Id, string Name, string Slug, int SubjectTypeId);
         private record SubjectDetailDto(int Id, string Name, string Slug, int SubjectTypeId, string? SubjectTypeKey, string? SubjectTypeDisplayName, IReadOnlyList<SubjectAttributeDto> Attributes, DateTime CreatedAt);
         private record SubjectDeleteResultDto(int Id, bool Deleted);

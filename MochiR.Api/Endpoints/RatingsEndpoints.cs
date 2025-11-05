@@ -1,10 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
+using MochiR.Api.Infrastructure.Validation;
 
 namespace MochiR.Api.Endpoints
 {
-    public static class RatingsEndpoints
+    public static partial class RatingsEndpoints
     {
         public static void MapRatingsEndpoints(this IEndpointRouteBuilder routes)
         {
@@ -57,24 +58,6 @@ namespace MochiR.Api.Endpoints
                         StatusCodes.Status404NotFound);
                 }
 
-                if (dto.CountReviews < 0)
-                {
-                    return ApiResults.Failure(
-                        "RATINGS_INVALID_COUNT",
-                        "CountReviews cannot be negative.",
-                        httpContext,
-                        StatusCodes.Status400BadRequest);
-                }
-
-                if (dto.AvgOverall < 0 || dto.AvgOverall > 5)
-                {
-                    return ApiResults.Failure(
-                        "RATINGS_INVALID_AVERAGE",
-                        "AvgOverall must be between 0 and 5.",
-                        httpContext,
-                        StatusCodes.Status400BadRequest);
-                }
-
                 var aggregate = await db.Aggregates.FirstOrDefaultAsync(a => a.SubjectId == subjectId, cancellationToken);
 
                 if (aggregate is null)
@@ -119,11 +102,15 @@ namespace MochiR.Api.Endpoints
                     aggregate.UpdatedAt);
 
                 return ApiResults.Ok(payload, httpContext);
-            }).RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
+            })
+            .AddValidation<UpsertAggregateDto>(
+                "RATINGS_INVALID_PAYLOAD",
+                "Aggregate payload is invalid.")
+            .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
         }
 
         private record SubjectAggregateDto(int SubjectId, int CountReviews, decimal AvgOverall, IReadOnlyList<AggregateMetricDto> Metrics, DateTime UpdatedAt);
-        private record UpsertAggregateDto(int CountReviews, decimal AvgOverall, IReadOnlyList<AggregateMetricDto>? Metrics);
-        private record AggregateMetricDto(string Key, decimal? Value, int? Count, string? Note);
+        internal record UpsertAggregateDto(int CountReviews, decimal AvgOverall, IReadOnlyList<AggregateMetricDto>? Metrics);
+        internal record AggregateMetricDto(string Key, decimal? Value, int? Count, string? Note);
     }
 }

@@ -1,4 +1,5 @@
 using DotNext.Text.Json;
+using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MochiR.Api.Endpoints;
@@ -38,6 +39,7 @@ builder.Services.AddIdentityApiEndpoints<ApplicationUser>(options =>
 builder.Services.AddSingleton<IEmailSender, ConsoleEmailSender>();
 builder.Services.AddSingleton<IIdentityEmailComposer, DefaultIdentityEmailComposer>();
 builder.Services.Configure<IdentityEmailOptions>(builder.Configuration.GetSection("IdentityEmail"));
+builder.Services.AddValidatorsFromAssemblyContaining<Program>(includeInternalTypes: true);
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {

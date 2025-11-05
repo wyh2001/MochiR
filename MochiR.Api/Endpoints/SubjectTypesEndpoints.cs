@@ -1,10 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
+using MochiR.Api.Infrastructure.Validation;
 
 namespace MochiR.Api.Endpoints
 {
-    public static class SubjectTypesEndpoints
+    public static partial class SubjectTypesEndpoints
     {
         public static void MapSubjectTypesEndpoints(this IEndpointRouteBuilder routes)
         {
@@ -23,15 +24,6 @@ namespace MochiR.Api.Endpoints
 
             group.MapPost("/", async (CreateSubjectTypeDto dto, ApplicationDbContext db, HttpContext httpContext, CancellationToken ct) =>
             {
-                if (string.IsNullOrWhiteSpace(dto.Key) || string.IsNullOrWhiteSpace(dto.DisplayName))
-                {
-                    return ApiResults.Failure(
-                        "SUBJECT_TYPE_INVALID_INPUT",
-                        "Key and DisplayName are required.",
-                        httpContext,
-                        StatusCodes.Status400BadRequest);
-                }
-
                 var normalizedKey = dto.Key.Trim();
                 var normalizedDisplayName = dto.DisplayName.Trim();
 
@@ -64,19 +56,14 @@ namespace MochiR.Api.Endpoints
 
                 var payload = new SubjectTypeSummaryDto(subjectType.Id, subjectType.Key, subjectType.DisplayName);
                 return ApiResults.Created($"/api/subject-types/{subjectType.Id}", payload, httpContext);
-            }).RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
+            })
+            .AddValidation<CreateSubjectTypeDto>(
+                "SUBJECT_TYPE_INVALID_INPUT",
+                "Key and display name are required.")
+            .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
 
             group.MapPut("/{id:int}", async (int id, UpdateSubjectTypeDto dto, ApplicationDbContext db, HttpContext httpContext, CancellationToken ct) =>
             {
-                if (string.IsNullOrWhiteSpace(dto.Key) || string.IsNullOrWhiteSpace(dto.DisplayName))
-                {
-                    return ApiResults.Failure(
-                        "SUBJECT_TYPE_INVALID_INPUT",
-                        "Key and DisplayName are required.",
-                        httpContext,
-                        StatusCodes.Status400BadRequest);
-                }
-
                 var subjectType = await db.SubjectTypes
                     .Include(st => st.Settings)
                     .FirstOrDefaultAsync(st => st.Id == id, ct);
@@ -118,7 +105,11 @@ namespace MochiR.Api.Endpoints
 
                 var payload = new SubjectTypeSummaryDto(subjectType.Id, subjectType.Key, subjectType.DisplayName);
                 return ApiResults.Ok(payload, httpContext);
-            }).RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
+            })
+            .AddValidation<UpdateSubjectTypeDto>(
+                "SUBJECT_TYPE_INVALID_INPUT",
+                "Key and display name are required.")
+            .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
 
             group.MapDelete("/{id:int}", async (int id, ApplicationDbContext db, HttpContext httpContext, CancellationToken ct) =>
             {
@@ -151,9 +142,9 @@ namespace MochiR.Api.Endpoints
             }).RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
         }
 
-        private record SubjectTypeSettingDto(string Key, string? Value, string? Note);
-        private record CreateSubjectTypeDto(string Key, string DisplayName, IReadOnlyList<SubjectTypeSettingDto>? Settings);
-        private record UpdateSubjectTypeDto(string Key, string DisplayName, IReadOnlyList<SubjectTypeSettingDto>? Settings);
+        internal record SubjectTypeSettingDto(string Key, string? Value, string? Note);
+        internal record CreateSubjectTypeDto(string Key, string DisplayName, IReadOnlyList<SubjectTypeSettingDto>? Settings);
+        internal record UpdateSubjectTypeDto(string Key, string DisplayName, IReadOnlyList<SubjectTypeSettingDto>? Settings);
         private record SubjectTypeSummaryDto(int Id, string Key, string DisplayName);
         private record SubjectTypeDeleteResultDto(int Id, bool Deleted);
     }
