@@ -64,7 +64,9 @@ namespace MochiR.Api.Endpoints
                 }
 
                 return ApiResults.Ok(ToSelfProfile(user), httpContext);
-            }).WithOpenApi();
+            })
+            .Accepts<SelfProfilePatchRequestDto>("application/json")
+            .WithOpenApi();
 
             MapSelfPasswordEndpoints(selfGroup);
             MapSelfEmailEndpoints(selfGroup);

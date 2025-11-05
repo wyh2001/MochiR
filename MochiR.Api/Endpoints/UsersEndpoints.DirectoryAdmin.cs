@@ -269,7 +269,9 @@ namespace MochiR.Api.Endpoints
 
                 var detail = await BuildAdminDetailAsync(userManager, user.Id);
                 return ApiResults.Ok(detail, httpContext);
-            }).WithOpenApi();
+            })
+            .Accepts<DirectoryAdminPatchRequestDto>("application/json")
+            .WithOpenApi();
 
             adminGroup.MapPost("/{id}/lock", async (
                 string id, LockUserRequestDto dto,
