@@ -1,7 +1,8 @@
+using DotNext;
+using DotNext.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
-using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace MochiR.Api.Endpoints
@@ -33,24 +34,8 @@ namespace MochiR.Api.Endpoints
                     return SelfNotFound(httpContext);
                 }
 
-                if (!dto.IsValid)
-                {
-                    return ApiResults.Failure(
-                        "SELF_INVALID_PAYLOAD",
-                        "One or more fields are invalid.",
-                        httpContext,
-                        StatusCodes.Status400BadRequest);
-                }
-
-                if (dto.DisplayNameSpecified)
-                {
-                    user.DisplayName = dto.DisplayName;
-                }
-
-                if (dto.AvatarUrlSpecified)
-                {
-                    user.AvatarUrl = dto.AvatarUrl;
-                }
+                ApplyOptionalTrimmedString(dto.DisplayName, value => user.DisplayName = value);
+                ApplyOptionalTrimmedString(dto.AvatarUrl, value => user.AvatarUrl = value);
 
                 var updateResult = await userManager.UpdateAsync(user);
                 if (!updateResult.Succeeded)
@@ -66,6 +51,9 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(ToSelfProfile(user), httpContext);
             })
             .Accepts<SelfProfilePatchRequestDto>("application/json")
+            .WithMetadata(new InvalidPayloadMetadata(
+                "SELF_INVALID_PAYLOAD",
+                "One or more fields are invalid."))
             .WithOpenApi();
 
             MapSelfPasswordEndpoints(selfGroup);
@@ -111,43 +99,13 @@ namespace MochiR.Api.Endpoints
 
         private sealed record SelfProfilePatchRequestDto
         {
-            public string? DisplayName { get; init; }
-            public string? AvatarUrl { get; init; }
+            [JsonConverter(typeof(OptionalConverterFactory))]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+            public Optional<string?> DisplayName { get; init; }
 
-            [JsonIgnore]
-            public bool DisplayNameSpecified { get; init; }
-
-            [JsonIgnore]
-            public bool AvatarUrlSpecified { get; init; }
-
-            [JsonIgnore]
-            public bool IsValid { get; init; }
-
-            public static async ValueTask<SelfProfilePatchRequestDto?> BindAsync(HttpContext context)
-            {
-                var payload = await context.Request.ReadFromJsonAsync<JsonObject>(cancellationToken: context.RequestAborted) ?? new JsonObject();
-
-                var isValid = true;
-
-                if (!TryReadOptionalString(payload, "displayName", out var displayName, out var displaySpecified))
-                {
-                    isValid = false;
-                }
-
-                if (!TryReadOptionalString(payload, "avatarUrl", out var avatarUrl, out var avatarSpecified))
-                {
-                    isValid = false;
-                }
-
-                return new SelfProfilePatchRequestDto
-                {
-                    DisplayName = displayName,
-                    AvatarUrl = avatarUrl,
-                    DisplayNameSpecified = displaySpecified,
-                    AvatarUrlSpecified = avatarSpecified,
-                    IsValid = isValid
-                };
-            }
+            [JsonConverter(typeof(OptionalConverterFactory))]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+            public Optional<string?> AvatarUrl { get; init; }
         }
     }
 }

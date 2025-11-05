@@ -1,3 +1,4 @@
+using DotNext.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MochiR.Api.Endpoints;
@@ -37,6 +38,12 @@ builder.Services.AddIdentityApiEndpoints<ApplicationUser>(options =>
 builder.Services.AddSingleton<IEmailSender, ConsoleEmailSender>();
 builder.Services.AddSingleton<IIdentityEmailComposer, DefaultIdentityEmailComposer>();
 builder.Services.Configure<IdentityEmailOptions>(builder.Configuration.GetSection("IdentityEmail"));
+
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new OptionalConverterFactory());
+    options.SerializerOptions.PropertyNameCaseInsensitive = true;
+});
 
 var app = builder.Build();
 

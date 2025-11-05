@@ -1,9 +1,9 @@
+using DotNext;
+using DotNext.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace MochiR.Api.Endpoints
@@ -173,51 +173,18 @@ namespace MochiR.Api.Endpoints
                         StatusCodes.Status404NotFound);
                 }
 
-                IResult InvalidPayload() => ApiResults.Failure(
-                    "USER_INVALID_PAYLOAD",
-                    "One or more fields are invalid.",
-                    httpContext,
-                    StatusCodes.Status400BadRequest);
+                ApplyOptionalTrimmedString(dto.DisplayName, value => user.DisplayName = value);
+                ApplyOptionalTrimmedString(dto.AvatarUrl, value => user.AvatarUrl = value);
+                ApplyOptionalTrimmedString(dto.PhoneNumber, value => user.PhoneNumber = value);
 
-                if (!dto.IsValid)
+                if (dto.Email.TryGet(out var emailValue))
                 {
-                    return InvalidPayload();
+                    user.Email = emailValue.Trim();
                 }
 
-                if (dto.DisplayNameSpecified)
-                {
-                    user.DisplayName = dto.DisplayName;
-                }
-
-                if (dto.AvatarUrlSpecified)
-                {
-                    user.AvatarUrl = dto.AvatarUrl;
-                }
-
-                if (dto.PhoneNumberSpecified)
-                {
-                    user.PhoneNumber = dto.PhoneNumber;
-                }
-
-                if (dto.EmailSpecified && dto.Email is not null)
-                {
-                    user.Email = dto.Email;
-                }
-
-                if (dto.EmailConfirmedSpecified && dto.EmailConfirmed is not null)
-                {
-                    user.EmailConfirmed = dto.EmailConfirmed.Value;
-                }
-
-                if (dto.PhoneNumberConfirmedSpecified && dto.PhoneNumberConfirmed is not null)
-                {
-                    user.PhoneNumberConfirmed = dto.PhoneNumberConfirmed.Value;
-                }
-
-                if (dto.TwoFactorEnabledSpecified && dto.TwoFactorEnabled is not null)
-                {
-                    user.TwoFactorEnabled = dto.TwoFactorEnabled.Value;
-                }
+                ApplyOptionalBool(dto.EmailConfirmed, value => user.EmailConfirmed = value);
+                ApplyOptionalBool(dto.PhoneNumberConfirmed, value => user.PhoneNumberConfirmed = value);
+                ApplyOptionalBool(dto.TwoFactorEnabled, value => user.TwoFactorEnabled = value);
 
                 var updateResult = await userManager.UpdateAsync(user);
                 if (!updateResult.Succeeded)
@@ -230,15 +197,29 @@ namespace MochiR.Api.Endpoints
                         BuildIdentityErrorDetails(updateResult));
                 }
 
-                if (dto.ShouldSyncRoles)
+                if (!dto.Roles.IsUndefined)
                 {
+                    var desiredRoles = dto.Roles.IsNull
+                        ? Array.Empty<string>()
+                        : dto.Roles.TryGet(out var providedRoles) && providedRoles is not null
+                            ? providedRoles
+                                .Where(r => !string.IsNullOrWhiteSpace(r))
+                                .Select(r => r.Trim())
+                                .Distinct(StringComparer.OrdinalIgnoreCase)
+                                .ToArray()
+                            : Array.Empty<string>();
+
                     var currentRoles = await userManager.GetRolesAsync(user);
-                    var desiredRolesSet = dto.Roles.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
-                    var rolesToRemove = currentRoles.Where(r => !desiredRolesSet.Contains(r, StringComparer.OrdinalIgnoreCase));
-                    var rolesToAdd = desiredRolesSet.Where(r => !currentRoles.Contains(r, StringComparer.OrdinalIgnoreCase));
+                    var rolesToRemove = currentRoles
+                        .Where(r => !desiredRoles.Contains(r, StringComparer.OrdinalIgnoreCase))
+                        .ToArray();
 
-                    if (rolesToRemove.Any())
+                    var rolesToAdd = desiredRoles
+                        .Where(r => !currentRoles.Contains(r, StringComparer.OrdinalIgnoreCase))
+                        .ToArray();
+
+                    if (rolesToRemove.Length > 0)
                     {
                         var removeResult = await userManager.RemoveFromRolesAsync(user, rolesToRemove);
                         if (!removeResult.Succeeded)
@@ -252,7 +233,7 @@ namespace MochiR.Api.Endpoints
                         }
                     }
 
-                    if (rolesToAdd.Any())
+                    if (rolesToAdd.Length > 0)
                     {
                         var addResult = await userManager.AddToRolesAsync(user, rolesToAdd);
                         if (!addResult.Succeeded)
@@ -271,6 +252,9 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(detail, httpContext);
             })
             .Accepts<DirectoryAdminPatchRequestDto>("application/json")
+            .WithMetadata(new InvalidPayloadMetadata(
+                "USER_INVALID_PAYLOAD",
+                "One or more fields are invalid."))
             .WithOpenApi();
 
             adminGroup.MapPost("/{id}/lock", async (
@@ -436,48 +420,6 @@ namespace MochiR.Api.Endpoints
 
             return new UserDirectoryResponseDto(publicDto, sensitive);
         }
-
-        private static bool TryExtractRoles(JsonObject payload, out List<string> roles, out bool shouldSyncRoles)
-        {
-            roles = new List<string>();
-            shouldSyncRoles = false;
-
-            if (!TryGetNode(payload, "roles", out var node))
-            {
-                return true;
-            }
-
-            shouldSyncRoles = true;
-
-            if (node is null || node.GetValueKind() == JsonValueKind.Null)
-            {
-                roles = new List<string>();
-                return true;
-            }
-
-            if (node is JsonArray array)
-            {
-                var collected = new List<string>();
-                foreach (var element in array)
-                {
-                    if (!TryReadTrimmedString(element, out var role))
-                    {
-                        return false;
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(role))
-                    {
-                        collected.Add(role);
-                    }
-                }
-
-                roles = collected;
-                return true;
-            }
-
-            return false;
-        }
-
         private record DirectoryUserDto(string Id, string? UserName, string? DisplayName, string? AvatarUrl, DateTime CreatedAtUtc);
 
         private record DirectoryPageDto(int TotalCount, int Page, int PageSize, IReadOnlyCollection<DirectoryUserDto> Items);
@@ -519,96 +461,37 @@ namespace MochiR.Api.Endpoints
 
         private sealed record DirectoryAdminPatchRequestDto
         {
-            public string? DisplayName { get; init; }
-            public string? AvatarUrl { get; init; }
-            public string? PhoneNumber { get; init; }
-            public string? Email { get; init; }
-            public bool? EmailConfirmed { get; init; }
-            public bool? PhoneNumberConfirmed { get; init; }
-            public bool? TwoFactorEnabled { get; init; }
-            public IReadOnlyList<string> Roles { get; init; } = Array.Empty<string>();
+            [JsonConverter(typeof(OptionalConverterFactory))]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+            public Optional<string?> DisplayName { get; init; }
 
-            [JsonIgnore] public bool DisplayNameSpecified { get; init; }
-            [JsonIgnore] public bool AvatarUrlSpecified { get; init; }
-            [JsonIgnore] public bool PhoneNumberSpecified { get; init; }
-            [JsonIgnore] public bool EmailSpecified { get; init; }
-            [JsonIgnore] public bool EmailConfirmedSpecified { get; init; }
-            [JsonIgnore] public bool PhoneNumberConfirmedSpecified { get; init; }
-            [JsonIgnore] public bool TwoFactorEnabledSpecified { get; init; }
-            [JsonIgnore] public bool ShouldSyncRoles { get; init; }
-            [JsonIgnore] public bool IsValid { get; init; }
+            [JsonConverter(typeof(OptionalConverterFactory))]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+            public Optional<string?> AvatarUrl { get; init; }
 
-            public static async ValueTask<DirectoryAdminPatchRequestDto?> BindAsync(HttpContext context)
-            {
-                var payload = await context.Request.ReadFromJsonAsync<JsonObject>(cancellationToken: context.RequestAborted) ?? new JsonObject();
+            [JsonConverter(typeof(OptionalConverterFactory))]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+            public Optional<string?> PhoneNumber { get; init; }
 
-                var isValid = true;
+            [JsonConverter(typeof(OptionalConverterFactory))]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+            public Optional<string?> Email { get; init; }
 
-                if (!TryReadOptionalString(payload, "displayName", out var displayName, out var displaySpecified))
-                {
-                    isValid = false;
-                }
+            [JsonConverter(typeof(OptionalConverterFactory))]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+            public Optional<bool?> EmailConfirmed { get; init; }
 
-                if (!TryReadOptionalString(payload, "avatarUrl", out var avatarUrl, out var avatarSpecified))
-                {
-                    isValid = false;
-                }
+            [JsonConverter(typeof(OptionalConverterFactory))]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+            public Optional<bool?> PhoneNumberConfirmed { get; init; }
 
-                if (!TryReadOptionalString(payload, "phoneNumber", out var phoneNumber, out var phoneSpecified))
-                {
-                    isValid = false;
-                }
+            [JsonConverter(typeof(OptionalConverterFactory))]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+            public Optional<bool?> TwoFactorEnabled { get; init; }
 
-                if (!TryReadOptionalString(payload, "email", out var email, out var emailSpecified))
-                {
-                    isValid = false;
-                }
-
-                if (!TryReadOptionalBool(payload, "emailConfirmed", out var emailConfirmed, out var emailConfirmedSpecified))
-                {
-                    isValid = false;
-                }
-
-                if (!TryReadOptionalBool(payload, "phoneNumberConfirmed", out var phoneNumberConfirmed, out var phoneConfirmedSpecified))
-                {
-                    isValid = false;
-                }
-
-                if (!TryReadOptionalBool(payload, "twoFactorEnabled", out var twoFactorEnabled, out var twoFactorSpecified))
-                {
-                    isValid = false;
-                }
-
-                List<string> roles;
-                bool shouldSyncRoles;
-                if (!TryExtractRoles(payload, out roles, out shouldSyncRoles))
-                {
-                    isValid = false;
-                    roles = new List<string>();
-                    shouldSyncRoles = false;
-                }
-
-                return new DirectoryAdminPatchRequestDto
-                {
-                    DisplayName = displayName,
-                    AvatarUrl = avatarUrl,
-                    PhoneNumber = phoneNumber,
-                    Email = email,
-                    EmailConfirmed = emailConfirmed,
-                    PhoneNumberConfirmed = phoneNumberConfirmed,
-                    TwoFactorEnabled = twoFactorEnabled,
-                    Roles = roles,
-                    DisplayNameSpecified = displaySpecified,
-                    AvatarUrlSpecified = avatarSpecified,
-                    PhoneNumberSpecified = phoneSpecified,
-                    EmailSpecified = emailSpecified,
-                    EmailConfirmedSpecified = emailConfirmedSpecified,
-                    PhoneNumberConfirmedSpecified = phoneConfirmedSpecified,
-                    TwoFactorEnabledSpecified = twoFactorSpecified,
-                    ShouldSyncRoles = shouldSyncRoles,
-                    IsValid = isValid
-                };
-            }
+            [JsonConverter(typeof(OptionalConverterFactory))]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+            public Optional<IReadOnlyList<string>?> Roles { get; init; }
         }
     }
 }
