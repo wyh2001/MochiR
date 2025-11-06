@@ -64,6 +64,30 @@ namespace MochiR.Api.Endpoints
             }
         }
 
+        internal sealed class LatestReviewsQueryDtoValidator : AbstractValidator<LatestReviewsQueryDto>
+        {
+            public LatestReviewsQueryDtoValidator()
+            {
+                RuleFor(q => q.Page)
+                    .GreaterThan(0)
+                    .When(q => q.Page.HasValue)
+                    .WithMessage("Page must be greater than zero.")
+                    .WithErrorCode("REVIEW_INVALID_QUERY");
+
+                RuleFor(q => q.PageSize)
+                    .GreaterThan(0)
+                    .When(q => q.PageSize.HasValue)
+                    .WithMessage("PageSize must be greater than zero.")
+                    .WithErrorCode("REVIEW_INVALID_QUERY");
+
+                RuleFor(q => q.PageSize)
+                    .LessThanOrEqualTo(LatestMaxPageSize)
+                    .When(q => q.PageSize.HasValue)
+                    .WithMessage($"PageSize cannot exceed {LatestMaxPageSize}.")
+                    .WithErrorCode("REVIEW_INVALID_QUERY");
+            }
+        }
+
         private static bool BeNonWhitespace(string? value) => !string.IsNullOrWhiteSpace(value);
     }
 }

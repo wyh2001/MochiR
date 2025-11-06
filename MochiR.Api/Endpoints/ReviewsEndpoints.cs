@@ -9,9 +9,50 @@ namespace MochiR.Api.Endpoints
 {
     public static partial class ReviewsEndpoints
     {
+        private const int LatestDefaultPageSize = 20;
+        private const int LatestMaxPageSize = 50;
+
         public static void MapReviewsEndpoints(this IEndpointRouteBuilder routes)
         {
             var group = routes.MapGroup("/api/reviews").WithTags("Reviews");
+
+            group.MapGet("/latest", async (
+                [AsParameters] LatestReviewsQueryDto query,
+                ApplicationDbContext db,
+                HttpContext httpContext,
+                CancellationToken cancellationToken) =>
+            {
+                var (page, pageSize) = NormalizeLatestPagination(query.Page, query.PageSize);
+
+                var baseQuery = db.Reviews
+                    .AsNoTracking()
+                    .Where(review => !review.IsDeleted && review.Status == ReviewStatus.Approved);
+
+                var totalCount = await baseQuery.CountAsync(cancellationToken);
+
+                var items = await baseQuery
+                    .OrderByDescending(review => review.CreatedAt)
+                    .ThenByDescending(review => review.Id)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(review => new ReviewSummaryDto(
+                        review.Id,
+                        review.SubjectId,
+                        review.UserId,
+                        review.Title,
+                        review.Content,
+                        review.Status,
+                        review.CreatedAt))
+                    .ToListAsync(cancellationToken);
+
+                var hasMore = page * pageSize < totalCount;
+                var payload = new LatestReviewsPageDto(totalCount, page, pageSize, items, hasMore);
+                return ApiResults.Ok(payload, httpContext);
+            })
+            .AddValidation<LatestReviewsQueryDto>(
+                "REVIEW_INVALID_QUERY",
+                "Page and PageSize must be positive and within limits.")
+            .WithOpenApi();
 
             group.MapGet("/", async (int? subjectId, string? userId, ApplicationDbContext db, HttpContext httpContext, CancellationToken cancellationToken) =>
             {
@@ -278,6 +319,28 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(payload, httpContext);
             }).WithOpenApi();
         }
+
+        private static (int Page, int PageSize) NormalizeLatestPagination(int? page, int? pageSize)
+        {
+            var normalizedPage = page.HasValue && page.Value > 0 ? page.Value : 1;
+            var normalizedSize = pageSize.HasValue && pageSize.Value > 0
+                ? Math.Min(pageSize.Value, LatestMaxPageSize)
+                : LatestDefaultPageSize;
+            return (normalizedPage, normalizedSize);
+        }
+
+        internal sealed record LatestReviewsQueryDto
+        {
+            public int? Page { get; init; }
+            public int? PageSize { get; init; }
+        }
+
+        private record LatestReviewsPageDto(
+            int TotalCount,
+            int Page,
+            int PageSize,
+            IReadOnlyCollection<ReviewSummaryDto> Items,
+            bool HasMore);
 
         internal record CreateReviewDto(int SubjectId, string? Title, string? Content, IReadOnlyList<ReviewRatingDto>? Ratings);
         private record ReviewSummaryDto(long Id, int SubjectId, string UserId, string? Title, string? Content, ReviewStatus Status, DateTime CreatedAt);
