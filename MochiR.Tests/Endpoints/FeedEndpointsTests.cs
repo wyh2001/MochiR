@@ -236,6 +236,27 @@ public sealed class FeedEndpointsTests : IClassFixture<CustomWebApplicationFacto
         };
 
         db.Follows.Add(follow);
+        if (targetType == FollowTargetType.User)
+        {
+            if (followerId is not null)
+            {
+                var follower = await db.Users.FindAsync(followerId);
+                if (follower is not null)
+                {
+                    follower.FollowingCount += 1;
+                }
+            }
+
+            if (followedUserId is not null)
+            {
+                var followed = await db.Users.FindAsync(followedUserId);
+                if (followed is not null)
+                {
+                    followed.FollowersCount += 1;
+                }
+            }
+        }
+
         await db.SaveChangesAsync();
     }
 

@@ -475,6 +475,19 @@ namespace MochiR.Api.Endpoints
                 };
 
                 db.Follows.Add(follow);
+                var follower = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+                var followed = await db.Users.FirstOrDefaultAsync(u => u.Id == followedUserId, cancellationToken);
+
+                if (follower is not null)
+                {
+                    follower.FollowingCount += 1;
+                }
+
+                if (followed is not null)
+                {
+                    followed.FollowersCount += 1;
+                }
+
                 await db.SaveChangesAsync(cancellationToken);
 
                 var payload = new FollowUserSummaryDto(
@@ -533,6 +546,19 @@ namespace MochiR.Api.Endpoints
                 }
 
                 db.Follows.Remove(follow);
+                var follower = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+                var followed = await db.Users.FirstOrDefaultAsync(u => u.Id == followedUserId, cancellationToken);
+
+                if (follower is not null && follower.FollowingCount > 0)
+                {
+                    follower.FollowingCount -= 1;
+                }
+
+                if (followed is not null && followed.FollowersCount > 0)
+                {
+                    followed.FollowersCount -= 1;
+                }
+
                 await db.SaveChangesAsync(cancellationToken);
 
                 return ApiResults.Ok(new FollowDeletionResultDto(follow.Id, true), httpContext);

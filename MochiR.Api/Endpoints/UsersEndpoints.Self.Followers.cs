@@ -104,6 +104,19 @@ namespace MochiR.Api.Endpoints
                 }
 
                 db.Follows.Remove(follow);
+                var follower = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+                var currentUser = await db.Users.FirstOrDefaultAsync(u => u.Id == user.Id, cancellationToken);
+
+                if (follower is not null && follower.FollowingCount > 0)
+                {
+                    follower.FollowingCount -= 1;
+                }
+
+                if (currentUser is not null && currentUser.FollowersCount > 0)
+                {
+                    currentUser.FollowersCount -= 1;
+                }
+
                 await db.SaveChangesAsync(cancellationToken);
 
                 return ApiResults.Ok(new SelfFollowerRemovalResultDto(userId, true), httpContext);

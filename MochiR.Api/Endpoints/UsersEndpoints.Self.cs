@@ -73,7 +73,9 @@ namespace MochiR.Api.Endpoints
             user.TwoFactorEnabled,
             user.LockoutEnabled,
             user.LockoutEnd,
-            user.CreatedAtUtc);
+            user.CreatedAtUtc,
+            user.FollowersCount,
+            user.FollowingCount);
 
         private static IResult SelfNotFound(HttpContext httpContext) => ApiResults.Failure(
             "SELF_NOT_FOUND",
@@ -97,7 +99,9 @@ namespace MochiR.Api.Endpoints
             bool TwoFactorEnabled,
             bool LockoutEnabled,
             DateTimeOffset? LockoutEnd,
-            DateTime CreatedAtUtc);
+            DateTime CreatedAtUtc,
+            int FollowersCount,
+            int FollowingCount);
 
         private sealed record SelfProfilePatchRequestDto
         {

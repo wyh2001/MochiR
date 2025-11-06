@@ -11,5 +11,7 @@ namespace MochiR.Api.Entities
         [PersonalData]
         public string? AvatarUrl { get; set; }
         public bool IsDeleted { get; set; }
+        public int FollowersCount { get; set; }
+        public int FollowingCount { get; set; }
     }
 }
