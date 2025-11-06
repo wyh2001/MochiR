@@ -66,6 +66,7 @@ app.MapGet("/", (HttpContext httpContext) =>
 
 app.MapAuthEndpoints();
 app.MapUsersEndpoints();
+app.MapFollowsEndpoints();
 app.MapRatingsEndpoints();
 app.MapSubjectTypesEndpoints();
 app.MapSubjectsEndpoints();
