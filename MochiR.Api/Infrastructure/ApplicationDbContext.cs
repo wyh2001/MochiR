@@ -16,6 +16,7 @@ namespace MochiR.Api.Infrastructure
         public DbSet<Review> Reviews => Set<Review>();
         public DbSet<ReviewMedia> ReviewMedia => Set<ReviewMedia>();
         public DbSet<Aggregate> Aggregates => Set<Aggregate>();
+        public DbSet<Follow> Follows => Set<Follow>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -146,6 +147,45 @@ namespace MochiR.Api.Infrastructure
                     metricsBuilder.Property(m => m.Note).HasMaxLength(256);
                     metricsBuilder.ToTable("AggregateMetrics");
                 });
+            });
+
+            // Follow
+            builder.Entity<Follow>(e =>
+            {
+                e.Property(f => f.TargetType).HasConversion<int>();
+                e.Property(f => f.CreatedAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                e.HasOne(f => f.Follower)
+                    .WithMany()
+                    .HasForeignKey(f => f.FollowerId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasOne(f => f.Subject)
+                    .WithMany()
+                    .HasForeignKey(f => f.SubjectId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasOne(f => f.SubjectType)
+                    .WithMany()
+                    .HasForeignKey(f => f.SubjectTypeId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasOne(f => f.FollowedUser)
+                    .WithMany()
+                    .HasForeignKey(f => f.FollowedUserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasIndex(f => new { f.FollowerId, f.TargetType, f.SubjectId })
+                    .IsUnique()
+                    .HasFilter("\"SubjectId\" IS NOT NULL");
+
+                e.HasIndex(f => new { f.FollowerId, f.TargetType, f.SubjectTypeId })
+                    .IsUnique()
+                    .HasFilter("\"SubjectTypeId\" IS NOT NULL");
+
+                e.HasIndex(f => new { f.FollowerId, f.TargetType, f.FollowedUserId })
+                    .IsUnique()
+                    .HasFilter("\"FollowedUserId\" IS NOT NULL");
             });
         }
     }
