@@ -34,6 +34,151 @@ public sealed class UsersSelfEndpointsTests : IClassFixture<CustomWebApplication
     }
 
     [Fact]
+    public async Task GetSelfProfile_ReflectsFollowCountsAfterFollowingUser()
+    {
+        using var followerClient = factory.CreateClientWithCookies();
+        await followerClient.SignInAsUserAsync(factory);
+
+        using var targetClient = factory.CreateClientWithCookies();
+        var target = await targetClient.SignInAsUserAsync(factory);
+
+        var followResponse = await followerClient.PostAsync($"/api/follows/users/{target.Id}", null);
+        Assert.Equal(HttpStatusCode.Created, followResponse.StatusCode);
+
+        var followerData = await GetSelfProfileDataAsync(followerClient);
+        Assert.Equal(1, followerData.GetProperty("followingCount").GetInt32());
+        Assert.Equal(0, followerData.GetProperty("followersCount").GetInt32());
+
+        var targetData = await GetSelfProfileDataAsync(targetClient);
+        Assert.Equal(1, targetData.GetProperty("followersCount").GetInt32());
+        Assert.Equal(0, targetData.GetProperty("followingCount").GetInt32());
+    }
+
+    [Fact]
+    public async Task GetSelfProfile_DropsFollowCountsAfterUnfollow()
+    {
+        using var followerClient = factory.CreateClientWithCookies();
+        await followerClient.SignInAsUserAsync(factory);
+
+        using var targetClient = factory.CreateClientWithCookies();
+        var target = await targetClient.SignInAsUserAsync(factory);
+
+        var createResponse = await followerClient.PostAsync($"/api/follows/users/{target.Id}", null);
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+
+        var deleteResponse = await followerClient.DeleteAsync($"/api/follows/users/{target.Id}");
+        Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
+        var deleteJson = await deleteResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(deleteJson.GetProperty("success").GetBoolean());
+        Assert.True(deleteJson.GetProperty("data").GetProperty("removed").GetBoolean());
+
+        var followerData = await GetSelfProfileDataAsync(followerClient);
+        Assert.Equal(0, followerData.GetProperty("followingCount").GetInt32());
+        Assert.Equal(0, followerData.GetProperty("followersCount").GetInt32());
+
+        var targetData = await GetSelfProfileDataAsync(targetClient);
+        Assert.Equal(0, targetData.GetProperty("followersCount").GetInt32());
+        Assert.Equal(0, targetData.GetProperty("followingCount").GetInt32());
+    }
+
+    [Fact]
+    public async Task GetSelfProfile_DuplicateFollowDoesNotSkewCounts()
+    {
+        using var followerClient = factory.CreateClientWithCookies();
+        await followerClient.SignInAsUserAsync(factory);
+
+        using var targetClient = factory.CreateClientWithCookies();
+        var target = await targetClient.SignInAsUserAsync(factory);
+
+        var firstResponse = await followerClient.PostAsync($"/api/follows/users/{target.Id}", null);
+        Assert.Equal(HttpStatusCode.Created, firstResponse.StatusCode);
+
+        var secondResponse = await followerClient.PostAsync($"/api/follows/users/{target.Id}", null);
+        Assert.Equal(HttpStatusCode.Conflict, secondResponse.StatusCode);
+
+        var followerData = await GetSelfProfileDataAsync(followerClient);
+        Assert.Equal(1, followerData.GetProperty("followingCount").GetInt32());
+        Assert.Equal(0, followerData.GetProperty("followersCount").GetInt32());
+
+        var targetData = await GetSelfProfileDataAsync(targetClient);
+        Assert.Equal(1, targetData.GetProperty("followersCount").GetInt32());
+        Assert.Equal(0, targetData.GetProperty("followingCount").GetInt32());
+    }
+
+    [Fact]
+    public async Task GetSelfProfile_FollowUnfollowFollowRestoresCounts()
+    {
+        using var followerClient = factory.CreateClientWithCookies();
+        await followerClient.SignInAsUserAsync(factory);
+
+        using var targetClient = factory.CreateClientWithCookies();
+        var target = await targetClient.SignInAsUserAsync(factory);
+
+        var firstFollowResponse = await followerClient.PostAsync($"/api/follows/users/{target.Id}", null);
+        Assert.Equal(HttpStatusCode.Created, firstFollowResponse.StatusCode);
+
+        var followerAfterFirstFollow = await GetSelfProfileDataAsync(followerClient);
+        Assert.Equal(1, followerAfterFirstFollow.GetProperty("followingCount").GetInt32());
+        Assert.Equal(0, followerAfterFirstFollow.GetProperty("followersCount").GetInt32());
+
+        var targetAfterFirstFollow = await GetSelfProfileDataAsync(targetClient);
+        Assert.Equal(1, targetAfterFirstFollow.GetProperty("followersCount").GetInt32());
+        Assert.Equal(0, targetAfterFirstFollow.GetProperty("followingCount").GetInt32());
+
+        var unfollowResponse = await followerClient.DeleteAsync($"/api/follows/users/{target.Id}");
+        Assert.Equal(HttpStatusCode.OK, unfollowResponse.StatusCode);
+        var unfollowJson = await unfollowResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(unfollowJson.GetProperty("success").GetBoolean());
+        Assert.True(unfollowJson.GetProperty("data").GetProperty("removed").GetBoolean());
+
+        var followerAfterUnfollow = await GetSelfProfileDataAsync(followerClient);
+        Assert.Equal(0, followerAfterUnfollow.GetProperty("followingCount").GetInt32());
+        Assert.Equal(0, followerAfterUnfollow.GetProperty("followersCount").GetInt32());
+
+        var targetAfterUnfollow = await GetSelfProfileDataAsync(targetClient);
+        Assert.Equal(0, targetAfterUnfollow.GetProperty("followersCount").GetInt32());
+        Assert.Equal(0, targetAfterUnfollow.GetProperty("followingCount").GetInt32());
+
+        var secondFollowResponse = await followerClient.PostAsync($"/api/follows/users/{target.Id}", null);
+        Assert.Equal(HttpStatusCode.Created, secondFollowResponse.StatusCode);
+
+        var followerAfterSecondFollow = await GetSelfProfileDataAsync(followerClient);
+        Assert.Equal(1, followerAfterSecondFollow.GetProperty("followingCount").GetInt32());
+        Assert.Equal(0, followerAfterSecondFollow.GetProperty("followersCount").GetInt32());
+
+        var targetAfterSecondFollow = await GetSelfProfileDataAsync(targetClient);
+        Assert.Equal(1, targetAfterSecondFollow.GetProperty("followersCount").GetInt32());
+        Assert.Equal(0, targetAfterSecondFollow.GetProperty("followingCount").GetInt32());
+    }
+
+    [Fact]
+    public async Task GetSelfProfile_RemovalByTargetUpdatesBothSides()
+    {
+        using var followerClient = factory.CreateClientWithCookies();
+        var follower = await followerClient.SignInAsUserAsync(factory);
+
+        using var targetClient = factory.CreateClientWithCookies();
+        var target = await targetClient.SignInAsUserAsync(factory);
+
+        var followResponse = await followerClient.PostAsync($"/api/follows/users/{target.Id}", null);
+        Assert.Equal(HttpStatusCode.Created, followResponse.StatusCode);
+
+        var removalResponse = await targetClient.DeleteAsync($"/api/me/followers/{follower.Id}");
+        Assert.Equal(HttpStatusCode.OK, removalResponse.StatusCode);
+        var removalJson = await removalResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(removalJson.GetProperty("success").GetBoolean());
+        Assert.True(removalJson.GetProperty("data").GetProperty("removed").GetBoolean());
+
+        var followerData = await GetSelfProfileDataAsync(followerClient);
+        Assert.Equal(0, followerData.GetProperty("followingCount").GetInt32());
+        Assert.Equal(0, followerData.GetProperty("followersCount").GetInt32());
+
+        var targetData = await GetSelfProfileDataAsync(targetClient);
+        Assert.Equal(0, targetData.GetProperty("followersCount").GetInt32());
+        Assert.Equal(0, targetData.GetProperty("followingCount").GetInt32());
+    }
+
+    [Fact]
     public async Task PatchSelfProfile_UpdatesProfile()
     {
         using var client = factory.CreateClientWithCookies();
@@ -402,5 +547,14 @@ public sealed class UsersSelfEndpointsTests : IClassFixture<CustomWebApplication
 
         var result = await userManager.CreateAsync(user, DefaultPassword);
         Assert.True(result.Succeeded, string.Join(",", result.Errors.Select(e => e.Description)));
+    }
+
+    private static async Task<JsonElement> GetSelfProfileDataAsync(HttpClient client)
+    {
+        var response = await client.GetAsync("/api/me");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(json.GetProperty("success").GetBoolean());
+        return json.GetProperty("data");
     }
 }
