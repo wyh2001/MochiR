@@ -52,5 +52,12 @@ namespace MochiR.Api.Endpoints
                 assign(optional.Value!.Value);
             }
         }
+
+        private static (int Page, int Size) NormalizePagination(int? page, int? pageSize)
+        {
+            var pageNumber = page.HasValue && page.Value > 0 ? page.Value : 1;
+            var size = pageSize.HasValue && pageSize.Value > 0 ? Math.Min(pageSize.Value, MaxPageSize) : DefaultPageSize;
+            return (pageNumber, size);
+        }
     }
 }

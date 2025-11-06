@@ -56,6 +56,7 @@ namespace MochiR.Api.Endpoints
                 "One or more fields are invalid."))
             .WithOpenApi();
 
+            MapSelfFollowEndpoints(selfGroup);
             MapSelfPasswordEndpoints(selfGroup);
             MapSelfEmailEndpoints(selfGroup);
         }
@@ -80,6 +81,7 @@ namespace MochiR.Api.Endpoints
             httpContext,
             StatusCodes.Status401Unauthorized);
 
+        static partial void MapSelfFollowEndpoints(RouteGroupBuilder selfGroup);
         static partial void MapSelfPasswordEndpoints(RouteGroupBuilder selfGroup);
         static partial void MapSelfEmailEndpoints(RouteGroupBuilder selfGroup);
 
