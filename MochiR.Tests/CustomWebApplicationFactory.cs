@@ -37,3 +37,44 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         });
     }
 }
+
+/// <summary>
+/// Provide an isolated in-memory database for tests that rely on precise counts or ordering.
+/// </summary>
+public sealed class IsolatedDbWebApplicationFactory : WebApplicationFactory<Program>
+{
+    private readonly string databaseName = $"IsolatedTestDb-{Guid.NewGuid():N}";
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.ConfigureServices(services =>
+        {
+            var descriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
+
+            if (descriptor is not null)
+            {
+                services.Remove(descriptor);
+            }
+
+            services.AddDbContext<ApplicationDbContext>(options =>
+            {
+                // Each isolated factory gets its own database to avoid cross-test pollution.
+                options.UseInMemoryDatabase(databaseName);
+            });
+
+            services.AddSingleton<IEmailSender, NoopEmailSender>();
+        });
+    }
+
+    /// <summary>
+    /// Force the underlying in-memory database to restart so each test runs against a clean state.
+    /// </summary>
+    public async Task ResetDatabaseAsync()
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await db.Database.EnsureDeletedAsync();
+        await db.Database.EnsureCreatedAsync();
+    }
+}

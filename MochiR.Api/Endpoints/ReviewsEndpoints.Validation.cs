@@ -85,6 +85,12 @@ namespace MochiR.Api.Endpoints
                     .When(q => q.PageSize.HasValue)
                     .WithMessage($"PageSize cannot exceed {LatestMaxPageSize}.")
                     .WithErrorCode("REVIEW_INVALID_QUERY");
+
+                RuleFor(q => q.AfterId)
+                    .GreaterThan(0)
+                    .When(q => q.AfterId.HasValue)
+                    .WithMessage("AfterId must be greater than zero.")
+                    .WithErrorCode("REVIEW_INVALID_QUERY");
             }
         }
 

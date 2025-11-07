@@ -143,6 +143,8 @@ namespace MochiR.Api.Endpoints
 
                 return ApiResults.Ok(payload, httpContext);
             })
+            .WithSummary("Gets the authenticated user's feed ordered by creation time.")
+            .WithDescription("Supports cursor pagination via the composite (after, afterId) parameters. Results are filtered strictly after that cursor, and the response nextCursor references the last item in the current page so clients can continue without gaps or duplicates.")
             .AddValidation<FeedQueryDto>(
                 "FEED_INVALID_QUERY",
                 "One or more query parameters are invalid.")

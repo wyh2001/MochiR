@@ -10,7 +10,7 @@ namespace MochiR.Api.Endpoints
     public static partial class ReviewsEndpoints
     {
         private const int LatestDefaultPageSize = 20;
-        private const int LatestMaxPageSize = 50;
+        private const int LatestMaxPageSize = 100;
 
         public static void MapReviewsEndpoints(this IEndpointRouteBuilder routes)
         {
@@ -23,6 +23,7 @@ namespace MochiR.Api.Endpoints
                 CancellationToken cancellationToken) =>
             {
                 var (page, pageSize) = NormalizeLatestPagination(query.Page, query.PageSize);
+                var effectivePage = query.After.HasValue ? 1 : page;
 
                 var baseQuery = db.Reviews
                     .AsNoTracking()
@@ -30,11 +31,34 @@ namespace MochiR.Api.Endpoints
 
                 var totalCount = await baseQuery.CountAsync(cancellationToken);
 
-                var items = await baseQuery
+                if (totalCount == 0)
+                {
+                    var emptyPayload = new LatestReviewsPageDto(0, effectivePage, pageSize, Array.Empty<ReviewSummaryDto>(), null, false);
+                    return ApiResults.Ok(emptyPayload, httpContext);
+                }
+
+                var orderedQuery = baseQuery
                     .OrderByDescending(review => review.CreatedAt)
-                    .ThenByDescending(review => review.Id)
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
+                    .ThenByDescending(review => review.Id);
+
+                if (query.After.HasValue)
+                {
+                    var after = query.After.Value;
+                    var afterId = query.AfterId ?? long.MaxValue;
+                    orderedQuery = orderedQuery
+                        .Where(review =>
+                            review.CreatedAt < after ||
+                            (review.CreatedAt == after && review.Id < afterId))
+                        .OrderByDescending(review => review.CreatedAt)
+                        .ThenByDescending(review => review.Id);
+                }
+
+                var skip = query.After.HasValue ? 0 : (effectivePage - 1) * pageSize;
+                var take = pageSize + 1;
+
+                var rawItems = await orderedQuery
+                    .Skip(skip)
+                    .Take(take)
                     .Select(review => new ReviewSummaryDto(
                         review.Id,
                         review.SubjectId,
@@ -45,10 +69,31 @@ namespace MochiR.Api.Endpoints
                         review.CreatedAt))
                     .ToListAsync(cancellationToken);
 
-                var hasMore = page * pageSize < totalCount;
-                var payload = new LatestReviewsPageDto(totalCount, page, pageSize, items, hasMore);
+                var hasMore = rawItems.Count > pageSize;
+                if (hasMore)
+                {
+                    rawItems.RemoveAt(pageSize);
+                }
+
+                LatestReviewsCursorDto? nextCursor = null;
+                if (hasMore && rawItems.Count > 0)
+                {
+                    var last = rawItems[^1];
+                    nextCursor = new LatestReviewsCursorDto(last.CreatedAt, last.Id);
+                }
+
+                var payload = new LatestReviewsPageDto(
+                    totalCount,
+                    effectivePage,
+                    pageSize,
+                    rawItems,
+                    nextCursor,
+                    hasMore);
+
                 return ApiResults.Ok(payload, httpContext);
             })
+            .WithSummary("Lists the most recent approved reviews.")
+            .WithDescription("Uses cursor pagination compatible with the feed endpoint. When (after, afterId) are provided, only reviews strictly after that cursor are returned, and the response nextCursor references the last item of the current page for seamless continuation.")
             .AddValidation<LatestReviewsQueryDto>(
                 "REVIEW_INVALID_QUERY",
                 "Page and PageSize must be positive and within limits.")
@@ -333,6 +378,8 @@ namespace MochiR.Api.Endpoints
         {
             public int? Page { get; init; }
             public int? PageSize { get; init; }
+            public DateTime? After { get; init; }
+            public long? AfterId { get; init; }
         }
 
         private record LatestReviewsPageDto(
@@ -340,7 +387,10 @@ namespace MochiR.Api.Endpoints
             int Page,
             int PageSize,
             IReadOnlyCollection<ReviewSummaryDto> Items,
+            LatestReviewsCursorDto? NextCursor,
             bool HasMore);
+
+        private record LatestReviewsCursorDto(DateTime CreatedAtUtc, long ReviewId);
 
         internal record CreateReviewDto(int SubjectId, string? Title, string? Content, IReadOnlyList<ReviewRatingDto>? Ratings);
         private record ReviewSummaryDto(long Id, int SubjectId, string UserId, string? Title, string? Content, ReviewStatus Status, DateTime CreatedAt);
