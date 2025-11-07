@@ -11,6 +11,8 @@ namespace MochiR.Api.Endpoints
     {
         private const int LatestDefaultPageSize = 20;
         private const int LatestMaxPageSize = 100;
+        private const int MaxTagsPerReview = 10;
+        private const int MaxTagLength = 32;
 
         public static void MapReviewsEndpoints(this IEndpointRouteBuilder routes)
         {
@@ -66,7 +68,8 @@ namespace MochiR.Api.Endpoints
                         review.Title,
                         review.Content,
                         review.Status,
-                        review.CreatedAt))
+                        review.CreatedAt,
+                        review.Tags.Select(tag => tag.Value).ToList()))
                     .ToListAsync(cancellationToken);
 
                 var hasMore = rawItems.Count > pageSize;
@@ -101,9 +104,21 @@ namespace MochiR.Api.Endpoints
 
             group.MapGet("/", async (int? subjectId, string? userId, ApplicationDbContext db, HttpContext httpContext, CancellationToken cancellationToken) =>
             {
-                var query = db.Reviews
+                var baseQuery = db.Reviews
                     .AsNoTracking()
-                    .Where(review => !review.IsDeleted)
+                    .Where(review => !review.IsDeleted);
+
+                if (subjectId.HasValue)
+                {
+                    baseQuery = baseQuery.Where(review => review.SubjectId == subjectId.Value);
+                }
+
+                if (!string.IsNullOrWhiteSpace(userId))
+                {
+                    baseQuery = baseQuery.Where(review => review.UserId == userId);
+                }
+
+                var reviews = await baseQuery
                     .OrderByDescending(review => review.CreatedAt)
                     .Select(review => new ReviewSummaryDto(
                         review.Id,
@@ -112,19 +127,9 @@ namespace MochiR.Api.Endpoints
                         review.Title,
                         review.Content,
                         review.Status,
-                        review.CreatedAt));
-
-                if (subjectId.HasValue)
-                {
-                    query = query.Where(review => review.SubjectId == subjectId.Value);
-                }
-
-                if (!string.IsNullOrWhiteSpace(userId))
-                {
-                    query = query.Where(review => review.UserId == userId);
-                }
-
-                var reviews = await query.ToListAsync(cancellationToken);
+                        review.CreatedAt,
+                        review.Tags.Select(tag => tag.Value).ToList()))
+                    .ToListAsync(cancellationToken);
                 return ApiResults.Ok(reviews, httpContext);
             })
             .WithSummary("List reviews with optional filters.")
@@ -169,6 +174,8 @@ namespace MochiR.Api.Endpoints
                         StatusCodes.Status409Conflict);
                 }
 
+                var normalizedTags = NormalizeTags(dto.Tags);
+
                 var review = new Review
                 {
                     SubjectId = dto.SubjectId,
@@ -181,6 +188,7 @@ namespace MochiR.Api.Endpoints
                         Score = r.Score,
                         Label = r.Label
                     })?.ToList() ?? new List<ReviewRating>(),
+                    Tags = ToEntityTags(normalizedTags),
                     Status = ReviewStatus.Pending,
                     MediaCount = 0,
                     CreatedAt = DateTime.UtcNow,
@@ -197,7 +205,8 @@ namespace MochiR.Api.Endpoints
                     review.Title,
                     review.Content,
                     review.Status,
-                    review.CreatedAt);
+                    review.CreatedAt,
+                    normalizedTags);
 
                 return ApiResults.Created($"/api/reviews/{review.Id}", payload, httpContext);
             })
@@ -255,6 +264,8 @@ namespace MochiR.Api.Endpoints
                     Score = r.Score,
                     Label = r.Label
                 })?.ToList() ?? new List<ReviewRating>();
+                var normalizedTags = NormalizeTags(dto.Tags);
+                review.Tags = ToEntityTags(normalizedTags);
                 review.Status = ReviewStatus.Pending;
                 review.UpdatedAt = DateTime.UtcNow;
 
@@ -267,7 +278,8 @@ namespace MochiR.Api.Endpoints
                     review.Title,
                     review.Content,
                     review.Status,
-                    review.CreatedAt);
+                    review.CreatedAt,
+                    normalizedTags);
 
                 return ApiResults.Ok(payload, httpContext);
             })
@@ -335,6 +347,7 @@ namespace MochiR.Api.Endpoints
                     .AsNoTracking()
                     .Include(r => r.Subject)
                     .Include(r => r.User)
+                    .Include(r => r.Tags)
                     .Include(r => r.Media)
                     .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
@@ -359,6 +372,10 @@ namespace MochiR.Api.Endpoints
                     .Select(r => new ReviewRatingDto(r.Key, r.Score, r.Label))
                     .ToList();
 
+                var tags = review.Tags
+                    .Select(t => t.Value)
+                    .ToList();
+
                 var payload = new ReviewDetailDto(
                     review.Id,
                     review.SubjectId,
@@ -368,6 +385,7 @@ namespace MochiR.Api.Endpoints
                     review.User?.UserName,
                     review.Title,
                     review.Content,
+                    tags,
                     ratings,
                     review.Status,
                     review.CreatedAt,
@@ -390,6 +408,70 @@ namespace MochiR.Api.Endpoints
             return (normalizedPage, normalizedSize);
         }
 
+        private static IReadOnlyList<string> NormalizeTags(IReadOnlyList<string>? tags)
+        {
+            if (tags is null || tags.Count == 0)
+            {
+                return Array.Empty<string>();
+            }
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var normalized = new List<string>(Math.Min(tags.Count, MaxTagsPerReview));
+
+            foreach (var tag in tags)
+            {
+                if (string.IsNullOrWhiteSpace(tag))
+                {
+                    continue;
+                }
+
+                var trimmed = tag.Trim();
+                if (trimmed.Length == 0 || trimmed.Length > MaxTagLength)
+                {
+                    continue;
+                }
+
+                if (seen.Add(trimmed))
+                {
+                    normalized.Add(trimmed);
+                    if (normalized.Count >= MaxTagsPerReview)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            return normalized;
+        }
+
+        private static List<ReviewTag> ToEntityTags(IReadOnlyList<string> tags) =>
+            tags.Select(tag => new ReviewTag { Value = tag }).ToList();
+
+        private static bool HaveDistinctTags(IReadOnlyList<string>? tags)
+        {
+            if (tags is null || tags.Count <= 1)
+            {
+                return true;
+            }
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var tag in tags)
+            {
+                if (string.IsNullOrWhiteSpace(tag))
+                {
+                    continue;
+                }
+
+                var trimmed = tag.Trim();
+                if (!seen.Add(trimmed))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         internal sealed record LatestReviewsQueryDto
         {
             public int? Page { get; init; }
@@ -408,10 +490,10 @@ namespace MochiR.Api.Endpoints
 
         private record LatestReviewsCursorDto(DateTime CreatedAtUtc, long ReviewId);
 
-        internal record CreateReviewDto(int SubjectId, string? Title, string? Content, IReadOnlyList<ReviewRatingDto>? Ratings);
-        private record ReviewSummaryDto(long Id, int SubjectId, string UserId, string? Title, string? Content, ReviewStatus Status, DateTime CreatedAt);
-        internal record UpdateReviewDto(string Title, string? Content, IReadOnlyList<ReviewRatingDto>? Ratings);
-        private record ReviewDetailDto(long Id, int SubjectId, string? SubjectName, string? SubjectSlug, string UserId, string? UserName, string? Title, string? Content, IReadOnlyList<ReviewRatingDto> Ratings, ReviewStatus Status, DateTime CreatedAt, DateTime UpdatedAt, IReadOnlyList<ReviewMediaDto> Media);
+        internal record CreateReviewDto(int SubjectId, string? Title, string? Content, IReadOnlyList<ReviewRatingDto>? Ratings, IReadOnlyList<string>? Tags);
+        private record ReviewSummaryDto(long Id, int SubjectId, string UserId, string? Title, string? Content, ReviewStatus Status, DateTime CreatedAt, IReadOnlyList<string> Tags);
+        internal record UpdateReviewDto(string Title, string? Content, IReadOnlyList<ReviewRatingDto>? Ratings, IReadOnlyList<string>? Tags);
+        private record ReviewDetailDto(long Id, int SubjectId, string? SubjectName, string? SubjectSlug, string UserId, string? UserName, string? Title, string? Content, IReadOnlyList<string> Tags, IReadOnlyList<ReviewRatingDto> Ratings, ReviewStatus Status, DateTime CreatedAt, DateTime UpdatedAt, IReadOnlyList<ReviewMediaDto> Media);
         private record ReviewMediaDto(long Id, string Url, MediaType Type, IReadOnlyList<ReviewMediaMetadataDto> Metadata);
         private record ReviewMediaMetadataDto(string Key, string? Value, string? Note);
         internal record ReviewRatingDto(string Key, decimal Score, string? Label);

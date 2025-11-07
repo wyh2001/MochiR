@@ -23,6 +23,7 @@ namespace MochiR.Api.Entities
 
         // Collection of per-criteria ratings, including overall
         public ICollection<ReviewRating> Ratings { get; set; } = new List<ReviewRating>();
+        public ICollection<ReviewTag> Tags { get; set; } = new List<ReviewTag>();
 
         public int MediaCount { get; set; }
 
@@ -40,6 +41,11 @@ namespace MochiR.Api.Entities
         public string Key { get; set; } = string.Empty;
         public decimal Score { get; set; }
         public string? Label { get; set; }
+    }
+
+    public class ReviewTag
+    {
+        public string Value { get; set; } = string.Empty;
     }
 }
 

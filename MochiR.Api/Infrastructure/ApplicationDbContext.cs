@@ -110,6 +110,15 @@ namespace MochiR.Api.Infrastructure
                     ratingsBuilder.Property(rr => rr.Label).HasMaxLength(128);
                     ratingsBuilder.ToTable("ReviewRatings");
                 });
+
+                e.OwnsMany(r => r.Tags, tagsBuilder =>
+                {
+                    tagsBuilder.WithOwner().HasForeignKey("ReviewId");
+                    tagsBuilder.Property(tag => tag.Value)
+                        .IsRequired()
+                        .HasMaxLength(32);
+                    tagsBuilder.ToTable("ReviewTags");
+                });
             });
 
             // ReviewMedia

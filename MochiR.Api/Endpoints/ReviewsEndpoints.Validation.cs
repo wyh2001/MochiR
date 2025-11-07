@@ -24,6 +24,25 @@ namespace MochiR.Api.Endpoints
 
                 RuleForEach(dto => dto.Ratings)
                     .SetValidator(new ReviewRatingDtoValidator());
+
+                RuleFor(dto => dto.Tags)
+                    .Must(tags => tags is null || tags.Count <= MaxTagsPerReview)
+                    .WithMessage($"You can provide up to {MaxTagsPerReview} tags.")
+                    .WithErrorCode("REVIEW_INVALID_INPUT");
+
+                RuleFor(dto => dto.Tags)
+                    .Must(HaveDistinctTags)
+                    .WithMessage("Tags must be unique.")
+                    .WithErrorCode("REVIEW_INVALID_INPUT");
+
+                RuleForEach(dto => dto.Tags)
+                    .Cascade(CascadeMode.Stop)
+                    .Must(BeNonWhitespace)
+                    .WithMessage("Tags cannot be blank.")
+                    .WithErrorCode("REVIEW_INVALID_INPUT")
+                    .Must(tag => tag!.Trim().Length <= MaxTagLength)
+                    .WithMessage($"Tags cannot exceed {MaxTagLength} characters.")
+                    .WithErrorCode("REVIEW_INVALID_INPUT");
             }
         }
 
@@ -42,6 +61,25 @@ namespace MochiR.Api.Endpoints
 
                 RuleForEach(dto => dto.Ratings)
                     .SetValidator(new ReviewRatingDtoValidator());
+
+                RuleFor(dto => dto.Tags)
+                    .Must(tags => tags is null || tags.Count <= MaxTagsPerReview)
+                    .WithMessage($"You can provide up to {MaxTagsPerReview} tags.")
+                    .WithErrorCode("REVIEW_INVALID_INPUT");
+
+                RuleFor(dto => dto.Tags)
+                    .Must(HaveDistinctTags)
+                    .WithMessage("Tags must be unique.")
+                    .WithErrorCode("REVIEW_INVALID_INPUT");
+
+                RuleForEach(dto => dto.Tags)
+                    .Cascade(CascadeMode.Stop)
+                    .Must(BeNonWhitespace)
+                    .WithMessage("Tags cannot be blank.")
+                    .WithErrorCode("REVIEW_INVALID_INPUT")
+                    .Must(tag => tag!.Trim().Length <= MaxTagLength)
+                    .WithMessage($"Tags cannot exceed {MaxTagLength} characters.")
+                    .WithErrorCode("REVIEW_INVALID_INPUT");
             }
         }
 
