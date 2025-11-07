@@ -61,28 +61,38 @@ namespace MochiR.Api.Endpoints
                     return ApiResults.Ok(emptyPayload, httpContext);
                 }
 
-                var feedQuery = db.Reviews
+                var feedBaseQuery = db.Reviews
                     .AsNoTracking()
-                    .Include(r => r.Subject)
-                    .Include(r => r.User)
                     .Where(r => !r.IsDeleted && r.Status == ReviewStatus.Approved)
                     .Where(r =>
                         (followedUserIds.Count > 0 && followedUserIds.Contains(r.UserId)) ||
                         (followedSubjectIds.Count > 0 && followedSubjectIds.Contains(r.SubjectId)) ||
                         (followedSubjectTypeIds.Count > 0 && r.Subject != null && followedSubjectTypeIds.Contains(r.Subject.SubjectTypeId)));
 
+                var totalCount = await feedBaseQuery.CountAsync(cancellationToken);
+
+                if (totalCount == 0)
+                {
+                    var emptyPayload = new FeedPageDto(0, effectivePage, pageSize, Array.Empty<FeedItemDto>(), null, false);
+                    return ApiResults.Ok(emptyPayload, httpContext);
+                }
+
+                var feedQuery = feedBaseQuery
+                    .Include(r => r.Subject)
+                    .Include(r => r.User);
+
+                IQueryable<Review> filteredQuery = feedQuery;
+
                 if (query.After.HasValue)
                 {
                     var after = query.After.Value;
                     var afterId = query.AfterId ?? long.MaxValue;
-                    feedQuery = feedQuery.Where(r =>
+                    filteredQuery = filteredQuery.Where(r =>
                         r.CreatedAt < after ||
                         (r.CreatedAt == after && r.Id < afterId));
                 }
 
-                var totalCount = await feedQuery.CountAsync(cancellationToken);
-
-                var orderedQuery = feedQuery
+                var orderedQuery = filteredQuery
                     .OrderByDescending(r => r.CreatedAt)
                     .ThenByDescending(r => r.Id);
 
