@@ -128,6 +128,52 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
     }
 
     [Fact]
+    public async Task PostReview_WithTooLongTitle_ReturnsBadRequest()
+    {
+        var subject = await CreateSubjectAsync();
+        using var client = factory.CreateClientWithCookies();
+        var password = "Valid123!";
+        await client.SignInAsUserAsync(factory, password);
+
+        var payload = new
+        {
+            SubjectId = subject.Id,
+            Title = new string('a', 257),
+            Content = "Valid content"
+        };
+
+        var response = await client.PostAsJsonAsync("/api/reviews", payload);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.False(json.GetProperty("success").GetBoolean());
+        Assert.Equal("REVIEW_INVALID_INPUT", json.GetProperty("error").GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task PostReview_WithTooLongContent_ReturnsBadRequest()
+    {
+        var subject = await CreateSubjectAsync();
+        using var client = factory.CreateClientWithCookies();
+        var password = "Valid123!";
+        await client.SignInAsUserAsync(factory, password);
+
+        var payload = new
+        {
+            SubjectId = subject.Id,
+            Title = "Valid Title",
+            Content = new string('a', 20001)
+        };
+
+        var response = await client.PostAsJsonAsync("/api/reviews", payload);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.False(json.GetProperty("success").GetBoolean());
+        Assert.Equal("REVIEW_INVALID_INPUT", json.GetProperty("error").GetProperty("code").GetString());
+    }
+
+    [Fact]
     public async Task PostReview_DuplicateReview_ReturnsConflict()
     {
         var subject = await CreateSubjectAsync();
@@ -183,6 +229,54 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.False(json.GetProperty("success").GetBoolean());
+        Assert.Equal("REVIEW_INVALID_INPUT", json.GetProperty("error").GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task PutReview_WithTooLongTitle_ReturnsBadRequest()
+    {
+        var subject = await CreateSubjectAsync();
+        var password = "Valid123!";
+        using var client = factory.CreateClientWithCookies();
+        var user = await client.SignInAsUserAsync(factory, password);
+        var review = await CreateReviewAsync(subject.Id, user.Id, "Original Title");
+
+        var payload = new
+        {
+            Title = new string('a', 257),
+            Content = "Updated Content",
+            Ratings = Array.Empty<object>()
+        };
+
+        var response = await client.PutAsJsonAsync($"/api/reviews/{review.Id}", payload);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.False(json.GetProperty("success").GetBoolean());
+        Assert.Equal("REVIEW_INVALID_INPUT", json.GetProperty("error").GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task PutReview_WithTooLongContent_ReturnsBadRequest()
+    {
+        var subject = await CreateSubjectAsync();
+        var password = "Valid123!";
+        using var client = factory.CreateClientWithCookies();
+        var user = await client.SignInAsUserAsync(factory, password);
+        var review = await CreateReviewAsync(subject.Id, user.Id, "Original Title");
+
+        var payload = new
+        {
+            Title = "Updated Title",
+            Content = new string('a', 20001),
+            Ratings = Array.Empty<object>()
+        };
+
+        var response = await client.PutAsJsonAsync($"/api/reviews/{review.Id}", payload);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.False(json.GetProperty("success").GetBoolean());
         Assert.Equal("REVIEW_INVALID_INPUT", json.GetProperty("error").GetProperty("code").GetString());
     }
