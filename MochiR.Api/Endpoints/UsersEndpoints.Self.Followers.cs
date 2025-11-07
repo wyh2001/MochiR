@@ -51,6 +51,8 @@ namespace MochiR.Api.Endpoints
                 var payload = new SelfFollowPageDto(total, page, size, items);
                 return ApiResults.Ok(payload, httpContext);
             })
+            .WithSummary("List followers for the current user.")
+            .WithDescription("GET /api/me/followers. Requires authentication. Supports page and pageSize query parameters and returns 200 with a paginated follower list including basic profile details. Responds with 400 for invalid pagination.")
             .AddValidation<FollowListQueryDto>(
                 "FOLLOW_INVALID_QUERY",
                 "Page and PageSize must be positive.")
@@ -121,6 +123,8 @@ namespace MochiR.Api.Endpoints
 
                 return ApiResults.Ok(new SelfFollowerRemovalResultDto(userId, true), httpContext);
             })
+            .WithSummary("Remove a follower from the current user.")
+            .WithDescription("DELETE /api/me/followers/{userId}. Requires authentication. Removes the inbound follow relationship and returns 200 with removal status, or 400/401/404 when the request cannot be fulfilled.")
             .WithOpenApi();
 
             selfGroup.MapGet("/following", async (
@@ -164,6 +168,8 @@ namespace MochiR.Api.Endpoints
                 var payload = new SelfFollowPageDto(total, page, size, items);
                 return ApiResults.Ok(payload, httpContext);
             })
+            .WithSummary("List users the current user follows.")
+            .WithDescription("GET /api/me/following. Requires authentication. Supports page and pageSize query parameters and returns 200 with a paginated list of outbound follows. Responds with 400 for invalid pagination.")
             .AddValidation<FollowListQueryDto>(
                 "FOLLOW_INVALID_QUERY",
                 "Page and PageSize must be positive.")

@@ -20,7 +20,10 @@ namespace MochiR.Api.Endpoints
                     .ToListAsync(ct);
 
                 return ApiResults.Ok(subjectTypes, httpContext);
-            }).WithOpenApi();
+            })
+            .WithSummary("List subject types.")
+            .WithDescription("GET /api/subject-types. Returns 200 with all subject types ordered by id.")
+            .WithOpenApi();
 
             group.MapPost("/", async (CreateSubjectTypeDto dto, ApplicationDbContext db, HttpContext httpContext, CancellationToken ct) =>
             {
@@ -57,6 +60,8 @@ namespace MochiR.Api.Endpoints
                 var payload = new SubjectTypeSummaryDto(subjectType.Id, subjectType.Key, subjectType.DisplayName);
                 return ApiResults.Created($"/api/subject-types/{subjectType.Id}", payload, httpContext);
             })
+            .WithSummary("Create a subject type.")
+            .WithDescription("POST /api/subject-types. Requires admin authorization. Accepts key, displayName, and optional settings. Returns 201 with the created subject type summary, or 400/409 when validation fails.")
             .AddValidation<CreateSubjectTypeDto>(
                 "SUBJECT_TYPE_INVALID_INPUT",
                 "Key and display name are required.")
@@ -106,6 +111,8 @@ namespace MochiR.Api.Endpoints
                 var payload = new SubjectTypeSummaryDto(subjectType.Id, subjectType.Key, subjectType.DisplayName);
                 return ApiResults.Ok(payload, httpContext);
             })
+            .WithSummary("Update a subject type.")
+            .WithDescription("PUT /api/subject-types/{id}. Requires admin authorization. Accepts key, displayName, and optional settings. Returns 200 with the updated subject type summary, or 400/404/409 when validation fails.")
             .AddValidation<UpdateSubjectTypeDto>(
                 "SUBJECT_TYPE_INVALID_INPUT",
                 "Key and display name are required.")
@@ -139,7 +146,10 @@ namespace MochiR.Api.Endpoints
                 await db.SaveChangesAsync(ct);
 
                 return ApiResults.Ok(new SubjectTypeDeleteResultDto(id, true), httpContext);
-            }).RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
+            })
+            .WithSummary("Delete a subject type.")
+            .WithDescription("DELETE /api/subject-types/{id}. Requires admin authorization. Removes the subject type when it is not referenced by subjects, returning 200 with deletion status or 404/409 on failure.")
+            .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
         }
 
         internal record SubjectTypeSettingDto(string Key, string? Value, string? Note);

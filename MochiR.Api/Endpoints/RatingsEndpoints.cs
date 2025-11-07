@@ -38,7 +38,10 @@ namespace MochiR.Api.Endpoints
                     aggregate.UpdatedAt);
 
                 return ApiResults.Ok(payload, httpContext);
-            }).WithOpenApi();
+            })
+            .WithSummary("Get aggregate ratings for a subject.")
+            .WithDescription("GET /api/ratings/subjects/{subjectId}. Returns 200 with the aggregate metrics when available, or 404 if the subject has no aggregate snapshot.")
+            .WithOpenApi();
 
             // Upsert aggregate ratings for a subject, usually called by internal services
             group.MapPost("/subjects/{subjectId:int}", async (
@@ -103,6 +106,8 @@ namespace MochiR.Api.Endpoints
 
                 return ApiResults.Ok(payload, httpContext);
             })
+            .WithSummary("Upsert aggregate ratings for a subject.")
+            .WithDescription("POST /api/ratings/subjects/{subjectId}. Requires admin authorization. Accepts aggregate counts and metrics to create or update the snapshot. Returns 200 with the persisted aggregate, or 400/404 when validation fails.")
             .AddValidation<UpsertAggregateDto>(
                 "RATINGS_INVALID_PAYLOAD",
                 "Aggregate payload is invalid.")

@@ -45,6 +45,8 @@ namespace MochiR.Api.Endpoints
                 var refreshed = await userManager.FindByIdAsync(user.Id) ?? user;
                 return ApiResults.Ok(ToSelfProfile(refreshed), httpContext);
             })
+            .WithSummary("Change the current user's password.")
+            .WithDescription("POST /api/me/password/change. Requires authentication. Accepts currentPassword and newPassword in the body, returning 200 with the updated profile or 400 when validation fails.")
             .AddValidation<SelfPasswordChangeRequestDto>(
                 "SELF_PASSWORD_INVALID_PAYLOAD",
                 "Current and new passwords are required.")

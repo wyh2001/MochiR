@@ -40,6 +40,8 @@ namespace MochiR.Api.Endpoints
                     StatusCodes.Status400BadRequest,
                     details);
             })
+            .WithSummary("Register a local account.")
+            .WithDescription("POST /api/auth/register. Accepts a JSON body with userName, email, and password. Returns 200 with the created user identifiers or 400 with grouped Identity errors when validation fails.")
             .AddValidation<RegisterDto>(
                 "AUTH_REGISTER_INVALID",
                 "User name, email, and password are required.")
@@ -90,6 +92,8 @@ namespace MochiR.Api.Endpoints
                     httpContext,
                     StatusCodes.Status400BadRequest);
             })
+            .WithSummary("Sign in with user name or email.")
+            .WithDescription("POST /api/auth/login. Accepts userNameOrEmail and password. Returns 200 with a simple success flag on valid credentials, or 400/403/423 when Identity rejects the login for validation, policy, or lockout reasons.")
             .AddValidation<LoginDto>(
                 "AUTH_LOGIN_INVALID",
                 "User name or email and password are required.")
@@ -99,7 +103,10 @@ namespace MochiR.Api.Endpoints
             {
                 await signInManager.SignOutAsync();
                 return ApiResults.Ok(new LogoutResponseDto(true), httpContext);
-            }).WithOpenApi()
+            })
+            .WithSummary("Sign out the current user.")
+            .WithDescription("POST /api/auth/logout. Requires authentication. Clears the application cookie and returns 200 with a signedOut flag.")
+            .WithOpenApi()
             .RequireAuthorization();
 
             MapPasswordResetEndpoints(group);

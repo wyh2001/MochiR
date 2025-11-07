@@ -59,7 +59,10 @@ namespace MochiR.Api.Endpoints
 
                 var payload = new DirectoryPageDto(totalCount, pageNumber, size, items);
                 return ApiResults.Ok(payload, httpContext);
-            }).WithOpenApi();
+            })
+            .WithSummary("Search users.")
+            .WithDescription("GET /api/users. Requires authentication. Supports query, page, pageSize, and sort parameters to page through non-deleted users. Returns 200 with a paginated directory listing.")
+            .WithOpenApi();
 
             usersGroup.MapGet("/{id}", async (
                 string id,
@@ -108,7 +111,10 @@ namespace MochiR.Api.Endpoints
 
                 var payload = new UserDirectoryResponseDto(user, sensitive);
                 return ApiResults.Ok(payload, httpContext);
-            }).WithOpenApi();
+            })
+            .WithSummary("Get user directory details.")
+            .WithDescription("GET /api/users/{id}. Requires authentication. Returns 200 with public profile data and, when the caller is an admin, extra sensitive information. Responds with 404 when the user cannot be found.")
+            .WithOpenApi();
 
             var adminGroup = usersGroup.MapGroup(string.Empty)
                 .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin));
@@ -157,6 +163,8 @@ namespace MochiR.Api.Endpoints
                 var detail = await BuildAdminDetailAsync(userManager, user.Id);
                 return ApiResults.Created($"/api/users/{user.Id}", detail, httpContext);
             })
+            .WithSummary("Create a user (admin).")
+            .WithDescription("POST /api/users. Requires admin authorization. Accepts userName, email, password, and optional fields such as roles. Returns 201 with detailed user information or 400 when Identity validation fails.")
             .AddValidation<CreateUserDto>(
                 "USER_CREATE_INVALID_PAYLOAD",
                 "User name, email, and password are required.")
@@ -256,6 +264,8 @@ namespace MochiR.Api.Endpoints
                 var detail = await BuildAdminDetailAsync(userManager, user.Id);
                 return ApiResults.Ok(detail, httpContext);
             })
+            .WithSummary("Update a user (admin).")
+            .WithDescription("PATCH /api/users/{id}. Requires admin authorization. Accepts optional profile fields, contact info, and role assignments. Returns 200 with updated admin detail or 400/404 when validation fails.")
             .Accepts<DirectoryAdminPatchRequestDto>("application/json")
             .WithMetadata(new InvalidPayloadMetadata(
                 "USER_INVALID_PAYLOAD",
@@ -322,7 +332,10 @@ namespace MochiR.Api.Endpoints
                 }
 
                 return ApiResults.Ok(new UserLockResponseDto(user.Id, until), httpContext);
-            }).WithOpenApi();
+            })
+            .WithSummary("Set a user's lockout (admin).")
+            .WithDescription("POST /api/users/{id}/lock. Requires admin authorization. Accepts unlock=true to clear lockout or until to set a lockout date. Returns 200 with lockout status or 404 when the user is not found.")
+            .WithOpenApi();
 
             adminGroup.MapDelete("/{id}", async (
                 string id, UserManager<ApplicationUser> userManager,
@@ -363,7 +376,10 @@ namespace MochiR.Api.Endpoints
                 }
 
                 return ApiResults.Ok(new UserDeleteResponseDto(user.Id, user.IsDeleted), httpContext);
-            }).WithOpenApi();
+            })
+            .WithSummary("Soft delete a user (admin).")
+            .WithDescription("DELETE /api/users/{id}. Requires admin authorization. Marks the account as deleted, locks it out indefinitely, and returns 200 with deletion status. Responds with 404 when the user cannot be found.")
+            .WithOpenApi();
         }
 
         /// <summary>

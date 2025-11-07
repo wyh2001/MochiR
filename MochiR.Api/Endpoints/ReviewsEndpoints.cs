@@ -92,8 +92,8 @@ namespace MochiR.Api.Endpoints
 
                 return ApiResults.Ok(payload, httpContext);
             })
-            .WithSummary("Lists the most recent approved reviews.")
-            .WithDescription("Uses cursor pagination compatible with the feed endpoint. When (after, afterId) are provided, only reviews strictly after that cursor are returned, and the response nextCursor references the last item of the current page for seamless continuation.")
+            .WithSummary("List the latest approved reviews.")
+            .WithDescription("GET /api/reviews/latest. Supports page, pageSize, after, and afterId query parameters for cursor-friendly paging. Returns 200 with review summaries, or 400 when pagination values are invalid.")
             .AddValidation<LatestReviewsQueryDto>(
                 "REVIEW_INVALID_QUERY",
                 "Page and PageSize must be positive and within limits.")
@@ -126,7 +126,10 @@ namespace MochiR.Api.Endpoints
 
                 var reviews = await query.ToListAsync(cancellationToken);
                 return ApiResults.Ok(reviews, httpContext);
-            }).WithOpenApi();
+            })
+            .WithSummary("List reviews with optional filters.")
+            .WithDescription("GET /api/reviews. Supports optional subjectId and userId query parameters. Returns 200 with review summaries for matching reviews, including pending entries.")
+            .WithOpenApi();
 
             group.MapPost("/", async (
                 CreateReviewDto dto,
@@ -198,10 +201,13 @@ namespace MochiR.Api.Endpoints
 
                 return ApiResults.Created($"/api/reviews/{review.Id}", payload, httpContext);
             })
+            .WithSummary("Create a review.")
+            .WithDescription("POST /api/reviews. Requires authentication. Accepts subjectId, optional title/content, and optional ratings. Returns 201 with the created review summary, or 400/401/409 when validation fails.")
             .AddValidation<CreateReviewDto>(
                 "REVIEW_INVALID_INPUT",
                 "One or more fields are invalid.")
-            .RequireAuthorization().WithOpenApi();
+            .RequireAuthorization()
+            .WithOpenApi();
 
             group.MapPut("/{id:long}", async (
                 long id,
@@ -265,10 +271,13 @@ namespace MochiR.Api.Endpoints
 
                 return ApiResults.Ok(payload, httpContext);
             })
+            .WithSummary("Update a review.")
+            .WithDescription("PUT /api/reviews/{id}. Requires authentication. Only the author may update the review. Accepts title, content, and ratings, returning 200 with the updated review summary or 400/401/403/404 when validation fails.")
             .AddValidation<UpdateReviewDto>(
                 "REVIEW_INVALID_INPUT",
                 "One or more fields are invalid.")
-            .RequireAuthorization().WithOpenApi();
+            .RequireAuthorization()
+            .WithOpenApi();
 
             group.MapDelete("/{id:long}", async (
                 long id,
@@ -314,7 +323,11 @@ namespace MochiR.Api.Endpoints
                 await db.SaveChangesAsync(cancellationToken);
 
                 return ApiResults.Ok(new ReviewDeleteResultDto(id, true), httpContext);
-            }).RequireAuthorization().WithOpenApi();
+            })
+            .WithSummary("Delete a review.")
+            .WithDescription("DELETE /api/reviews/{id}. Requires authentication. Only the author may delete their review. Returns 200 with deletion status or 401/403/404 when the operation is not permitted.")
+            .RequireAuthorization()
+            .WithOpenApi();
 
             group.MapGet("/{id:long}", async (long id, ApplicationDbContext db, HttpContext httpContext, CancellationToken cancellationToken) =>
             {
@@ -362,7 +375,10 @@ namespace MochiR.Api.Endpoints
                     media);
 
                 return ApiResults.Ok(payload, httpContext);
-            }).WithOpenApi();
+            })
+            .WithSummary("Get review details.")
+            .WithDescription("GET /api/reviews/{id}. Returns 200 with the full review, including subject data, author info, ratings, and media. Responds with 404 if the review does not exist or has been deleted.")
+            .WithOpenApi();
         }
 
         private static (int Page, int PageSize) NormalizeLatestPagination(int? page, int? pageSize)

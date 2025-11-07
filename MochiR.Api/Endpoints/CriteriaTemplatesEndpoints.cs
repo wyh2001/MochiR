@@ -30,7 +30,10 @@ namespace MochiR.Api.Endpoints
 
                 var templates = await query.ToListAsync(cancellationToken);
                 return ApiResults.Ok(templates, httpContext);
-            }).WithOpenApi();
+            })
+            .WithSummary("List criteria templates.")
+            .WithDescription("GET /api/criteria-templates. Optional query parameter subjectTypeId filters templates for a specific type. Returns 200 with template summaries ordered by id.")
+            .WithOpenApi();
 
             group.MapPost("/", async (CreateCriteriaTemplateDto dto, ApplicationDbContext db, HttpContext httpContext, CancellationToken cancellationToken) =>
             {
@@ -77,6 +80,8 @@ namespace MochiR.Api.Endpoints
                     payload,
                     httpContext);
             })
+            .WithSummary("Create a criteria template.")
+            .WithDescription("POST /api/criteria-templates. Requires admin authorization. Accepts subjectTypeId, key, displayName, and isRequired. Returns 201 with the created template summary, or 400/409 when validation fails.")
             .AddValidation<CreateCriteriaTemplateDto>(
                 "CRITERIA_TEMPLATE_INVALID_INPUT",
                 "Key and display name are required.")
@@ -108,7 +113,10 @@ namespace MochiR.Api.Endpoints
                     template.IsRequired);
 
                 return ApiResults.Ok(payload, httpContext);
-            }).WithOpenApi();
+            })
+            .WithSummary("Get criteria template details.")
+            .WithDescription("GET /api/criteria-templates/{id}. Returns 200 with template metadata and its subject type information, or 404 when the template is not found.")
+            .WithOpenApi();
         }
 
         internal record CreateCriteriaTemplateDto(int SubjectTypeId, string Key, string DisplayName, bool IsRequired);

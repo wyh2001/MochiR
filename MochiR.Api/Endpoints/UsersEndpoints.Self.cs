@@ -24,7 +24,10 @@ namespace MochiR.Api.Endpoints
                 }
 
                 return ApiResults.Ok(ToSelfProfile(user), httpContext);
-            }).WithOpenApi();
+            })
+            .WithSummary("Get the current user's profile.")
+            .WithDescription("GET /api/me. Requires authentication. Returns 200 with the caller's profile attributes including counts and security flags.")
+            .WithOpenApi();
 
             selfGroup.MapPatch("/", async (SelfProfilePatchRequestDto dto, UserManager<ApplicationUser> userManager, HttpContext httpContext) =>
             {
@@ -50,6 +53,8 @@ namespace MochiR.Api.Endpoints
 
                 return ApiResults.Ok(ToSelfProfile(user), httpContext);
             })
+            .WithSummary("Update the current user's profile.")
+            .WithDescription("PATCH /api/me. Requires authentication. Accepts optional displayName and avatarUrl fields. Returns 200 with the updated profile or 400 when validation fails.")
             .Accepts<SelfProfilePatchRequestDto>("application/json")
             .WithMetadata(new InvalidPayloadMetadata(
                 "SELF_INVALID_PAYLOAD",
