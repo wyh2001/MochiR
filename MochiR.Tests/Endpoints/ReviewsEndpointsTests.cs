@@ -38,6 +38,10 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.Equal(user.UserName, first.GetProperty("authorUserName").GetString());
         Assert.Equal("Test User", first.GetProperty("authorDisplayName").GetString());
         Assert.Equal("https://example.com/avatar.png", first.GetProperty("authorAvatarUrl").GetString());
+        var firstRatings = first.GetProperty("ratings").EnumerateArray().ToList();
+        Assert.Single(firstRatings);
+        Assert.Equal("quality", firstRatings[0].GetProperty("key").GetString());
+        Assert.Equal(4.5m, firstRatings[0].GetProperty("score").GetDecimal());
     }
 
     [Fact]
@@ -62,6 +66,13 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.All(items, item => Assert.Equal(user.UserName, item.GetProperty("authorUserName").GetString()));
         Assert.All(items, item => Assert.Equal("Test User", item.GetProperty("authorDisplayName").GetString()));
         Assert.All(items, item => Assert.Equal("https://example.com/avatar.png", item.GetProperty("authorAvatarUrl").GetString()));
+        Assert.All(items, item =>
+        {
+            var ratings = item.GetProperty("ratings").EnumerateArray().ToList();
+            Assert.Single(ratings);
+            Assert.Equal("quality", ratings[0].GetProperty("key").GetString());
+            Assert.Equal(4.5m, ratings[0].GetProperty("score").GetDecimal());
+        });
     }
 
     [Fact]
@@ -135,6 +146,10 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.Equal(user.UserName, data.GetProperty("authorUserName").GetString());
         Assert.Equal("Test User", data.GetProperty("authorDisplayName").GetString());
         Assert.Equal("https://example.com/avatar.png", data.GetProperty("authorAvatarUrl").GetString());
+        var createdRatings = data.GetProperty("ratings").EnumerateArray().ToList();
+        Assert.Equal(2, createdRatings.Count);
+        Assert.Contains(createdRatings, r => r.GetProperty("key").GetString() == "quality" && r.GetProperty("score").GetDecimal() == 4.5m);
+        Assert.Contains(createdRatings, r => r.GetProperty("key").GetString() == "service" && r.GetProperty("score").GetDecimal() == 4.0m);
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -329,6 +344,10 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.Equal(user.UserName, data.GetProperty("authorUserName").GetString());
         Assert.Equal("Test User", data.GetProperty("authorDisplayName").GetString());
         Assert.Equal("https://example.com/avatar.png", data.GetProperty("authorAvatarUrl").GetString());
+        var updatedRatings = data.GetProperty("ratings").EnumerateArray().ToList();
+        Assert.Single(updatedRatings);
+        Assert.Equal("quality", updatedRatings[0].GetProperty("key").GetString());
+        Assert.Equal(4.7m, updatedRatings[0].GetProperty("score").GetDecimal());
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

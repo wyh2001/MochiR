@@ -504,6 +504,7 @@ namespace MochiR.Api.Endpoints
                 review.User != null ? review.User.AvatarUrl : null,
                 review.Title,
                 review.Content,
+                review.Ratings.Select(r => new ReviewRatingDto(r.Key, r.Score, r.Label)).ToList(),
                 review.Status,
                 review.CreatedAt,
                 review.Tags.Select(tag => tag.Value).ToList()));
@@ -524,6 +525,7 @@ namespace MochiR.Api.Endpoints
             string? AuthorAvatarUrl,
             string? Title,
             string? Content,
+            IReadOnlyList<ReviewRatingDto> Ratings,
             ReviewStatus Status,
             DateTime CreatedAt,
             IReadOnlyList<string> Tags);
