@@ -61,18 +61,7 @@ namespace MochiR.Api.Endpoints
                 var skip = query.After.HasValue ? 0 : (effectivePage - 1) * pageSize;
                 var take = pageSize + 1;
 
-                var rawItems = await orderedQuery
-                    .Skip(skip)
-                    .Take(take)
-                    .Select(review => new ReviewSummaryDto(
-                        review.Id,
-                        review.SubjectId,
-                        review.UserId,
-                        review.Title,
-                        review.Content,
-                        review.Status,
-                        review.CreatedAt,
-                        review.Tags.Select(tag => tag.Value).ToList()))
+                var rawItems = await ProjectToSummary(orderedQuery.Skip(skip).Take(take))
                     .ToListAsync(cancellationToken);
 
                 var hasMore = rawItems.Count > pageSize;
@@ -123,17 +112,7 @@ namespace MochiR.Api.Endpoints
                     baseQuery = baseQuery.Where(review => review.UserId == userId);
                 }
 
-                var reviews = await baseQuery
-                    .OrderByDescending(review => review.CreatedAt)
-                    .Select(review => new ReviewSummaryDto(
-                        review.Id,
-                        review.SubjectId,
-                        review.UserId,
-                        review.Title,
-                        review.Content,
-                        review.Status,
-                        review.CreatedAt,
-                        review.Tags.Select(tag => tag.Value).ToList()))
+                var reviews = await ProjectToSummary(baseQuery.OrderByDescending(review => review.CreatedAt))
                     .ToListAsync(cancellationToken);
                 return ApiResults.Ok(reviews, httpContext);
             })
@@ -204,17 +183,17 @@ namespace MochiR.Api.Endpoints
                 db.Reviews.Add(review);
                 await db.SaveChangesAsync(cancellationToken);
 
-                var payload = new ReviewSummaryDto(
-                    review.Id,
-                    review.SubjectId,
-                    review.UserId,
-                    review.Title,
-                    review.Content,
-                    review.Status,
-                    review.CreatedAt,
-                    normalizedTags);
+                var summary = await LoadSummaryAsync(db, review.Id, cancellationToken);
+                if (summary is null)
+                {
+                    return ApiResults.Failure(
+                        "REVIEW_NOT_FOUND",
+                        "Review not found after creation.",
+                        httpContext,
+                        StatusCodes.Status500InternalServerError);
+                }
 
-                return ApiResults.Created($"/api/reviews/{review.Id}", payload, httpContext);
+                return ApiResults.Created($"/api/reviews/{review.Id}", summary, httpContext);
             })
             .Produces<ApiResponse<ReviewSummaryDto>>(StatusCodes.Status201Created)
             .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
@@ -281,17 +260,17 @@ namespace MochiR.Api.Endpoints
 
                 await db.SaveChangesAsync(cancellationToken);
 
-                var payload = new ReviewSummaryDto(
-                    review.Id,
-                    review.SubjectId,
-                    review.UserId,
-                    review.Title,
-                    review.Content,
-                    review.Status,
-                    review.CreatedAt,
-                    normalizedTags);
+                var summary = await LoadSummaryAsync(db, review.Id, cancellationToken);
+                if (summary is null)
+                {
+                    return ApiResults.Failure(
+                        "REVIEW_NOT_FOUND",
+                        "Review not found after update.",
+                        httpContext,
+                        StatusCodes.Status500InternalServerError);
+                }
 
-                return ApiResults.Ok(payload, httpContext);
+                return ApiResults.Ok(summary, httpContext);
             })
             .Produces<ApiResponse<ReviewSummaryDto>>(StatusCodes.Status200OK)
             .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
@@ -402,6 +381,8 @@ namespace MochiR.Api.Endpoints
                     review.Subject?.Slug,
                     review.UserId,
                     review.User?.UserName,
+                    review.User?.DisplayName,
+                    review.User?.AvatarUrl,
                     review.Title,
                     review.Content,
                     tags,
@@ -512,9 +493,58 @@ namespace MochiR.Api.Endpoints
         private record LatestReviewsCursorDto(DateTime CreatedAtUtc, long ReviewId);
 
         internal record CreateReviewDto(int SubjectId, string? Title, string? Content, IReadOnlyList<ReviewRatingDto>? Ratings, IReadOnlyList<string>? Tags);
-        private record ReviewSummaryDto(long Id, int SubjectId, string UserId, string? Title, string? Content, ReviewStatus Status, DateTime CreatedAt, IReadOnlyList<string> Tags);
+        private static IQueryable<ReviewSummaryDto> ProjectToSummary(IQueryable<Review> source) =>
+            source.Select(review => new ReviewSummaryDto(
+                review.Id,
+                review.SubjectId,
+                review.Subject != null ? review.Subject.Name : null,
+                review.UserId,
+                review.User != null ? review.User.UserName : null,
+                review.User != null ? review.User.DisplayName : null,
+                review.User != null ? review.User.AvatarUrl : null,
+                review.Title,
+                review.Content,
+                review.Status,
+                review.CreatedAt,
+                review.Tags.Select(tag => tag.Value).ToList()));
+
+        private static Task<ReviewSummaryDto?> LoadSummaryAsync(ApplicationDbContext db, long reviewId, CancellationToken cancellationToken)
+        {
+            return ProjectToSummary(db.Reviews.AsNoTracking().Where(r => r.Id == reviewId))
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        private record ReviewSummaryDto(
+            long Id,
+            int SubjectId,
+            string? SubjectName,
+            string UserId,
+            string? AuthorUserName,
+            string? AuthorDisplayName,
+            string? AuthorAvatarUrl,
+            string? Title,
+            string? Content,
+            ReviewStatus Status,
+            DateTime CreatedAt,
+            IReadOnlyList<string> Tags);
         internal record UpdateReviewDto(string Title, string? Content, IReadOnlyList<ReviewRatingDto>? Ratings, IReadOnlyList<string>? Tags);
-        private record ReviewDetailDto(long Id, int SubjectId, string? SubjectName, string? SubjectSlug, string UserId, string? UserName, string? Title, string? Content, IReadOnlyList<string> Tags, IReadOnlyList<ReviewRatingDto> Ratings, ReviewStatus Status, DateTime CreatedAt, DateTime UpdatedAt, IReadOnlyList<ReviewMediaDto> Media);
+        private record ReviewDetailDto(
+            long Id,
+            int SubjectId,
+            string? SubjectName,
+            string? SubjectSlug,
+            string UserId,
+            string? AuthorUserName,
+            string? AuthorDisplayName,
+            string? AuthorAvatarUrl,
+            string? Title,
+            string? Content,
+            IReadOnlyList<string> Tags,
+            IReadOnlyList<ReviewRatingDto> Ratings,
+            ReviewStatus Status,
+            DateTime CreatedAt,
+            DateTime UpdatedAt,
+            IReadOnlyList<ReviewMediaDto> Media);
         private record ReviewMediaDto(long Id, string Url, MediaType Type, IReadOnlyList<ReviewMediaMetadataDto> Metadata);
         private record ReviewMediaMetadataDto(string Key, string? Value, string? Note);
         internal record ReviewRatingDto(string Key, decimal Score, string? Label);

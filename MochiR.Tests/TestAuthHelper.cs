@@ -47,7 +47,9 @@ public static class TestAuthHelper
             UserName = userName,
             Email = email,
             EmailConfirmed = true,
-            LockoutEnabled = false
+            LockoutEnabled = false,
+            DisplayName = "Test User",
+            AvatarUrl = "https://example.com/avatar.png"
         };
 
         var createResult = await userManager.CreateAsync(user, password ?? DefaultPassword);

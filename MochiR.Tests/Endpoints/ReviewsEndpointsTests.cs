@@ -33,6 +33,11 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         var items = json.GetProperty("data").EnumerateArray().ToList();
         Assert.Contains(items, item => item.GetProperty("title").GetString() == "First Review");
         Assert.DoesNotContain(items, item => item.GetProperty("title").GetString() == "Second Review");
+        var first = items.First(item => item.GetProperty("title").GetString() == "First Review");
+        Assert.Equal(subject.Name, first.GetProperty("subjectName").GetString());
+        Assert.Equal(user.UserName, first.GetProperty("authorUserName").GetString());
+        Assert.Equal("Test User", first.GetProperty("authorDisplayName").GetString());
+        Assert.Equal("https://example.com/avatar.png", first.GetProperty("authorAvatarUrl").GetString());
     }
 
     [Fact]
@@ -53,6 +58,10 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.All(items, item => Assert.Equal(subject1.Id, item.GetProperty("subjectId").GetInt32()));
         Assert.Contains(items, item => item.GetProperty("title").GetString() == "Subject1 Review");
         Assert.DoesNotContain(items, item => item.GetProperty("title").GetString() == "Subject2 Review");
+        Assert.All(items, item => Assert.Equal(subject1.Name, item.GetProperty("subjectName").GetString()));
+        Assert.All(items, item => Assert.Equal(user.UserName, item.GetProperty("authorUserName").GetString()));
+        Assert.All(items, item => Assert.Equal("Test User", item.GetProperty("authorDisplayName").GetString()));
+        Assert.All(items, item => Assert.Equal("https://example.com/avatar.png", item.GetProperty("authorAvatarUrl").GetString()));
     }
 
     [Fact]
@@ -71,6 +80,10 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.Equal(review.Id, data.GetProperty("id").GetInt64());
         Assert.Equal(subject.Id, data.GetProperty("subjectId").GetInt32());
         Assert.Equal("Detail Review", data.GetProperty("title").GetString());
+        Assert.Equal(subject.Name, data.GetProperty("subjectName").GetString());
+        Assert.Equal(user.UserName, data.GetProperty("authorUserName").GetString());
+        Assert.Equal("Test User", data.GetProperty("authorDisplayName").GetString());
+        Assert.Equal("https://example.com/avatar.png", data.GetProperty("authorAvatarUrl").GetString());
         var media = data.GetProperty("media").EnumerateArray().ToList();
         Assert.Single(media);
         var ratings = data.GetProperty("ratings").EnumerateArray().ToList();
@@ -118,6 +131,10 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         var reviewId = data.GetProperty("id").GetInt64();
         Assert.Equal(subject.Id, data.GetProperty("subjectId").GetInt32());
         Assert.Equal(user.Id, data.GetProperty("userId").GetString());
+        Assert.Equal(subject.Name, data.GetProperty("subjectName").GetString());
+        Assert.Equal(user.UserName, data.GetProperty("authorUserName").GetString());
+        Assert.Equal("Test User", data.GetProperty("authorDisplayName").GetString());
+        Assert.Equal("https://example.com/avatar.png", data.GetProperty("authorAvatarUrl").GetString());
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -308,6 +325,10 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         var data = json.GetProperty("data");
         Assert.Equal("Updated Title", data.GetProperty("title").GetString());
         Assert.Equal("Updated Content", data.GetProperty("content").GetString());
+        Assert.Equal(subject.Name, data.GetProperty("subjectName").GetString());
+        Assert.Equal(user.UserName, data.GetProperty("authorUserName").GetString());
+        Assert.Equal("Test User", data.GetProperty("authorDisplayName").GetString());
+        Assert.Equal("https://example.com/avatar.png", data.GetProperty("authorAvatarUrl").GetString());
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -412,7 +433,9 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
             UserName = $"user-{Guid.NewGuid():N}",
             Email = $"{Guid.NewGuid():N}@example.com",
             EmailConfirmed = true,
-            LockoutEnabled = false
+            LockoutEnabled = false,
+            DisplayName = "Test User",
+            AvatarUrl = "https://example.com/avatar.png"
         };
 
         var result = await userManager.CreateAsync(user, "Valid123!");
