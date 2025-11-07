@@ -13,6 +13,8 @@ namespace MochiR.Api.Endpoints
         private const int LatestMaxPageSize = 100;
         private const int MaxTagsPerReview = 10;
         private const int MaxTagLength = 32;
+        private const int MaxTitleLength = 256;
+        private const int MaxContentLength = 20000;
 
         public static void MapReviewsEndpoints(this IEndpointRouteBuilder routes)
         {

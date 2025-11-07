@@ -99,6 +99,12 @@ namespace MochiR.Api.Infrastructure
                     .HasForeignKey(r => r.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
 
+                e.Property(r => r.Title)
+                    .HasMaxLength(256);
+
+                e.Property(r => r.Content)
+                    .HasMaxLength(20000);
+
                 e.Property(r => r.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
                 e.Property(r => r.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
 

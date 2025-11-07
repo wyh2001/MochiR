@@ -20,10 +20,18 @@ namespace MochiR.Api.Endpoints
                     .WithErrorCode("REVIEW_INVALID_INPUT")
                     .Must(BeNonWhitespace)
                     .WithMessage("Title is required.")
+                    .WithErrorCode("REVIEW_INVALID_INPUT")
+                    .MaximumLength(MaxTitleLength)
+                    .WithMessage($"Title cannot exceed {MaxTitleLength} characters.")
                     .WithErrorCode("REVIEW_INVALID_INPUT");
 
                 RuleForEach(dto => dto.Ratings)
                     .SetValidator(new ReviewRatingDtoValidator());
+
+                RuleFor(dto => dto.Content)
+                    .MaximumLength(MaxContentLength)
+                    .WithMessage($"Content cannot exceed {MaxContentLength} characters.")
+                    .WithErrorCode("REVIEW_INVALID_INPUT");
 
                 RuleFor(dto => dto.Tags)
                     .Must(tags => tags is null || tags.Count <= MaxTagsPerReview)
@@ -57,10 +65,18 @@ namespace MochiR.Api.Endpoints
                     .WithErrorCode("REVIEW_INVALID_INPUT")
                     .Must(BeNonWhitespace)
                     .WithMessage("Title is required.")
+                    .WithErrorCode("REVIEW_INVALID_INPUT")
+                    .MaximumLength(MaxTitleLength)
+                    .WithMessage($"Title cannot exceed {MaxTitleLength} characters.")
                     .WithErrorCode("REVIEW_INVALID_INPUT");
 
                 RuleForEach(dto => dto.Ratings)
                     .SetValidator(new ReviewRatingDtoValidator());
+
+                RuleFor(dto => dto.Content)
+                    .MaximumLength(MaxContentLength)
+                    .WithMessage($"Content cannot exceed {MaxContentLength} characters.")
+                    .WithErrorCode("REVIEW_INVALID_INPUT");
 
                 RuleFor(dto => dto.Tags)
                     .Must(tags => tags is null || tags.Count <= MaxTagsPerReview)
