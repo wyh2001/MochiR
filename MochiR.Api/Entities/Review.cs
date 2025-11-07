@@ -20,6 +20,7 @@ namespace MochiR.Api.Entities
 
         public string? Title { get; set; }
         public string? Content { get; set; }
+        public string? Excerpt { get; set; }
 
         // Collection of per-criteria ratings, including overall
         public ICollection<ReviewRating> Ratings { get; set; } = new List<ReviewRating>();

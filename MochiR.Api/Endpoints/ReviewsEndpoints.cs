@@ -16,6 +16,8 @@ namespace MochiR.Api.Endpoints
         private const int MaxTagLength = 32;
         private const int MaxTitleLength = 256;
         private const int MaxContentLength = 20000;
+        private const int MaxExcerptLength = 512;
+        private const int AutoExcerptLength = 200;
 
         public static void MapReviewsEndpoints(this IEndpointRouteBuilder routes)
         {
@@ -61,8 +63,7 @@ namespace MochiR.Api.Endpoints
                 var skip = query.After.HasValue ? 0 : (effectivePage - 1) * pageSize;
                 var take = pageSize + 1;
 
-                var rawItems = await ProjectToSummary(orderedQuery.Skip(skip).Take(take))
-                    .ToListAsync(cancellationToken);
+                var rawItems = await FetchSummariesAsync(orderedQuery.Skip(skip).Take(take), cancellationToken);
 
                 var hasMore = rawItems.Count > pageSize;
                 if (hasMore)
@@ -112,8 +113,7 @@ namespace MochiR.Api.Endpoints
                     baseQuery = baseQuery.Where(review => review.UserId == userId);
                 }
 
-                var reviews = await ProjectToSummary(baseQuery.OrderByDescending(review => review.CreatedAt))
-                    .ToListAsync(cancellationToken);
+                var reviews = await FetchSummariesAsync(baseQuery.OrderByDescending(review => review.CreatedAt), cancellationToken);
                 return ApiResults.Ok(reviews, httpContext);
             })
             .Produces<ApiResponse<IReadOnlyList<ReviewSummaryDto>>>(StatusCodes.Status200OK)
@@ -160,6 +160,7 @@ namespace MochiR.Api.Endpoints
                 }
 
                 var normalizedTags = NormalizeTags(dto.Tags);
+                var normalizedExcerpt = NormalizeExcerpt(dto.Excerpt);
 
                 var review = new Review
                 {
@@ -167,6 +168,7 @@ namespace MochiR.Api.Endpoints
                     UserId = userId,
                     Title = dto.Title?.Trim(),
                     Content = dto.Content?.Trim(),
+                    Excerpt = normalizedExcerpt,
                     Ratings = dto.Ratings?.Select(r => new ReviewRating
                     {
                         Key = r.Key,
@@ -255,6 +257,7 @@ namespace MochiR.Api.Endpoints
                 })?.ToList() ?? new List<ReviewRating>();
                 var normalizedTags = NormalizeTags(dto.Tags);
                 review.Tags = ToEntityTags(normalizedTags);
+                review.Excerpt = NormalizeExcerpt(dto.Excerpt);
                 review.Status = ReviewStatus.Pending;
                 review.UpdatedAt = DateTime.UtcNow;
 
@@ -374,6 +377,8 @@ namespace MochiR.Api.Endpoints
                     .Select(t => t.Value)
                     .ToList();
 
+                var (excerpt, excerptIsAuto) = ResolveExcerpt(review.Excerpt, review.Content);
+
                 var payload = new ReviewDetailDto(
                     review.Id,
                     review.SubjectId,
@@ -385,6 +390,8 @@ namespace MochiR.Api.Endpoints
                     review.User?.AvatarUrl,
                     review.Title,
                     review.Content,
+                    excerpt,
+                    excerptIsAuto,
                     tags,
                     ratings,
                     review.Status,
@@ -492,9 +499,37 @@ namespace MochiR.Api.Endpoints
 
         private record LatestReviewsCursorDto(DateTime CreatedAtUtc, long ReviewId);
 
-        internal record CreateReviewDto(int SubjectId, string? Title, string? Content, IReadOnlyList<ReviewRatingDto>? Ratings, IReadOnlyList<string>? Tags);
-        private static IQueryable<ReviewSummaryDto> ProjectToSummary(IQueryable<Review> source) =>
-            source.Select(review => new ReviewSummaryDto(
+        internal record CreateReviewDto(int SubjectId, string? Title, string? Content, string? Excerpt, IReadOnlyList<ReviewRatingDto>? Ratings, IReadOnlyList<string>? Tags);
+
+        private static async Task<List<ReviewSummaryDto>> FetchSummariesAsync(IQueryable<Review> source, CancellationToken cancellationToken)
+        {
+            var summaries = await ProjectSummaryData(source)
+                .ToListAsync(cancellationToken);
+
+            return summaries.Select(summary =>
+            {
+                var (excerpt, isAuto) = ResolveExcerpt(summary.Excerpt, summary.Content);
+                return new ReviewSummaryDto(
+                    summary.Id,
+                    summary.SubjectId,
+                    summary.SubjectName,
+                    summary.UserId,
+                    summary.AuthorUserName,
+                    summary.AuthorDisplayName,
+                    summary.AuthorAvatarUrl,
+                    summary.Title,
+                    summary.Content,
+                    excerpt,
+                    isAuto,
+                    summary.Ratings,
+                    summary.Status,
+                    summary.CreatedAt,
+                    summary.Tags);
+            }).ToList();
+        }
+
+        private static IQueryable<ReviewSummaryProjection> ProjectSummaryData(IQueryable<Review> source) =>
+            source.Select(review => new ReviewSummaryProjection(
                 review.Id,
                 review.SubjectId,
                 review.Subject != null ? review.Subject.Name : null,
@@ -504,16 +539,66 @@ namespace MochiR.Api.Endpoints
                 review.User != null ? review.User.AvatarUrl : null,
                 review.Title,
                 review.Content,
+                review.Excerpt,
                 review.Ratings.Select(r => new ReviewRatingDto(r.Key, r.Score, r.Label)).ToList(),
                 review.Status,
                 review.CreatedAt,
                 review.Tags.Select(tag => tag.Value).ToList()));
 
-        private static Task<ReviewSummaryDto?> LoadSummaryAsync(ApplicationDbContext db, long reviewId, CancellationToken cancellationToken)
+        private static async Task<ReviewSummaryDto?> LoadSummaryAsync(ApplicationDbContext db, long reviewId, CancellationToken cancellationToken)
         {
-            return ProjectToSummary(db.Reviews.AsNoTracking().Where(r => r.Id == reviewId))
-                .FirstOrDefaultAsync(cancellationToken);
+            var summaries = await FetchSummariesAsync(db.Reviews.AsNoTracking().Where(r => r.Id == reviewId), cancellationToken);
+            return summaries.FirstOrDefault();
         }
+
+        private static string? NormalizeExcerpt(string? excerpt)
+        {
+            if (string.IsNullOrWhiteSpace(excerpt))
+            {
+                return null;
+            }
+
+            var trimmed = excerpt.Trim();
+            return trimmed.Length > MaxExcerptLength ? trimmed[..MaxExcerptLength] : trimmed;
+        }
+
+        private static (string? Value, bool IsAuto) ResolveExcerpt(string? storedExcerpt, string? content)
+        {
+            if (!string.IsNullOrEmpty(storedExcerpt))
+            {
+                return (storedExcerpt, false);
+            }
+
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return (null, true);
+            }
+
+            var trimmed = content.Trim();
+            if (trimmed.Length == 0)
+            {
+                return (null, true);
+            }
+
+            var excerpt = trimmed.Length > AutoExcerptLength ? trimmed[..AutoExcerptLength] : trimmed;
+            return (excerpt, true);
+        }
+
+        private record ReviewSummaryProjection(
+            long Id,
+            int SubjectId,
+            string? SubjectName,
+            string UserId,
+            string? AuthorUserName,
+            string? AuthorDisplayName,
+            string? AuthorAvatarUrl,
+            string? Title,
+            string? Content,
+            string? Excerpt,
+            IReadOnlyList<ReviewRatingDto> Ratings,
+            ReviewStatus Status,
+            DateTime CreatedAt,
+            IReadOnlyList<string> Tags);
 
         private record ReviewSummaryDto(
             long Id,
@@ -525,11 +610,13 @@ namespace MochiR.Api.Endpoints
             string? AuthorAvatarUrl,
             string? Title,
             string? Content,
+            string? Excerpt,
+            bool ExcerptIsAuto,
             IReadOnlyList<ReviewRatingDto> Ratings,
             ReviewStatus Status,
             DateTime CreatedAt,
             IReadOnlyList<string> Tags);
-        internal record UpdateReviewDto(string Title, string? Content, IReadOnlyList<ReviewRatingDto>? Ratings, IReadOnlyList<string>? Tags);
+        internal record UpdateReviewDto(string Title, string? Content, string? Excerpt, IReadOnlyList<ReviewRatingDto>? Ratings, IReadOnlyList<string>? Tags);
         private record ReviewDetailDto(
             long Id,
             int SubjectId,
@@ -541,6 +628,8 @@ namespace MochiR.Api.Endpoints
             string? AuthorAvatarUrl,
             string? Title,
             string? Content,
+            string? Excerpt,
+            bool ExcerptIsAuto,
             IReadOnlyList<string> Tags,
             IReadOnlyList<ReviewRatingDto> Ratings,
             ReviewStatus Status,

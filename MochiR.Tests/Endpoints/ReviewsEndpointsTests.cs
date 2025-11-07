@@ -42,6 +42,8 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.Single(firstRatings);
         Assert.Equal("quality", firstRatings[0].GetProperty("key").GetString());
         Assert.Equal(4.5m, firstRatings[0].GetProperty("score").GetDecimal());
+        Assert.Equal("Content", first.GetProperty("excerpt").GetString());
+        Assert.True(first.GetProperty("excerptIsAuto").GetBoolean());
     }
 
     [Fact]
@@ -72,6 +74,8 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
             Assert.Single(ratings);
             Assert.Equal("quality", ratings[0].GetProperty("key").GetString());
             Assert.Equal(4.5m, ratings[0].GetProperty("score").GetDecimal());
+            Assert.Equal("Content", item.GetProperty("excerpt").GetString());
+            Assert.True(item.GetProperty("excerptIsAuto").GetBoolean());
         });
     }
 
@@ -95,6 +99,8 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.Equal(user.UserName, data.GetProperty("authorUserName").GetString());
         Assert.Equal("Test User", data.GetProperty("authorDisplayName").GetString());
         Assert.Equal("https://example.com/avatar.png", data.GetProperty("authorAvatarUrl").GetString());
+        Assert.Equal("Content", data.GetProperty("excerpt").GetString());
+        Assert.True(data.GetProperty("excerptIsAuto").GetBoolean());
         var media = data.GetProperty("media").EnumerateArray().ToList();
         Assert.Single(media);
         var ratings = data.GetProperty("ratings").EnumerateArray().ToList();
@@ -150,6 +156,8 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.Equal(2, createdRatings.Count);
         Assert.Contains(createdRatings, r => r.GetProperty("key").GetString() == "quality" && r.GetProperty("score").GetDecimal() == 4.5m);
         Assert.Contains(createdRatings, r => r.GetProperty("key").GetString() == "service" && r.GetProperty("score").GetDecimal() == 4.0m);
+        Assert.Equal("Review content", data.GetProperty("excerpt").GetString());
+        Assert.True(data.GetProperty("excerptIsAuto").GetBoolean());
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -157,6 +165,39 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.NotNull(review);
         Assert.Equal(2, review!.Ratings.Count);
         Assert.Contains(review.Ratings, r => r.Key == "service" && r.Score == 4.0m);
+    }
+
+    [Fact]
+    public async Task PostReview_WithCustomExcerpt_ReturnsManualExcerpt()
+    {
+        var subject = await CreateSubjectAsync();
+        using var client = factory.CreateClientWithCookies();
+        var password = "Valid123!";
+        var user = await client.SignInAsUserAsync(factory, password);
+
+        var payload = new
+        {
+            SubjectId = subject.Id,
+            Title = "Created Review",
+            Content = "Review content",
+            Excerpt = "Hand written summary",
+            Ratings = Array.Empty<object>()
+        };
+
+        var response = await client.PostAsJsonAsync("/api/reviews", payload);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(json.GetProperty("success").GetBoolean());
+        var data = json.GetProperty("data");
+        Assert.Equal("Hand written summary", data.GetProperty("excerpt").GetString());
+        Assert.False(data.GetProperty("excerptIsAuto").GetBoolean());
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var review = await db.Reviews.AsNoTracking().FirstOrDefaultAsync(r => r.Id == data.GetProperty("id").GetInt64());
+        Assert.NotNull(review);
+        Assert.Equal("Hand written summary", review!.Excerpt);
     }
 
     [Fact]
@@ -326,6 +367,7 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         {
             Title = "Updated Title",
             Content = "Updated Content",
+            Excerpt = "Updated summary",
             Ratings = new[]
             {
                 new { Key = "quality", Score = 4.7m, Label = "Excellent" }
@@ -344,6 +386,8 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.Equal(user.UserName, data.GetProperty("authorUserName").GetString());
         Assert.Equal("Test User", data.GetProperty("authorDisplayName").GetString());
         Assert.Equal("https://example.com/avatar.png", data.GetProperty("authorAvatarUrl").GetString());
+        Assert.Equal("Updated summary", data.GetProperty("excerpt").GetString());
+        Assert.False(data.GetProperty("excerptIsAuto").GetBoolean());
         var updatedRatings = data.GetProperty("ratings").EnumerateArray().ToList();
         Assert.Single(updatedRatings);
         Assert.Equal("quality", updatedRatings[0].GetProperty("key").GetString());
@@ -355,6 +399,7 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.NotNull(updated);
         Assert.Single(updated!.Ratings);
         Assert.Equal(ReviewStatus.Pending, updated.Status);
+        Assert.Equal("Updated summary", updated.Excerpt);
     }
 
     [Fact]
@@ -462,7 +507,7 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         return user;
     }
 
-    private async Task<Review> CreateReviewAsync(int subjectId, string userId, string title, bool isDeleted = false, bool includeMedia = false)
+    private async Task<Review> CreateReviewAsync(int subjectId, string userId, string title, bool isDeleted = false, bool includeMedia = false, string? excerpt = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -472,6 +517,7 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
             UserId = userId,
             Title = title,
             Content = "Content",
+            Excerpt = excerpt,
             Status = ReviewStatus.Approved,
             Ratings = new List<ReviewRating>
             {

@@ -33,6 +33,11 @@ namespace MochiR.Api.Endpoints
                     .WithMessage($"Content cannot exceed {MaxContentLength} characters.")
                     .WithErrorCode("REVIEW_INVALID_INPUT");
 
+                RuleFor(dto => dto.Excerpt)
+                    .MaximumLength(MaxExcerptLength)
+                    .WithMessage($"Excerpt cannot exceed {MaxExcerptLength} characters.")
+                    .WithErrorCode("REVIEW_INVALID_INPUT");
+
                 RuleFor(dto => dto.Tags)
                     .Must(tags => tags is null || tags.Count <= MaxTagsPerReview)
                     .WithMessage($"You can provide up to {MaxTagsPerReview} tags.")
@@ -76,6 +81,11 @@ namespace MochiR.Api.Endpoints
                 RuleFor(dto => dto.Content)
                     .MaximumLength(MaxContentLength)
                     .WithMessage($"Content cannot exceed {MaxContentLength} characters.")
+                    .WithErrorCode("REVIEW_INVALID_INPUT");
+
+                RuleFor(dto => dto.Excerpt)
+                    .MaximumLength(MaxExcerptLength)
+                    .WithMessage($"Excerpt cannot exceed {MaxExcerptLength} characters.")
                     .WithErrorCode("REVIEW_INVALID_INPUT");
 
                 RuleFor(dto => dto.Tags)
