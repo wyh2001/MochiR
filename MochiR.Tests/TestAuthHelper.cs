@@ -11,24 +11,31 @@ public static class TestAuthHelper
 {
     private const string DefaultPassword = "P@ssw0rd!";
 
-    public static Task<ApplicationUser> SignInAsAdminAsync(this HttpClient client, CustomWebApplicationFactory factory)
+    public static Task<ApplicationUser> SignInAsAdminAsync(this HttpClient client, WebApplicationFactory<Program> factory)
         => client.SignInAsync(factory, isAdmin: true);
 
-    public static Task<ApplicationUser> SignInAsUserAsync(this HttpClient client, CustomWebApplicationFactory factory)
+    public static Task<ApplicationUser> SignInAsUserAsync(this HttpClient client, WebApplicationFactory<Program> factory)
         => client.SignInAsync(factory, isAdmin: false);
 
-    public static Task<ApplicationUser> SignInAsUserAsync(this HttpClient client, CustomWebApplicationFactory factory, string password)
+    public static Task<ApplicationUser> SignInAsUserAsync(this HttpClient client, WebApplicationFactory<Program> factory, string password)
         => client.SignInAsync(factory, isAdmin: false, password: password);
 
-    public static HttpClient CreateClientWithCookies(this CustomWebApplicationFactory factory)
+    public static HttpClient CreateClientWithCookies(this WebApplicationFactory<Program> factory)
         => factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             HandleCookies = true
         });
 
-    private static async Task<ApplicationUser> SignInAsync(this HttpClient client, CustomWebApplicationFactory factory, bool isAdmin, string? password = null)
+    public static async Task<HttpClient> CreateAuthenticatedClientAsync(this WebApplicationFactory<Program> factory)
     {
-        using var scope = factory.Services.CreateScope();
+        var client = factory.CreateClientWithCookies();
+        _ = await client.SignInAsUserAsync(factory);
+        return client;
+    }
+
+    private static async Task<ApplicationUser> SignInAsync(this HttpClient client, WebApplicationFactory<Program> factory, bool isAdmin, string? password = null)
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
