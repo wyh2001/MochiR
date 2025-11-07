@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using MochiR.Api.Dtos;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
 using MochiR.Api.Infrastructure.Validation;
@@ -104,6 +105,11 @@ namespace MochiR.Api.Endpoints
 
                 return ApiResults.Created($"/api/follows/subjects/{subject.Id}", payload, httpContext);
             })
+            .Produces<ApiResponse<FollowSubjectSummaryDto>>(StatusCodes.Status201Created)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
+            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .Produces<ApiResponse<object>>(StatusCodes.Status409Conflict)
             .WithSummary("Follow a subject.")
             .WithDescription("POST /api/follows/subjects/{subjectId}. Requires authentication. Path parameter subjectId must reference an existing subject. Returns 201 with follow details, or 400/401/404/409 when validation fails.")
             .RequireAuthorization()
@@ -156,6 +162,10 @@ namespace MochiR.Api.Endpoints
 
                 return ApiResults.Ok(new FollowDeletionResultDto(follow.Id, true), httpContext);
             })
+            .Produces<ApiResponse<FollowDeletionResultDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
+            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
             .WithSummary("Unfollow a subject.")
             .WithDescription("DELETE /api/follows/subjects/{subjectId}. Requires authentication. Removes the follow relationship and returns 200 with a removal flag, or 400/401/404 when the request cannot be completed.")
             .RequireAuthorization()
@@ -206,6 +216,9 @@ namespace MochiR.Api.Endpoints
                 var payload = new FollowSubjectPageDto(total, page, size, items);
                 return ApiResults.Ok(payload, httpContext);
             })
+            .Produces<ApiResponse<FollowSubjectPageDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
             .WithSummary("List followed subjects.")
             .WithDescription("GET /api/follows/subjects. Requires authentication. Supports page and pageSize query parameters and returns a paginated collection ordered by follow time. Responds with 400 for invalid pagination or 401 when unauthenticated.")
             .AddValidation<FollowListQueryDto>(
@@ -297,6 +310,11 @@ namespace MochiR.Api.Endpoints
 
                 return ApiResults.Created($"/api/follows/subject-types/{subjectType.Id}", payload, httpContext);
             })
+            .Produces<ApiResponse<FollowSubjectTypeSummaryDto>>(StatusCodes.Status201Created)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
+            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .Produces<ApiResponse<object>>(StatusCodes.Status409Conflict)
             .WithSummary("Follow a subject type.")
             .WithDescription("POST /api/follows/subject-types/{subjectTypeId}. Requires authentication. Path parameter subjectTypeId must reference an existing type. Returns 201 with follow details, or 400/401/404/409 when validation fails.")
             .RequireAuthorization()
@@ -349,6 +367,10 @@ namespace MochiR.Api.Endpoints
 
                 return ApiResults.Ok(new FollowDeletionResultDto(follow.Id, true), httpContext);
             })
+            .Produces<ApiResponse<FollowDeletionResultDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
+            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
             .WithSummary("Unfollow a subject type.")
             .WithDescription("DELETE /api/follows/subject-types/{subjectTypeId}. Requires authentication. Removes the follow relationship and returns 200 with a removal flag, or 400/401/404 when the request cannot be completed.")
             .RequireAuthorization()
@@ -398,6 +420,9 @@ namespace MochiR.Api.Endpoints
                 var payload = new FollowSubjectTypePageDto(total, page, size, items);
                 return ApiResults.Ok(payload, httpContext);
             })
+            .Produces<ApiResponse<FollowSubjectTypePageDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
             .WithSummary("List followed subject types.")
             .WithDescription("GET /api/follows/subject-types. Requires authentication. Supports page and pageSize query parameters and returns a paginated collection with subject type metadata. Responds with 400 for invalid pagination or 401 when unauthenticated.")
             .AddValidation<FollowListQueryDto>(
@@ -512,6 +537,11 @@ namespace MochiR.Api.Endpoints
 
                 return ApiResults.Created($"/api/follows/users/{targetUser.Id}", payload, httpContext);
             })
+            .Produces<ApiResponse<FollowUserSummaryDto>>(StatusCodes.Status201Created)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
+            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .Produces<ApiResponse<object>>(StatusCodes.Status409Conflict)
             .WithSummary("Follow a user.")
             .WithDescription("POST /api/follows/users/{followedUserId}. Requires authentication. Path parameter followedUserId must reference another existing user. Returns 201 with follow details, or 400/401/404/409 when validation fails (including self-follow attempts).")
             .RequireAuthorization()
@@ -577,6 +607,10 @@ namespace MochiR.Api.Endpoints
 
                 return ApiResults.Ok(new FollowDeletionResultDto(follow.Id, true), httpContext);
             })
+            .Produces<ApiResponse<FollowDeletionResultDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
+            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
             .WithSummary("Unfollow a user.")
             .WithDescription("DELETE /api/follows/users/{followedUserId}. Requires authentication. Removes the follow relationship and returns 200 with a removal flag, or 400/401/404 when the request cannot be completed.")
             .RequireAuthorization()
@@ -628,6 +662,9 @@ namespace MochiR.Api.Endpoints
                 var payload = new FollowUserPageDto(total, page, size, items);
                 return ApiResults.Ok(payload, httpContext);
             })
+            .Produces<ApiResponse<FollowUserPageDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
             .WithSummary("List followed users.")
             .WithDescription("GET /api/follows/users. Requires authentication. Supports page and pageSize query parameters and returns a paginated collection enriched with followed user profile data. Responds with 400 for invalid pagination or 401 when unauthenticated.")
             .AddValidation<FollowListQueryDto>(

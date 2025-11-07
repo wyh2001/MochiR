@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using MochiR.Api.Dtos;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
 using MochiR.Api.Infrastructure.Validation;
@@ -45,6 +46,9 @@ namespace MochiR.Api.Endpoints
                 var refreshed = await userManager.FindByIdAsync(user.Id) ?? user;
                 return ApiResults.Ok(ToSelfProfile(refreshed), httpContext);
             })
+            .Produces<ApiResponse<SelfProfileDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
             .WithSummary("Change the current user's password.")
             .WithDescription("POST /api/me/password/change. Requires authentication. Accepts currentPassword and newPassword in the body, returning 200 with the updated profile or 400 when validation fails.")
             .AddValidation<SelfPasswordChangeRequestDto>(
