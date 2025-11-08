@@ -257,6 +257,30 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
     }
 
     [Fact]
+    public async Task PostReview_WithDuplicateTags_ReturnsBadRequest()
+    {
+        var subject = await CreateSubjectAsync();
+        using var client = factory.CreateClientWithCookies();
+        var password = "Valid123!";
+        await client.SignInAsUserAsync(factory, password);
+
+        var payload = new
+        {
+            SubjectId = subject.Id,
+            Title = "Valid Title",
+            Content = "Review content",
+            Tags = new[] { "repeat", "repeat" }
+        };
+
+        var response = await client.PostAsJsonAsync("/api/reviews", payload);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.False(json.GetProperty("success").GetBoolean());
+        Assert.Equal("REVIEW_INVALID_INPUT", json.GetProperty("error").GetProperty("code").GetString());
+    }
+
+    [Fact]
     public async Task PostReview_DuplicateReview_ReturnsConflict()
     {
         var subject = await CreateSubjectAsync();
@@ -353,6 +377,31 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         {
             Title = "Updated Title",
             Content = new string('a', 20001),
+            Ratings = Array.Empty<object>()
+        };
+
+        var response = await client.PutAsJsonAsync($"/api/reviews/{review.Id}", payload);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.False(json.GetProperty("success").GetBoolean());
+        Assert.Equal("REVIEW_INVALID_INPUT", json.GetProperty("error").GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task PutReview_WithDuplicateTags_ReturnsBadRequest()
+    {
+        var subject = await CreateSubjectAsync();
+        var password = "Valid123!";
+        using var client = factory.CreateClientWithCookies();
+        var user = await client.SignInAsUserAsync(factory, password);
+        var review = await CreateReviewAsync(subject.Id, user.Id, "Original Title", tags: new[] { "unique" });
+
+        var payload = new
+        {
+            Title = "Updated Title",
+            Content = "Updated Content",
+            Tags = new[] { "dup", "Dup" },
             Ratings = Array.Empty<object>()
         };
 
@@ -587,7 +636,7 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         return user;
     }
 
-    private async Task<Review> CreateReviewAsync(int subjectId, string userId, string title, bool isDeleted = false, bool includeMedia = false, string? excerpt = null)
+    private async Task<Review> CreateReviewAsync(int subjectId, string userId, string title, bool isDeleted = false, bool includeMedia = false, string? excerpt = null, IEnumerable<string>? tags = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -617,6 +666,7 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
                     }
                 }
                 : new List<ReviewMedia>(),
+            Tags = tags?.Select(t => new ReviewTag { Value = t }).ToList() ?? new List<ReviewTag>(),
             IsDeleted = isDeleted,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
