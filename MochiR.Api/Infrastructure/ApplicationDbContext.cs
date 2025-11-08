@@ -15,6 +15,7 @@ namespace MochiR.Api.Infrastructure
         public DbSet<CriteriaTemplate> CriteriaTemplates => Set<CriteriaTemplate>();
         public DbSet<Review> Reviews => Set<Review>();
         public DbSet<ReviewMedia> ReviewMedia => Set<ReviewMedia>();
+        public DbSet<ReviewLike> ReviewLikes => Set<ReviewLike>();
         public DbSet<Aggregate> Aggregates => Set<Aggregate>();
         public DbSet<Follow> Follows => Set<Follow>();
 
@@ -125,6 +126,11 @@ namespace MochiR.Api.Infrastructure
                         .HasMaxLength(32);
                     tagsBuilder.ToTable("ReviewTags");
                 });
+
+                e.HasMany(r => r.Likes)
+                    .WithOne(l => l.Review)
+                    .HasForeignKey(l => l.ReviewId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // ReviewMedia
@@ -201,6 +207,20 @@ namespace MochiR.Api.Infrastructure
                 e.HasIndex(f => new { f.FollowerId, f.TargetType, f.FollowedUserId })
                     .IsUnique()
                     .HasFilter("\"FollowedUserId\" IS NOT NULL");
+            });
+
+            // ReviewLike
+            builder.Entity<ReviewLike>(e =>
+            {
+                e.Property(l => l.CreatedAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                e.HasOne(l => l.User)
+                    .WithMany()
+                    .HasForeignKey(l => l.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasIndex(l => new { l.ReviewId, l.UserId })
+                    .IsUnique();
             });
         }
     }

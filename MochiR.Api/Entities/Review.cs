@@ -25,6 +25,7 @@ namespace MochiR.Api.Entities
         // Collection of per-criteria ratings, including overall
         public ICollection<ReviewRating> Ratings { get; set; } = new List<ReviewRating>();
         public ICollection<ReviewTag> Tags { get; set; } = new List<ReviewTag>();
+        public ICollection<ReviewLike> Likes { get; set; } = new List<ReviewLike>();
 
         public int MediaCount { get; set; }
 

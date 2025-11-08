@@ -26,9 +26,12 @@ namespace MochiR.Api.Endpoints
             group.MapGet("/latest", async (
                 [AsParameters] LatestReviewsQueryDto query,
                 ApplicationDbContext db,
+                UserManager<ApplicationUser> userManager,
+                ClaimsPrincipal user,
                 HttpContext httpContext,
                 CancellationToken cancellationToken) =>
             {
+                var currentUserId = userManager.GetUserId(user);
                 var (page, pageSize) = NormalizeLatestPagination(query.Page, query.PageSize);
                 var effectivePage = query.After.HasValue ? 1 : page;
 
@@ -63,7 +66,7 @@ namespace MochiR.Api.Endpoints
                 var skip = query.After.HasValue ? 0 : (effectivePage - 1) * pageSize;
                 var take = pageSize + 1;
 
-                var rawItems = await FetchSummariesAsync(orderedQuery.Skip(skip).Take(take), cancellationToken);
+                var rawItems = await FetchSummariesAsync(orderedQuery.Skip(skip).Take(take), currentUserId, cancellationToken);
 
                 var hasMore = rawItems.Count > pageSize;
                 if (hasMore)
@@ -97,8 +100,9 @@ namespace MochiR.Api.Endpoints
                 "Page and PageSize must be positive and within limits.")
             .WithOpenApi();
 
-            group.MapGet("/", async (int? subjectId, string? userId, ApplicationDbContext db, HttpContext httpContext, CancellationToken cancellationToken) =>
+            group.MapGet("/", async (int? subjectId, string? userId, ApplicationDbContext db, UserManager<ApplicationUser> userManager, ClaimsPrincipal user, HttpContext httpContext, CancellationToken cancellationToken) =>
             {
+                var currentUserId = userManager.GetUserId(user);
                 var baseQuery = db.Reviews
                     .AsNoTracking()
                     .Where(review => !review.IsDeleted);
@@ -113,7 +117,7 @@ namespace MochiR.Api.Endpoints
                     baseQuery = baseQuery.Where(review => review.UserId == userId);
                 }
 
-                var reviews = await FetchSummariesAsync(baseQuery.OrderByDescending(review => review.CreatedAt), cancellationToken);
+                var reviews = await FetchSummariesAsync(baseQuery.OrderByDescending(review => review.CreatedAt), currentUserId, cancellationToken);
                 return ApiResults.Ok(reviews, httpContext);
             })
             .Produces<ApiResponse<IReadOnlyList<ReviewSummaryDto>>>(StatusCodes.Status200OK)
@@ -185,7 +189,7 @@ namespace MochiR.Api.Endpoints
                 db.Reviews.Add(review);
                 await db.SaveChangesAsync(cancellationToken);
 
-                var summary = await LoadSummaryAsync(db, review.Id, cancellationToken);
+                var summary = await FetchSingleSummaryAsync(db, review.Id, userId, cancellationToken);
                 if (summary is null)
                 {
                     return ApiResults.Failure(
@@ -263,7 +267,7 @@ namespace MochiR.Api.Endpoints
 
                 await db.SaveChangesAsync(cancellationToken);
 
-                var summary = await LoadSummaryAsync(db, review.Id, cancellationToken);
+                var summary = await FetchSingleSummaryAsync(db, review.Id, userId, cancellationToken);
                 if (summary is null)
                 {
                     return ApiResults.Failure(
@@ -342,8 +346,117 @@ namespace MochiR.Api.Endpoints
             .RequireAuthorization()
             .WithOpenApi();
 
-            group.MapGet("/{id:long}", async (long id, ApplicationDbContext db, HttpContext httpContext, CancellationToken cancellationToken) =>
+            group.MapPost("/{id:long}/like", async (
+                long id,
+                ApplicationDbContext db,
+                UserManager<ApplicationUser> userManager,
+                ClaimsPrincipal user,
+                HttpContext httpContext,
+                CancellationToken cancellationToken) =>
             {
+                var currentUserId = userManager.GetUserId(user);
+                if (string.IsNullOrEmpty(currentUserId))
+                {
+                    return ApiResults.Failure(
+                        "AUTH_UNAUTHORIZED",
+                        "User is not authenticated.",
+                        httpContext,
+                        StatusCodes.Status401Unauthorized);
+                }
+
+                var review = await db.Reviews.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+                if (review is null || review.IsDeleted)
+                {
+                    return ApiResults.Failure(
+                        "REVIEW_NOT_FOUND",
+                        "Review not found.",
+                        httpContext,
+                        StatusCodes.Status404NotFound);
+                }
+
+                if (string.Equals(review.UserId, currentUserId, StringComparison.Ordinal))
+                {
+                    return ApiResults.Failure(
+                        "AUTH_FORBIDDEN",
+                        "You are not allowed to like your own review.",
+                        httpContext,
+                        StatusCodes.Status403Forbidden);
+                }
+
+                var alreadyLiked = await db.ReviewLikes.AnyAsync(like => like.ReviewId == id && like.UserId == currentUserId, cancellationToken);
+                if (!alreadyLiked)
+                {
+                    db.ReviewLikes.Add(new ReviewLike
+                    {
+                        ReviewId = id,
+                        UserId = currentUserId
+                    });
+                    await db.SaveChangesAsync(cancellationToken);
+                }
+
+                var (likeCount, isLikedByCurrentUser) = await GetLikeStateAsync(db, id, currentUserId, cancellationToken);
+                var payload = new ReviewLikeResultDto(id, likeCount, isLikedByCurrentUser);
+                return ApiResults.Ok(payload, httpContext);
+            })
+            .Produces<ApiResponse<ReviewLikeResultDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
+            .Produces<ApiResponse<object>>(StatusCodes.Status403Forbidden)
+            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .WithSummary("Like a review.")
+            .WithDescription("POST /api/reviews/{id}/like. Requires authentication. Adds a like for the specified review unless already liked. Returns 200 with the updated like state.")
+            .RequireAuthorization()
+            .WithOpenApi();
+
+            group.MapDelete("/{id:long}/like", async (
+                long id,
+                ApplicationDbContext db,
+                UserManager<ApplicationUser> userManager,
+                ClaimsPrincipal user,
+                HttpContext httpContext,
+                CancellationToken cancellationToken) =>
+            {
+                var currentUserId = userManager.GetUserId(user);
+                if (string.IsNullOrEmpty(currentUserId))
+                {
+                    return ApiResults.Failure(
+                        "AUTH_UNAUTHORIZED",
+                        "User is not authenticated.",
+                        httpContext,
+                        StatusCodes.Status401Unauthorized);
+                }
+
+                var review = await db.Reviews.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+                if (review is null || review.IsDeleted)
+                {
+                    return ApiResults.Failure(
+                        "REVIEW_NOT_FOUND",
+                        "Review not found.",
+                        httpContext,
+                        StatusCodes.Status404NotFound);
+                }
+
+                var existingLike = await db.ReviewLikes.FirstOrDefaultAsync(like => like.ReviewId == id && like.UserId == currentUserId, cancellationToken);
+                if (existingLike is not null)
+                {
+                    db.ReviewLikes.Remove(existingLike);
+                    await db.SaveChangesAsync(cancellationToken);
+                }
+
+                var (likeCount, isLikedByCurrentUser) = await GetLikeStateAsync(db, id, currentUserId, cancellationToken);
+                var payload = new ReviewLikeResultDto(id, likeCount, isLikedByCurrentUser);
+                return ApiResults.Ok(payload, httpContext);
+            })
+            .Produces<ApiResponse<ReviewLikeResultDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
+            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .WithSummary("Unlike a review.")
+            .WithDescription("DELETE /api/reviews/{id}/like. Requires authentication. Removes the current user's like if it exists. Returns 200 with the updated like state.")
+            .RequireAuthorization()
+            .WithOpenApi();
+
+            group.MapGet("/{id:long}", async (long id, ApplicationDbContext db, UserManager<ApplicationUser> userManager, ClaimsPrincipal user, HttpContext httpContext, CancellationToken cancellationToken) =>
+            {
+                var currentUserId = userManager.GetUserId(user);
                 var review = await db.Reviews
                     .AsNoTracking()
                     .Include(r => r.Subject)
@@ -379,6 +492,8 @@ namespace MochiR.Api.Endpoints
 
                 var (excerpt, excerptIsAuto) = ResolveExcerpt(review.Excerpt, review.Content);
 
+                var (likeCount, isLikedByCurrentUser) = await GetLikeStateAsync(db, id, currentUserId, cancellationToken);
+
                 var payload = new ReviewDetailDto(
                     review.Id,
                     review.SubjectId,
@@ -394,6 +509,8 @@ namespace MochiR.Api.Endpoints
                     excerptIsAuto,
                     tags,
                     ratings,
+                    likeCount,
+                    isLikedByCurrentUser,
                     review.Status,
                     review.CreatedAt,
                     review.UpdatedAt,
@@ -501,9 +618,9 @@ namespace MochiR.Api.Endpoints
 
         internal record CreateReviewDto(int SubjectId, string? Title, string? Content, string? Excerpt, IReadOnlyList<ReviewRatingDto>? Ratings, IReadOnlyList<string>? Tags);
 
-        private static async Task<List<ReviewSummaryDto>> FetchSummariesAsync(IQueryable<Review> source, CancellationToken cancellationToken)
+        private static async Task<List<ReviewSummaryDto>> FetchSummariesAsync(IQueryable<Review> source, string? currentUserId, CancellationToken cancellationToken)
         {
-            var summaries = await ProjectSummaryData(source)
+            var summaries = await ProjectSummaryData(source, currentUserId)
                 .ToListAsync(cancellationToken);
 
             return summaries.Select(summary =>
@@ -524,11 +641,13 @@ namespace MochiR.Api.Endpoints
                     summary.Ratings,
                     summary.Status,
                     summary.CreatedAt,
-                    summary.Tags);
+                    summary.Tags,
+                    summary.LikeCount,
+                    summary.IsLikedByCurrentUser);
             }).ToList();
         }
 
-        private static IQueryable<ReviewSummaryProjection> ProjectSummaryData(IQueryable<Review> source) =>
+        private static IQueryable<ReviewSummaryProjection> ProjectSummaryData(IQueryable<Review> source, string? currentUserId) =>
             source.Select(review => new ReviewSummaryProjection(
                 review.Id,
                 review.SubjectId,
@@ -543,11 +662,13 @@ namespace MochiR.Api.Endpoints
                 review.Ratings.Select(r => new ReviewRatingDto(r.Key, r.Score, r.Label)).ToList(),
                 review.Status,
                 review.CreatedAt,
-                review.Tags.Select(tag => tag.Value).ToList()));
+                review.Tags.Select(tag => tag.Value).ToList(),
+                review.Likes.Count,
+                currentUserId != null && review.Likes.Any(like => like.UserId == currentUserId)));
 
-        private static async Task<ReviewSummaryDto?> LoadSummaryAsync(ApplicationDbContext db, long reviewId, CancellationToken cancellationToken)
+        private static async Task<ReviewSummaryDto?> FetchSingleSummaryAsync(ApplicationDbContext db, long reviewId, string? currentUserId, CancellationToken cancellationToken)
         {
-            var summaries = await FetchSummariesAsync(db.Reviews.AsNoTracking().Where(r => r.Id == reviewId), cancellationToken);
+            var summaries = await FetchSummariesAsync(db.Reviews.AsNoTracking().Where(r => r.Id == reviewId), currentUserId, cancellationToken);
             return summaries.FirstOrDefault();
         }
 
@@ -584,6 +705,26 @@ namespace MochiR.Api.Endpoints
             return (excerpt, true);
         }
 
+        private static async Task<(int LikeCount, bool IsLikedByCurrentUser)> GetLikeStateAsync(ApplicationDbContext db, long reviewId, string? currentUserId, CancellationToken cancellationToken)
+        {
+            var likeState = await db.ReviewLikes
+                .Where(like => like.ReviewId == reviewId)
+                .GroupBy(_ => 1)
+                .Select(group => new
+                {
+                    Count = group.Count(),
+                    IsLiked = currentUserId != null && group.Any(like => like.UserId == currentUserId)
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (likeState is null)
+            {
+                return (0, false);
+            }
+
+            return (likeState.Count, likeState.IsLiked);
+        }
+
         private record ReviewSummaryProjection(
             long Id,
             int SubjectId,
@@ -598,7 +739,9 @@ namespace MochiR.Api.Endpoints
             IReadOnlyList<ReviewRatingDto> Ratings,
             ReviewStatus Status,
             DateTime CreatedAt,
-            IReadOnlyList<string> Tags);
+            IReadOnlyList<string> Tags,
+            int LikeCount,
+            bool IsLikedByCurrentUser);
 
         private record ReviewSummaryDto(
             long Id,
@@ -615,7 +758,9 @@ namespace MochiR.Api.Endpoints
             IReadOnlyList<ReviewRatingDto> Ratings,
             ReviewStatus Status,
             DateTime CreatedAt,
-            IReadOnlyList<string> Tags);
+            IReadOnlyList<string> Tags,
+            int LikeCount,
+            bool IsLikedByCurrentUser);
         internal record UpdateReviewDto(string Title, string? Content, string? Excerpt, IReadOnlyList<ReviewRatingDto>? Ratings, IReadOnlyList<string>? Tags);
         private record ReviewDetailDto(
             long Id,
@@ -632,6 +777,8 @@ namespace MochiR.Api.Endpoints
             bool ExcerptIsAuto,
             IReadOnlyList<string> Tags,
             IReadOnlyList<ReviewRatingDto> Ratings,
+            int LikeCount,
+            bool IsLikedByCurrentUser,
             ReviewStatus Status,
             DateTime CreatedAt,
             DateTime UpdatedAt,
@@ -640,5 +787,6 @@ namespace MochiR.Api.Endpoints
         private record ReviewMediaMetadataDto(string Key, string? Value, string? Note);
         internal record ReviewRatingDto(string Key, decimal Score, string? Label);
         private record ReviewDeleteResultDto(long Id, bool Deleted);
+        private record ReviewLikeResultDto(long ReviewId, int LikeCount, bool IsLikedByCurrentUser);
     }
 }
