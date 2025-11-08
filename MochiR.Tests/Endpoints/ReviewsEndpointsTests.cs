@@ -44,6 +44,8 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.Equal(4.5m, firstRatings[0].GetProperty("score").GetDecimal());
         Assert.Equal("Content", first.GetProperty("excerpt").GetString());
         Assert.True(first.GetProperty("excerptIsAuto").GetBoolean());
+        Assert.Equal(0, first.GetProperty("likeCount").GetInt32());
+        Assert.False(first.GetProperty("isLikedByCurrentUser").GetBoolean());
     }
 
     [Fact]
@@ -76,6 +78,8 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
             Assert.Equal(4.5m, ratings[0].GetProperty("score").GetDecimal());
             Assert.Equal("Content", item.GetProperty("excerpt").GetString());
             Assert.True(item.GetProperty("excerptIsAuto").GetBoolean());
+            Assert.Equal(0, item.GetProperty("likeCount").GetInt32());
+            Assert.False(item.GetProperty("isLikedByCurrentUser").GetBoolean());
         });
     }
 
@@ -101,6 +105,8 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.Equal("https://example.com/avatar.png", data.GetProperty("authorAvatarUrl").GetString());
         Assert.Equal("Content", data.GetProperty("excerpt").GetString());
         Assert.True(data.GetProperty("excerptIsAuto").GetBoolean());
+        Assert.Equal(0, data.GetProperty("likeCount").GetInt32());
+        Assert.False(data.GetProperty("isLikedByCurrentUser").GetBoolean());
         var media = data.GetProperty("media").EnumerateArray().ToList();
         Assert.Single(media);
         var ratings = data.GetProperty("ratings").EnumerateArray().ToList();
@@ -158,6 +164,8 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.Contains(createdRatings, r => r.GetProperty("key").GetString() == "service" && r.GetProperty("score").GetDecimal() == 4.0m);
         Assert.Equal("Review content", data.GetProperty("excerpt").GetString());
         Assert.True(data.GetProperty("excerptIsAuto").GetBoolean());
+        Assert.Equal(0, data.GetProperty("likeCount").GetInt32());
+        Assert.False(data.GetProperty("isLikedByCurrentUser").GetBoolean());
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -192,6 +200,8 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         var data = json.GetProperty("data");
         Assert.Equal("Hand written summary", data.GetProperty("excerpt").GetString());
         Assert.False(data.GetProperty("excerptIsAuto").GetBoolean());
+        Assert.Equal(0, data.GetProperty("likeCount").GetInt32());
+        Assert.False(data.GetProperty("isLikedByCurrentUser").GetBoolean());
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -388,6 +398,8 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.Equal("https://example.com/avatar.png", data.GetProperty("authorAvatarUrl").GetString());
         Assert.Equal("Updated summary", data.GetProperty("excerpt").GetString());
         Assert.False(data.GetProperty("excerptIsAuto").GetBoolean());
+        Assert.Equal(0, data.GetProperty("likeCount").GetInt32());
+        Assert.False(data.GetProperty("isLikedByCurrentUser").GetBoolean());
         var updatedRatings = data.GetProperty("ratings").EnumerateArray().ToList();
         Assert.Single(updatedRatings);
         Assert.Equal("quality", updatedRatings[0].GetProperty("key").GetString());
@@ -461,6 +473,74 @@ public sealed class ReviewsEndpointsTests : IClassFixture<CustomWebApplicationFa
         var json = await getResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.False(json.GetProperty("success").GetBoolean());
         Assert.Equal("REVIEW_NOT_FOUND", json.GetProperty("error").GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task LikeReview_SucceedsForAuthenticatedUser()
+    {
+        var subject = await CreateSubjectAsync();
+        var author = await CreateUserAsync();
+        var review = await CreateReviewAsync(subject.Id, author.Id, "Likeable Review");
+
+        using var client = factory.CreateClientWithCookies();
+        await client.SignInAsUserAsync(factory);
+
+        var response = await client.PostAsync($"/api/reviews/{review.Id}/like", null);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(json.GetProperty("success").GetBoolean());
+        var data = json.GetProperty("data");
+        Assert.Equal(review.Id, data.GetProperty("reviewId").GetInt64());
+        Assert.Equal(1, data.GetProperty("likeCount").GetInt32());
+        Assert.True(data.GetProperty("isLikedByCurrentUser").GetBoolean());
+
+        var detailResponse = await client.GetAsync($"/api/reviews/{review.Id}");
+        Assert.Equal(HttpStatusCode.OK, detailResponse.StatusCode);
+        var detailJson = await detailResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var detailData = detailJson.GetProperty("data");
+        Assert.Equal(1, detailData.GetProperty("likeCount").GetInt32());
+        Assert.True(detailData.GetProperty("isLikedByCurrentUser").GetBoolean());
+    }
+
+    [Fact]
+    public async Task LikeReview_ByAuthor_ReturnsForbidden()
+    {
+        var subject = await CreateSubjectAsync();
+        using var client = factory.CreateClientWithCookies();
+        var author = await client.SignInAsUserAsync(factory);
+        var review = await CreateReviewAsync(subject.Id, author.Id, "Self Review");
+
+        var response = await client.PostAsync($"/api/reviews/{review.Id}/like", null);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.False(json.GetProperty("success").GetBoolean());
+        Assert.Equal("AUTH_FORBIDDEN", json.GetProperty("error").GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task UnlikeReview_RemovesExistingLike()
+    {
+        var subject = await CreateSubjectAsync();
+        var author = await CreateUserAsync();
+        var review = await CreateReviewAsync(subject.Id, author.Id, "Unlike Review");
+
+        using var client = factory.CreateClientWithCookies();
+        await client.SignInAsUserAsync(factory);
+
+        var likeResponse = await client.PostAsync($"/api/reviews/{review.Id}/like", null);
+        Assert.Equal(HttpStatusCode.OK, likeResponse.StatusCode);
+
+        var response = await client.DeleteAsync($"/api/reviews/{review.Id}/like");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(json.GetProperty("success").GetBoolean());
+        var data = json.GetProperty("data");
+        Assert.Equal(review.Id, data.GetProperty("reviewId").GetInt64());
+        Assert.Equal(0, data.GetProperty("likeCount").GetInt32());
+        Assert.False(data.GetProperty("isLikedByCurrentUser").GetBoolean());
     }
 
     private async Task<Subject> CreateSubjectAsync()
