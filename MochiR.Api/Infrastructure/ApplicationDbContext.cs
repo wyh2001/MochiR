@@ -25,6 +25,7 @@ namespace MochiR.Api.Infrastructure
 
             builder.HasPostgresExtension("unaccent");
             builder.HasPostgresExtension("pg_trgm");
+            builder.HasPostgresExtension("citext");
 
             // Subject
             builder.Entity<Subject>(e =>
@@ -126,7 +127,10 @@ namespace MochiR.Api.Infrastructure
                     tagsBuilder.WithOwner().HasForeignKey("ReviewId");
                     tagsBuilder.Property(tag => tag.Value)
                         .IsRequired()
-                        .HasMaxLength(32);
+                        .HasMaxLength(32)
+                        .HasColumnType("citext");
+                    tagsBuilder.HasIndex("ReviewId", nameof(ReviewTag.Value))
+                        .IsUnique();
                     tagsBuilder.ToTable("ReviewTags");
                 });
 
