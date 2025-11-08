@@ -23,6 +23,9 @@ namespace MochiR.Api.Infrastructure
         {
             base.OnModelCreating(builder);
 
+            builder.HasPostgresExtension("unaccent");
+            builder.HasPostgresExtension("pg_trgm");
+
             // Subject
             builder.Entity<Subject>(e =>
             {
