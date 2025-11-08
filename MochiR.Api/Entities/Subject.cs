@@ -1,4 +1,6 @@
-﻿namespace MochiR.Api.Entities
+﻿using NpgsqlTypes;
+
+namespace MochiR.Api.Entities
 {
     public class Subject
     {
@@ -16,6 +18,8 @@
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public bool IsDeleted { get; set; }
+
+        public NpgsqlTsVector? SearchVector { get; private set; }
     }
 
     public class SubjectAttribute

@@ -1,3 +1,5 @@
+using NpgsqlTypes;
+
 namespace MochiR.Api.Entities
 {
     public enum ReviewStatus
@@ -36,6 +38,8 @@ namespace MochiR.Api.Entities
         public bool IsDeleted { get; set; }
 
         public ICollection<ReviewMedia> Media { get; set; } = new List<ReviewMedia>();
+
+        public NpgsqlTsVector? SearchVector { get; private set; }
     }
 
     public class ReviewRating

@@ -30,6 +30,15 @@ namespace MochiR.Api.Infrastructure
             // Subject
             builder.Entity<Subject>(e =>
             {
+                e.Property(s => s.SearchVector)
+                    .HasColumnType("tsvector")
+                    .HasComputedColumnSql(
+                        "setweight(to_tsvector('simple', unaccent(coalesce(\"Name\", ''))), 'A') || " +
+                        "setweight(to_tsvector('simple', unaccent(coalesce(\"Slug\", ''))), 'B')",
+                        stored: true);
+
+                e.HasIndex(s => s.SearchVector).HasMethod("GIN");
+
                 e.HasIndex(s => s.Slug).IsUnique();
                 e.Property(s => s.Name).IsRequired();
                 e.Property(s => s.Slug).IsRequired();
@@ -86,6 +95,16 @@ namespace MochiR.Api.Infrastructure
             // Review
             builder.Entity<Review>(e =>
             {
+                e.Property(r => r.SearchVector)
+                    .HasColumnType("tsvector")
+                    .HasComputedColumnSql(
+                        "setweight(to_tsvector('simple', unaccent(coalesce(\"Title\", ''))), 'A') || " +
+                        "setweight(to_tsvector('simple', unaccent(coalesce(\"Excerpt\", ''))), 'B') || " +
+                        "setweight(to_tsvector('simple', unaccent(coalesce(\"Content\", ''))), 'C')",
+                        stored: true);
+
+                e.HasIndex(r => r.SearchVector).HasMethod("GIN");
+
                 // Filtered unique index: UNIQUE(UserId, SubjectId) WHERE IsDeleted = 0
                 e.HasIndex(r => new { r.UserId, r.SubjectId })
                     .IsUnique()
