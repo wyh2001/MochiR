@@ -1,17 +1,22 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using NpgsqlTypes;
 
 #nullable disable
 
 namespace MochiR.Api.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialPostgres : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AlterDatabase()
+                .Annotation("Npgsql:PostgresExtension:citext", ",,")
+                .Annotation("Npgsql:PostgresExtension:pg_trgm", ",,");
+
             migrationBuilder.CreateTable(
                 name: "AspNetRoles",
                 columns: table => new
@@ -35,6 +40,8 @@ namespace MochiR.Api.Infrastructure.Migrations
                     CreatedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     AvatarUrl = table.Column<string>(type: "text", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    FollowersCount = table.Column<int>(type: "integer", nullable: false),
+                    FollowingCount = table.Column<int>(type: "integer", nullable: false),
                     UserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
@@ -207,7 +214,8 @@ namespace MochiR.Api.Infrastructure.Migrations
                     Name = table.Column<string>(type: "text", nullable: false),
                     Slug = table.Column<string>(type: "text", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    SearchVector = table.Column<NpgsqlTsVector>(type: "tsvector", nullable: true, computedColumnSql: "setweight(to_tsvector('simple', coalesce(\"Name\", '')), 'A') || setweight(to_tsvector('simple', coalesce(\"Slug\", '')), 'B')", stored: true)
                 },
                 constraints: table =>
                 {
@@ -263,6 +271,48 @@ namespace MochiR.Api.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Follows",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    FollowerId = table.Column<string>(type: "text", nullable: false),
+                    TargetType = table.Column<int>(type: "integer", nullable: false),
+                    SubjectId = table.Column<int>(type: "integer", nullable: true),
+                    SubjectTypeId = table.Column<int>(type: "integer", nullable: true),
+                    FollowedUserId = table.Column<string>(type: "text", nullable: true),
+                    CreatedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Follows", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Follows_AspNetUsers_FollowedUserId",
+                        column: x => x.FollowedUserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Follows_AspNetUsers_FollowerId",
+                        column: x => x.FollowerId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Follows_SubjectTypes_SubjectTypeId",
+                        column: x => x.SubjectTypeId,
+                        principalTable: "SubjectTypes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Follows_Subjects_SubjectId",
+                        column: x => x.SubjectId,
+                        principalTable: "Subjects",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Reviews",
                 columns: table => new
                 {
@@ -270,13 +320,15 @@ namespace MochiR.Api.Infrastructure.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     SubjectId = table.Column<int>(type: "integer", nullable: false),
                     UserId = table.Column<string>(type: "text", nullable: false),
-                    Title = table.Column<string>(type: "text", nullable: true),
-                    Content = table.Column<string>(type: "text", nullable: true),
+                    Title = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    Content = table.Column<string>(type: "character varying(20000)", maxLength: 20000, nullable: true),
+                    Excerpt = table.Column<string>(type: "text", nullable: true),
                     MediaCount = table.Column<int>(type: "integer", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    SearchVector = table.Column<NpgsqlTsVector>(type: "tsvector", nullable: true, computedColumnSql: "setweight(to_tsvector('simple', coalesce(\"Title\", '')), 'A') || setweight(to_tsvector('simple', coalesce(\"Excerpt\", '')), 'B') || setweight(to_tsvector('simple', coalesce(\"Content\", '')), 'C')", stored: true)
                 },
                 constraints: table =>
                 {
@@ -341,6 +393,33 @@ namespace MochiR.Api.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ReviewLikes",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ReviewId = table.Column<long>(type: "bigint", nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ReviewLikes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ReviewLikes_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ReviewLikes_Reviews_ReviewId",
+                        column: x => x.ReviewId,
+                        principalTable: "Reviews",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ReviewMedia",
                 columns: table => new
                 {
@@ -377,6 +456,26 @@ namespace MochiR.Api.Infrastructure.Migrations
                     table.PrimaryKey("PK_ReviewRatings", x => new { x.ReviewId, x.Id });
                     table.ForeignKey(
                         name: "FK_ReviewRatings_Reviews_ReviewId",
+                        column: x => x.ReviewId,
+                        principalTable: "Reviews",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ReviewTags",
+                columns: table => new
+                {
+                    ReviewId = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Value = table.Column<string>(type: "citext", maxLength: 32, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ReviewTags", x => new { x.ReviewId, x.Id });
+                    table.ForeignKey(
+                        name: "FK_ReviewTags_Reviews_ReviewId",
                         column: x => x.ReviewId,
                         principalTable: "Reviews",
                         principalColumn: "Id",
@@ -449,9 +548,62 @@ namespace MochiR.Api.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Follows_FollowedUserId",
+                table: "Follows",
+                column: "FollowedUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Follows_FollowerId_TargetType_FollowedUserId",
+                table: "Follows",
+                columns: new[] { "FollowerId", "TargetType", "FollowedUserId" },
+                unique: true,
+                filter: "\"FollowedUserId\" IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Follows_FollowerId_TargetType_SubjectId",
+                table: "Follows",
+                columns: new[] { "FollowerId", "TargetType", "SubjectId" },
+                unique: true,
+                filter: "\"SubjectId\" IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Follows_FollowerId_TargetType_SubjectTypeId",
+                table: "Follows",
+                columns: new[] { "FollowerId", "TargetType", "SubjectTypeId" },
+                unique: true,
+                filter: "\"SubjectTypeId\" IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Follows_SubjectId",
+                table: "Follows",
+                column: "SubjectId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Follows_SubjectTypeId",
+                table: "Follows",
+                column: "SubjectTypeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ReviewLikes_ReviewId_UserId",
+                table: "ReviewLikes",
+                columns: new[] { "ReviewId", "UserId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ReviewLikes_UserId",
+                table: "ReviewLikes",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ReviewMedia_ReviewId",
                 table: "ReviewMedia",
                 column: "ReviewId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Reviews_SearchVector",
+                table: "Reviews",
+                column: "SearchVector")
+                .Annotation("Npgsql:IndexMethod", "GIN");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Reviews_SubjectId",
@@ -464,6 +616,18 @@ namespace MochiR.Api.Infrastructure.Migrations
                 columns: new[] { "UserId", "SubjectId" },
                 unique: true,
                 filter: "\"IsDeleted\" = false");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ReviewTags_ReviewId_Value",
+                table: "ReviewTags",
+                columns: new[] { "ReviewId", "Value" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Subjects_SearchVector",
+                table: "Subjects",
+                column: "SearchVector")
+                .Annotation("Npgsql:IndexMethod", "GIN");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Subjects_Slug",
@@ -508,10 +672,19 @@ namespace MochiR.Api.Infrastructure.Migrations
                 name: "CriteriaTemplates");
 
             migrationBuilder.DropTable(
+                name: "Follows");
+
+            migrationBuilder.DropTable(
+                name: "ReviewLikes");
+
+            migrationBuilder.DropTable(
                 name: "ReviewMediaMetadata");
 
             migrationBuilder.DropTable(
                 name: "ReviewRatings");
+
+            migrationBuilder.DropTable(
+                name: "ReviewTags");
 
             migrationBuilder.DropTable(
                 name: "SubjectAttributes");

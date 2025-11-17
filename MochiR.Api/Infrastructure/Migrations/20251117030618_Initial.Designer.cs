@@ -6,14 +6,15 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MochiR.Api.Infrastructure;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using NpgsqlTypes;
 
 #nullable disable
 
 namespace MochiR.Api.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251103022015_InitialPostgres")]
-    partial class InitialPostgres
+    [Migration("20251117030618_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -23,6 +24,8 @@ namespace MochiR.Api.Infrastructure.Migrations
                 .HasAnnotation("ProductVersion", "9.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "citext");
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -206,6 +209,12 @@ namespace MochiR.Api.Infrastructure.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("boolean");
 
+                    b.Property<int>("FollowersCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("FollowingCount")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
@@ -284,6 +293,58 @@ namespace MochiR.Api.Infrastructure.Migrations
                     b.ToTable("CriteriaTemplates");
                 });
 
+            modelBuilder.Entity("MochiR.Api.Entities.Follow", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("FollowedUserId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FollowerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("SubjectId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SubjectTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TargetType")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FollowedUserId");
+
+                    b.HasIndex("SubjectId");
+
+                    b.HasIndex("SubjectTypeId");
+
+                    b.HasIndex("FollowerId", "TargetType", "FollowedUserId")
+                        .IsUnique()
+                        .HasFilter("\"FollowedUserId\" IS NOT NULL");
+
+                    b.HasIndex("FollowerId", "TargetType", "SubjectId")
+                        .IsUnique()
+                        .HasFilter("\"SubjectId\" IS NOT NULL");
+
+                    b.HasIndex("FollowerId", "TargetType", "SubjectTypeId")
+                        .IsUnique()
+                        .HasFilter("\"SubjectTypeId\" IS NOT NULL");
+
+                    b.ToTable("Follows");
+                });
+
             modelBuilder.Entity("MochiR.Api.Entities.Review", b =>
                 {
                     b.Property<long>("Id")
@@ -293,18 +354,27 @@ namespace MochiR.Api.Infrastructure.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Content")
-                        .HasColumnType("text");
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<string>("Excerpt")
+                        .HasColumnType("text");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
                     b.Property<int>("MediaCount")
                         .HasColumnType("integer");
+
+                    b.Property<NpgsqlTsVector>("SearchVector")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("tsvector")
+                        .HasComputedColumnSql("setweight(to_tsvector('simple', coalesce(\"Title\", '')), 'A') || setweight(to_tsvector('simple', coalesce(\"Excerpt\", '')), 'B') || setweight(to_tsvector('simple', coalesce(\"Content\", '')), 'C')", true);
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -313,7 +383,8 @@ namespace MochiR.Api.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("Title")
-                        .HasColumnType("text");
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
@@ -326,6 +397,10 @@ namespace MochiR.Api.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("SearchVector");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
+
                     b.HasIndex("SubjectId");
 
                     b.HasIndex("UserId", "SubjectId")
@@ -333,6 +408,36 @@ namespace MochiR.Api.Infrastructure.Migrations
                         .HasFilter("\"IsDeleted\" = false");
 
                     b.ToTable("Reviews");
+                });
+
+            modelBuilder.Entity("MochiR.Api.Entities.ReviewLike", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<long>("ReviewId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ReviewId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("ReviewLikes");
                 });
 
             modelBuilder.Entity("MochiR.Api.Entities.ReviewMedia", b =>
@@ -378,6 +483,11 @@ namespace MochiR.Api.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<NpgsqlTsVector>("SearchVector")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("tsvector")
+                        .HasComputedColumnSql("setweight(to_tsvector('simple', coalesce(\"Name\", '')), 'A') || setweight(to_tsvector('simple', coalesce(\"Slug\", '')), 'B')", true);
+
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasColumnType("text");
@@ -386,6 +496,10 @@ namespace MochiR.Api.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("SearchVector");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
 
                     b.HasIndex("Slug")
                         .IsUnique();
@@ -527,6 +641,38 @@ namespace MochiR.Api.Infrastructure.Migrations
                     b.Navigation("SubjectType");
                 });
 
+            modelBuilder.Entity("MochiR.Api.Entities.Follow", b =>
+                {
+                    b.HasOne("MochiR.Api.Entities.ApplicationUser", "FollowedUser")
+                        .WithMany()
+                        .HasForeignKey("FollowedUserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("MochiR.Api.Entities.ApplicationUser", "Follower")
+                        .WithMany()
+                        .HasForeignKey("FollowerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MochiR.Api.Entities.Subject", "Subject")
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("MochiR.Api.Entities.SubjectType", "SubjectType")
+                        .WithMany()
+                        .HasForeignKey("SubjectTypeId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("FollowedUser");
+
+                    b.Navigation("Follower");
+
+                    b.Navigation("Subject");
+
+                    b.Navigation("SubjectType");
+                });
+
             modelBuilder.Entity("MochiR.Api.Entities.Review", b =>
                 {
                     b.HasOne("MochiR.Api.Entities.Subject", "Subject")
@@ -571,9 +717,57 @@ namespace MochiR.Api.Infrastructure.Migrations
                                 .HasForeignKey("ReviewId");
                         });
 
+                    b.OwnsMany("MochiR.Api.Entities.ReviewTag", "Tags", b1 =>
+                        {
+                            b1.Property<long>("ReviewId")
+                                .HasColumnType("bigint");
+
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer");
+
+                            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b1.Property<int>("Id"));
+
+                            b1.Property<string>("Value")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("citext");
+
+                            b1.HasKey("ReviewId", "Id");
+
+                            b1.HasIndex("ReviewId", "Value")
+                                .IsUnique();
+
+                            b1.ToTable("ReviewTags", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("ReviewId");
+                        });
+
                     b.Navigation("Ratings");
 
                     b.Navigation("Subject");
+
+                    b.Navigation("Tags");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MochiR.Api.Entities.ReviewLike", b =>
+                {
+                    b.HasOne("MochiR.Api.Entities.Review", "Review")
+                        .WithMany("Likes")
+                        .HasForeignKey("ReviewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MochiR.Api.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Review");
 
                     b.Navigation("User");
                 });
@@ -704,6 +898,8 @@ namespace MochiR.Api.Infrastructure.Migrations
 
             modelBuilder.Entity("MochiR.Api.Entities.Review", b =>
                 {
+                    b.Navigation("Likes");
+
                     b.Navigation("Media");
                 });
 #pragma warning restore 612, 618
