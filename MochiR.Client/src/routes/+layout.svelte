@@ -1,8 +1,14 @@
 <script lang="ts">
 	import Header from './Header.svelte';
 	import '../app.css';
+	import { browser } from '$app/environment';
+	import { authStore } from '$lib/stores/auth';
 
-	let { children } = $props();
+	let { data, children } = $props();
+
+	if (browser && data?.currentUser) {
+		authStore.setAuth(data.currentUser);
+	}
 </script>
 
 <div class="app">

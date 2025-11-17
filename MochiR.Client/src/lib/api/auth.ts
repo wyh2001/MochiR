@@ -51,14 +51,15 @@ export async function logout(): Promise<void> {
 	}
 }
 
-export async function getCurrentUser() {
-	// Self profile shape from backend SelfProfileDto; use index signature for flexibility.
-	return await api.get<Record<string, any>>(SELF_PROFILE);
+export async function getCurrentUser(fetchFn?: typeof fetch) {
+	// Backend wraps responses as { success, data, ... }; unwrap to return the user object
+	const payload = await api.get<Record<string, any>>(SELF_PROFILE, { fetch: fetchFn });
+	return payload && (payload as any).data ? (payload as any).data : payload;
 }
 
-export async function tryLoadCurrentUser(): Promise<void> {
+export async function tryLoadCurrentUser(fetchFn?: typeof fetch): Promise<void> {
 	try {
-		const user = await getCurrentUser();
+		const user = await getCurrentUser(fetchFn);
 		authStore.setAuth(user); // Cookie mode: no token.
 	} catch (e: any) {
 		// 401 means not signed in; silently ignore.

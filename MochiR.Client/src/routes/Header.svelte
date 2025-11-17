@@ -46,7 +46,15 @@
 			</li>
 			{#if $isAuthenticated}
 				<li class="user-info">
-					<span class="text-muted">@{$currentUser?.userName || 'User'}</span>
+					<span class="text-muted">
+						@{$currentUser?.displayName ??
+							$currentUser?.DisplayName ??
+							$currentUser?.userName ??
+							$currentUser?.UserName ??
+							$currentUser?.email ??
+							$currentUser?.Email ??
+							'User'}
+					</span>
 				</li>
 				<li>
 					<button onclick={handleLogout} disabled={isLoggingOut} class="logout-button">
