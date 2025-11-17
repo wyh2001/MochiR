@@ -53,13 +53,15 @@ export interface ApiRequestOptions extends RequestInit {
 	auth?: boolean;
 	/** Request body data */
 	data?: unknown;
+	/** Injected fetch (use event.fetch in load on server) */
+	fetch?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 }
 
 /**
  * Make an API request with automatic error handling
  */
 export async function apiRequest<T>(endpoint: string, options: ApiRequestOptions = {}): Promise<T> {
-	const { auth = true, data, headers = {}, ...fetchOptions } = options;
+	const { auth = true, data, headers = {}, fetch: injectedFetch, ...fetchOptions } = options;
 
 	const url = `${API_BASE_URL}${endpoint}`;
 
@@ -87,22 +89,21 @@ export async function apiRequest<T>(endpoint: string, options: ApiRequestOptions
 	}
 
 	try {
-		const response = await fetch(url, requestInit);
+		const doFetch = injectedFetch ?? fetch;
+		const response = await doFetch(url as unknown as RequestInfo, requestInit);
 
 		// Handle non-OK responses
 		if (!response.ok) {
-			let errorBody;
-			const contentType = response.headers.get('content-type');
-
+			let errorBody: unknown;
 			try {
-				if (contentType?.includes('application/json')) {
-					errorBody = await response.json();
-				} else {
+				// Prefer JSON if possible; avoid reading headers in SSR
+				errorBody = await response.clone().json();
+			} catch {
+				try {
 					errorBody = await response.text();
+				} catch {
+					errorBody = response.statusText;
 				}
-			} catch (parseError) {
-				// If parsing fails, use status text
-				errorBody = response.statusText;
 			}
 
 			throw new ApiError(response.status, response.statusText, errorBody);
@@ -113,14 +114,12 @@ export async function apiRequest<T>(endpoint: string, options: ApiRequestOptions
 			return undefined as T;
 		}
 
-		// Parse JSON response
-		const contentType = response.headers.get('content-type');
-		if (contentType?.includes('application/json')) {
-			return await response.json();
+		// Try JSON first to avoid header access limits in SSR; fallback to text
+		try {
+			return (await response.clone().json()) as T;
+		} catch {
+			return (await response.text()) as unknown as T;
 		}
-
-		// Return text for non-JSON responses
-		return (await response.text()) as unknown as T;
 	} catch (error) {
 		if (error instanceof ApiError) {
 			throw error;

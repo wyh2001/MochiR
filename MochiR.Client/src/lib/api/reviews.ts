@@ -38,16 +38,19 @@ export interface PaginatedResponse<T> {
 /**
  * Get list of reviews with optional filters
  */
-export async function getReviews(params?: {
-	subjectId?: number;
-	userId?: string;
-}): Promise<PaginatedResponse<ReviewSummaryDto>> {
+export async function getReviews(
+	params?: {
+		subjectId?: number;
+		userId?: string;
+	},
+	fetchFn?: typeof fetch
+): Promise<PaginatedResponse<ReviewSummaryDto>> {
 	const queryParams = new URLSearchParams();
 	if (params?.subjectId) queryParams.append('subjectId', params.subjectId.toString());
 	if (params?.userId) queryParams.append('userId', params.userId);
 	const query = queryParams.toString();
 	const endpoint = query ? `${REVIEWS_BASE}?${query}` : REVIEWS_BASE;
-	const arr = await api.get<ReviewSummaryDto[]>(endpoint, { auth: false });
+	const arr = await api.get<ReviewSummaryDto[]>(endpoint, { auth: false, fetch: fetchFn });
 	return {
 		items: arr,
 		totalCount: arr.length,
@@ -61,37 +64,46 @@ export async function getReviews(params?: {
  * Get reviews for a specific subject
  */
 export async function getReviewsBySubject(
-	subjectId: number
+	subjectId: number,
+	_params?: { pageNumber?: number; pageSize?: number },
+	fetchFn?: typeof fetch
 ): Promise<PaginatedResponse<ReviewSummaryDto>> {
-	return await getReviews({ subjectId });
+	return await getReviews({ subjectId }, fetchFn);
 }
 
 /**
  * Get review details by ID
  */
-export async function getReviewById(id: number): Promise<ReviewSummaryDto> {
-	return await api.get<ReviewSummaryDto>(`${REVIEWS_BASE}/${id}`, { auth: false });
+export async function getReviewById(id: number, fetchFn?: typeof fetch): Promise<ReviewSummaryDto> {
+	return await api.get<ReviewSummaryDto>(`${REVIEWS_BASE}/${id}`, { auth: false, fetch: fetchFn });
 }
 
 /**
  * Create a new review
  */
-export async function createReview(review: CreateReviewDto): Promise<ReviewSummaryDto> {
-	return await api.post<ReviewSummaryDto>(REVIEWS_BASE, review);
+export async function createReview(
+	review: CreateReviewDto,
+	fetchFn?: typeof fetch
+): Promise<ReviewSummaryDto> {
+	return await api.post<ReviewSummaryDto>(REVIEWS_BASE, review, { fetch: fetchFn });
 }
 
 /**
  * Update a review (only by author)
  */
-export async function updateReview(id: number, review: UpdateReviewDto): Promise<ReviewSummaryDto> {
-	return await api.put<ReviewSummaryDto>(`${REVIEWS_BASE}/${id}`, review);
+export async function updateReview(
+	id: number,
+	review: UpdateReviewDto,
+	fetchFn?: typeof fetch
+): Promise<ReviewSummaryDto> {
+	return await api.put<ReviewSummaryDto>(`${REVIEWS_BASE}/${id}`, review, { fetch: fetchFn });
 }
 
 /**
  * Delete a review (only by author)
  */
-export async function deleteReview(id: number): Promise<void> {
-	return await api.delete<void>(`${REVIEWS_BASE}/${id}`);
+export async function deleteReview(id: number, fetchFn?: typeof fetch): Promise<void> {
+	return await api.delete<void>(`${REVIEWS_BASE}/${id}`, { fetch: fetchFn });
 }
 
 /**
@@ -119,16 +131,19 @@ export async function getLikedReviews(userId: string): Promise<ReviewSummaryDto[
 /**
  * Get latest reviews (for homepage)
  */
-export async function getLatestReviews(params?: {
-	pageNumber?: number;
-	pageSize?: number;
-}): Promise<PaginatedResponse<ReviewSummaryDto>> {
+export async function getLatestReviews(
+	params?: {
+		pageNumber?: number;
+		pageSize?: number;
+	},
+	fetchFn?: typeof fetch
+): Promise<PaginatedResponse<ReviewSummaryDto>> {
 	const queryParams = new URLSearchParams();
 	if (params?.pageNumber) queryParams.append('page', params.pageNumber.toString());
 	if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
 	const query = queryParams.toString();
 	const endpoint = query ? `${REVIEWS_LATEST}?${query}` : REVIEWS_LATEST;
-	const raw = await api.get<Record<string, any>>(endpoint, { auth: false });
+	const raw = await api.get<Record<string, any>>(endpoint, { auth: false, fetch: fetchFn });
 	// Map backend LatestReviewsPageDto to PaginatedResponse
 	const items: ReviewSummaryDto[] = (raw.Items || raw.items || []).map((r: any) => ({
 		id: r.Id ?? r.id,

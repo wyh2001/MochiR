@@ -33,8 +33,10 @@ export interface PaginatedResponse<T> {
 /**
  * Get list of subjects with optional filters
  */
-export async function getSubjects(): Promise<PaginatedResponse<SubjectSummaryDto>> {
-	const arr = await api.get<SubjectSummaryDto[]>(SUBJECTS_BASE, { auth: false });
+export async function getSubjects(
+	fetchFn?: typeof fetch
+): Promise<PaginatedResponse<SubjectSummaryDto>> {
+	const arr = await api.get<SubjectSummaryDto[]>(SUBJECTS_BASE, { auth: false, fetch: fetchFn });
 	return {
 		items: arr,
 		totalCount: arr.length,
@@ -47,8 +49,11 @@ export async function getSubjects(): Promise<PaginatedResponse<SubjectSummaryDto
 /**
  * Get subject details by ID
  */
-export async function getSubjectById(id: number): Promise<SubjectDetailDto> {
-	return await api.get<SubjectDetailDto>(`${SUBJECTS_BASE}/${id}`, { auth: false });
+export async function getSubjectById(
+	id: number,
+	fetchFn?: typeof fetch
+): Promise<SubjectDetailDto> {
+	return await api.get<SubjectDetailDto>(`${SUBJECTS_BASE}/${id}`, { auth: false, fetch: fetchFn });
 }
 
 /**
@@ -61,8 +66,11 @@ export async function getSubjectBySlug(): Promise<SubjectDetailDto> {
 /**
  * Create a new subject (admin only)
  */
-export async function createSubject(subject: CreateSubjectDto): Promise<SubjectSummaryDto> {
-	return await api.post<SubjectSummaryDto>(SUBJECTS_BASE, subject);
+export async function createSubject(
+	subject: CreateSubjectDto,
+	fetchFn?: typeof fetch
+): Promise<SubjectSummaryDto> {
+	return await api.post<SubjectSummaryDto>(SUBJECTS_BASE, subject, { fetch: fetchFn });
 }
 
 /**
@@ -70,16 +78,17 @@ export async function createSubject(subject: CreateSubjectDto): Promise<SubjectS
  */
 export async function updateSubject(
 	id: number,
-	subject: Partial<CreateSubjectDto>
+	subject: Partial<CreateSubjectDto>,
+	fetchFn?: typeof fetch
 ): Promise<SubjectSummaryDto> {
-	return await api.put<SubjectSummaryDto>(`${SUBJECTS_BASE}/${id}`, subject);
+	return await api.put<SubjectSummaryDto>(`${SUBJECTS_BASE}/${id}`, subject, { fetch: fetchFn });
 }
 
 /**
  * Delete a subject (admin only)
  */
-export async function deleteSubject(id: number): Promise<void> {
-	return await api.delete<void>(`${SUBJECTS_BASE}/${id}`);
+export async function deleteSubject(id: number, fetchFn?: typeof fetch): Promise<void> {
+	return await api.delete<void>(`${SUBJECTS_BASE}/${id}`, { fetch: fetchFn });
 }
 
 /**

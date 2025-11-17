@@ -1,9 +1,9 @@
 import { getLatestReviews, getFollowingReviews } from '$lib/api/reviews';
 import type { PageLoad } from './$types';
 
-export const load: PageLoad = async () => {
+export const load: PageLoad = async ({ fetch }) => {
 	try {
-		const latestResponse = await getLatestReviews({ pageSize: 50 });
+		const latestResponse = await getLatestReviews({ pageSize: 50 }, fetch);
 		// Following feed not implemented on backend; returns empty.
 		const followingResponse = await getFollowingReviews();
 		return {

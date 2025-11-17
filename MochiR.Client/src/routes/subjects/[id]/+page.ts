@@ -4,7 +4,7 @@ import { error } from '@sveltejs/kit';
 import { ApiError } from '$lib/api/client';
 import type { PageLoad } from './$types';
 
-export const load: PageLoad = async ({ params }) => {
+export const load: PageLoad = async ({ params, fetch }) => {
 	const subjectId = parseInt(params.id, 10);
 
 	if (isNaN(subjectId)) {
@@ -14,8 +14,8 @@ export const load: PageLoad = async ({ params }) => {
 	try {
 		// Load subject details and reviews in parallel
 		const [subject, reviewsResponse] = await Promise.all([
-			getSubjectById(subjectId),
-			getReviewsBySubject(subjectId, { pageNumber: 1, pageSize: 100 }).catch((err) => {
+			getSubjectById(subjectId, fetch),
+			getReviewsBySubject(subjectId, { pageNumber: 1, pageSize: 100 }, fetch).catch((err) => {
 				// If reviews not found (404), return empty list
 				if (err instanceof ApiError && err.status === 404) {
 					return { items: [], totalCount: 0, pageNumber: 1, pageSize: 100, totalPages: 0 };
