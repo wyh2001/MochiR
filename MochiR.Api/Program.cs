@@ -6,6 +6,7 @@ using MochiR.Api.Endpoints;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
 using MochiR.Api.Services.Email;
+using MochiR.Api.Services.Search;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,6 +41,7 @@ builder.Services.AddSingleton<IEmailSender, ConsoleEmailSender>();
 builder.Services.AddSingleton<IIdentityEmailComposer, DefaultIdentityEmailComposer>();
 builder.Services.Configure<IdentityEmailOptions>(builder.Configuration.GetSection("IdentityEmail"));
 builder.Services.AddValidatorsFromAssemblyContaining<Program>(includeInternalTypes: true);
+builder.Services.AddScoped<ISearchService, SearchService>();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -73,6 +75,7 @@ app.MapSubjectTypesEndpoints();
 app.MapSubjectsEndpoints();
 app.MapCriteriaTemplatesEndpoints();
 app.MapReviewsEndpoints();
+app.MapSearchEndpoints();
 
 app.Run();
 
