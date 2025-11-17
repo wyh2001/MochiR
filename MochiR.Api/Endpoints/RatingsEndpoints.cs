@@ -1,17 +1,22 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using MochiR.Api.Dtos;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
-using System.Text.Json;
+using MochiR.Api.Infrastructure.Validation;
 
 namespace MochiR.Api.Endpoints
 {
-    public static class RatingsEndpoints
+    public static partial class RatingsEndpoints
     {
         public static void MapRatingsEndpoints(this IEndpointRouteBuilder routes)
         {
             var group = routes.MapGroup("/api/ratings").WithTags("Ratings");
 
-            group.MapGet("/subjects/{subjectId:int}", async (int subjectId, ApplicationDbContext db, HttpContext httpContext, CancellationToken cancellationToken) =>
+            // Get aggregate ratings for a subject
+            group.MapGet("/subjects/{subjectId:int}", async (
+                int subjectId, ApplicationDbContext db,
+                HttpContext httpContext,
+                CancellationToken cancellationToken) =>
             {
                 var aggregate = await db.Aggregates
                     .AsNoTracking()
@@ -26,18 +31,22 @@ namespace MochiR.Api.Endpoints
                         StatusCodes.Status404NotFound);
                 }
 
-                JsonElement? breakdown = aggregate.Breakdown?.RootElement.Clone();
-
                 var payload = new SubjectAggregateDto(
                     aggregate.SubjectId,
                     aggregate.CountReviews,
                     aggregate.AvgOverall,
-                    breakdown,
+                    aggregate.Metrics.Select(m => new AggregateMetricDto(m.Key, m.Value, m.Count, m.Note)).ToList(),
                     aggregate.UpdatedAt);
 
                 return ApiResults.Ok(payload, httpContext);
-            }).WithOpenApi();
+            })
+            .Produces<ApiResponse<SubjectAggregateDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .WithSummary("Get aggregate ratings for a subject.")
+            .WithDescription("GET /api/ratings/subjects/{subjectId}. Returns 200 with the aggregate metrics when available, or 404 if the subject has no aggregate snapshot.")
+            .WithOpenApi();
 
+            // Upsert aggregate ratings for a subject, usually called by internal services
             group.MapPost("/subjects/{subjectId:int}", async (
                 int subjectId,
                 UpsertAggregateDto dto,
@@ -55,24 +64,6 @@ namespace MochiR.Api.Endpoints
                         StatusCodes.Status404NotFound);
                 }
 
-                if (dto.CountReviews < 0)
-                {
-                    return ApiResults.Failure(
-                        "RATINGS_INVALID_COUNT",
-                        "CountReviews cannot be negative.",
-                        httpContext,
-                        StatusCodes.Status400BadRequest);
-                }
-
-                if (dto.AvgOverall < 0 || dto.AvgOverall > 5)
-                {
-                    return ApiResults.Failure(
-                        "RATINGS_INVALID_AVERAGE",
-                        "AvgOverall must be between 0 and 5.",
-                        httpContext,
-                        StatusCodes.Status400BadRequest);
-                }
-
                 var aggregate = await db.Aggregates.FirstOrDefaultAsync(a => a.SubjectId == subjectId, cancellationToken);
 
                 if (aggregate is null)
@@ -82,7 +73,13 @@ namespace MochiR.Api.Endpoints
                         SubjectId = subjectId,
                         CountReviews = dto.CountReviews,
                         AvgOverall = dto.AvgOverall,
-                        Breakdown = dto.Breakdown,
+                        Metrics = dto.Metrics?.Select(m => new AggregateMetric
+                        {
+                            Key = m.Key,
+                            Value = m.Value,
+                            Count = m.Count,
+                            Note = m.Note
+                        })?.ToList() ?? new List<AggregateMetric>(),
                         UpdatedAt = DateTime.UtcNow
                     };
                     db.Aggregates.Add(aggregate);
@@ -91,26 +88,40 @@ namespace MochiR.Api.Endpoints
                 {
                     aggregate.CountReviews = dto.CountReviews;
                     aggregate.AvgOverall = dto.AvgOverall;
-                    aggregate.Breakdown = dto.Breakdown;
+                    aggregate.Metrics = dto.Metrics?.Select(m => new AggregateMetric
+                    {
+                        Key = m.Key,
+                        Value = m.Value,
+                        Count = m.Count,
+                        Note = m.Note
+                    })?.ToList() ?? new List<AggregateMetric>();
                     aggregate.UpdatedAt = DateTime.UtcNow;
                 }
 
                 await db.SaveChangesAsync(cancellationToken);
 
-                JsonElement? breakdown = aggregate.Breakdown?.RootElement.Clone();
-
                 var payload = new SubjectAggregateDto(
                     aggregate.SubjectId,
                     aggregate.CountReviews,
                     aggregate.AvgOverall,
-                    breakdown,
+                    aggregate.Metrics.Select(m => new AggregateMetricDto(m.Key, m.Value, m.Count, m.Note)).ToList(),
                     aggregate.UpdatedAt);
 
                 return ApiResults.Ok(payload, httpContext);
-            }).WithOpenApi();
+            })
+            .Produces<ApiResponse<SubjectAggregateDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .WithSummary("Upsert aggregate ratings for a subject.")
+            .WithDescription("POST /api/ratings/subjects/{subjectId}. Requires admin authorization. Accepts aggregate counts and metrics to create or update the snapshot. Returns 200 with the persisted aggregate, or 400/404 when validation fails.")
+            .AddValidation<UpsertAggregateDto>(
+                "RATINGS_INVALID_PAYLOAD",
+                "Aggregate payload is invalid.")
+            .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
         }
 
-        private record SubjectAggregateDto(int SubjectId, int CountReviews, decimal AvgOverall, JsonElement? Breakdown, DateTime UpdatedAt);
-        private record UpsertAggregateDto(int CountReviews, decimal AvgOverall, JsonDocument? Breakdown);
+        private record SubjectAggregateDto(int SubjectId, int CountReviews, decimal AvgOverall, IReadOnlyList<AggregateMetricDto> Metrics, DateTime UpdatedAt);
+        internal record UpsertAggregateDto(int CountReviews, decimal AvgOverall, IReadOnlyList<AggregateMetricDto>? Metrics);
+        internal record AggregateMetricDto(string Key, decimal? Value, int? Count, string? Note);
     }
 }

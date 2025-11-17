@@ -1,11 +1,14 @@
 ﻿namespace MochiR.Api.Endpoints
 {
-    public static class UsersEndpoints
+    public static partial class UsersEndpoints
     {
+        private const int DefaultPageSize = 20;
+        private const int MaxPageSize = 100;
+
         public static void MapUsersEndpoints(this IEndpointRouteBuilder routes)
         {
-            var group = routes.MapGroup("/api/users").WithTags("Users");
-            group.MapGet("/", () => "Users endpoint is working...");
+            MapSelfEndpoints(routes);
+            MapUserDirectoryAndAdminEndpoints(routes);
         }
     }
 }

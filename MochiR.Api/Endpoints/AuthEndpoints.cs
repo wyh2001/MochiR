@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using MochiR.Api.Dtos;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
+using MochiR.Api.Infrastructure.Validation;
 using static MochiR.Api.Dtos.AuthDtos;
 namespace MochiR.Api.Endpoints
 {
-    public static class AuthEndpoints
+    public static partial class AuthEndpoints
     {
         public static void MapAuthEndpoints(this IEndpointRouteBuilder routes)
         {
@@ -38,7 +40,15 @@ namespace MochiR.Api.Endpoints
                     httpContext,
                     StatusCodes.Status400BadRequest,
                     details);
-            });
+            })
+            .Produces<ApiResponse<RegisterResponseDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .WithSummary("Register a local account.")
+            .WithDescription("POST /api/auth/register. Accepts a JSON body with userName, email, and password. Returns 200 with the created user identifiers or 400 with grouped Identity errors when validation fails.")
+            .AddValidation<RegisterDto>(
+                "AUTH_REGISTER_INVALID",
+                "User name, email, and password are required.")
+            .WithOpenApi();
 
             group.MapPost("/login", async (
                 LoginDto loginDto,
@@ -84,15 +94,33 @@ namespace MochiR.Api.Endpoints
                     "Invalid username or password.",
                     httpContext,
                     StatusCodes.Status400BadRequest);
-            });
+            })
+            .Produces<ApiResponse<LoginResponseDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse<object>>(StatusCodes.Status403Forbidden)
+            .Produces<ApiResponse<object>>(StatusCodes.Status423Locked)
+            .WithSummary("Sign in with user name or email.")
+            .WithDescription("POST /api/auth/login. Accepts userNameOrEmail and password. Returns 200 with a simple success flag on valid credentials, or 400/403/423 when Identity rejects the login for validation, policy, or lockout reasons.")
+            .AddValidation<LoginDto>(
+                "AUTH_LOGIN_INVALID",
+                "User name or email and password are required.")
+            .WithOpenApi();
 
             group.MapPost("/logout", async (SignInManager<ApplicationUser> signInManager, HttpContext httpContext) =>
             {
                 await signInManager.SignOutAsync();
                 return ApiResults.Ok(new LogoutResponseDto(true), httpContext);
-            }).WithOpenApi()
-            .RequireAuthorization();
+            })
+            .Produces<ApiResponse<LogoutResponseDto>>(StatusCodes.Status200OK)
+            .WithSummary("Sign out the current user.")
+            .WithDescription("POST /api/auth/logout. Requires authentication. Clears the application cookie and returns 200 with a signedOut flag.")
+            .RequireAuthorization()
+            .WithOpenApi();
+
+            MapPasswordResetEndpoints(group);
         }
+
+        static partial void MapPasswordResetEndpoints(RouteGroupBuilder group);
     }
 
     internal sealed record RegisterResponseDto(string? UserId, string? UserName, string? Email);

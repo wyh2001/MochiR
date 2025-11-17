@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using MochiR.Api.Dtos;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
+using MochiR.Api.Infrastructure.Validation;
 
 namespace MochiR.Api.Endpoints
 {
-    public static class CriteriaTemplatesEndpoints
+    public static partial class CriteriaTemplatesEndpoints
     {
         public static void MapCriteriaTemplatesEndpoints(this IEndpointRouteBuilder routes)
         {
@@ -29,19 +31,14 @@ namespace MochiR.Api.Endpoints
 
                 var templates = await query.ToListAsync(cancellationToken);
                 return ApiResults.Ok(templates, httpContext);
-            }).WithOpenApi();
+            })
+            .Produces<ApiResponse<IReadOnlyList<CriteriaTemplateSummaryDto>>>(StatusCodes.Status200OK)
+            .WithSummary("List criteria templates.")
+            .WithDescription("GET /api/criteria-templates. Optional query parameter subjectTypeId filters templates for a specific type. Returns 200 with template summaries ordered by id.")
+            .WithOpenApi();
 
             group.MapPost("/", async (CreateCriteriaTemplateDto dto, ApplicationDbContext db, HttpContext httpContext, CancellationToken cancellationToken) =>
             {
-                if (string.IsNullOrWhiteSpace(dto.Key) || string.IsNullOrWhiteSpace(dto.DisplayName))
-                {
-                    return ApiResults.Failure(
-                        "CRITERIA_TEMPLATE_INVALID_INPUT",
-                        "Key and DisplayName are required.",
-                        httpContext,
-                        StatusCodes.Status400BadRequest);
-                }
-
                 var subjectTypeExists = await db.SubjectTypes.AnyAsync(st => st.Id == dto.SubjectTypeId, cancellationToken);
                 if (!subjectTypeExists)
                 {
@@ -84,7 +81,16 @@ namespace MochiR.Api.Endpoints
                     $"/api/criteria-templates/{template.Id}",
                     payload,
                     httpContext);
-            }).WithOpenApi();
+            })
+            .Produces<ApiResponse<CriteriaTemplateSummaryDto>>(StatusCodes.Status201Created)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse<object>>(StatusCodes.Status409Conflict)
+            .WithSummary("Create a criteria template.")
+            .WithDescription("POST /api/criteria-templates. Requires admin authorization. Accepts subjectTypeId, key, displayName, and isRequired. Returns 201 with the created template summary, or 400/409 when validation fails.")
+            .AddValidation<CreateCriteriaTemplateDto>(
+                "CRITERIA_TEMPLATE_INVALID_INPUT",
+                "Key and display name are required.")
+            .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
 
             group.MapGet("/{id:int}", async (int id, ApplicationDbContext db, HttpContext httpContext, CancellationToken cancellationToken) =>
             {
@@ -112,10 +118,15 @@ namespace MochiR.Api.Endpoints
                     template.IsRequired);
 
                 return ApiResults.Ok(payload, httpContext);
-            }).WithOpenApi();
+            })
+            .Produces<ApiResponse<CriteriaTemplateDetailDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .WithSummary("Get criteria template details.")
+            .WithDescription("GET /api/criteria-templates/{id}. Returns 200 with template metadata and its subject type information, or 404 when the template is not found.")
+            .WithOpenApi();
         }
 
-        private record CreateCriteriaTemplateDto(int SubjectTypeId, string Key, string DisplayName, bool IsRequired);
+        internal record CreateCriteriaTemplateDto(int SubjectTypeId, string Key, string DisplayName, bool IsRequired);
         private record CriteriaTemplateSummaryDto(int Id, int SubjectTypeId, string Key, string DisplayName, bool IsRequired);
         private record CriteriaTemplateDetailDto(int Id, int SubjectTypeId, string? SubjectTypeKey, string? SubjectTypeDisplayName, string Key, string DisplayName, bool IsRequired);
     }

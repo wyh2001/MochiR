@@ -1,7 +1,12 @@
+using DotNext.Text.Json;
+using FluentValidation;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MochiR.Api.Endpoints;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
+using MochiR.Api.Services.Email;
+using MochiR.Api.Services.Search;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,14 +15,39 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-builder.Services.AddDbContext<ApplicationDbContext>(
-    options => options.UseInMemoryDatabase("AppDb"));
+var useInMemory = builder.Configuration.GetValue("UseInMemory", false);
+if (useInMemory)
+{
+    builder.Services.AddDbContext<ApplicationDbContext>(
+        options => options.UseInMemoryDatabase("AppDb"));
+}
+else
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+    builder.Services.AddDbContext<ApplicationDbContext>(
+        options => options.UseNpgsql(connectionString));
+}
 builder.Services.AddAuthorization();
 builder.Services.AddIdentityApiEndpoints<ApplicationUser>(options =>
 {
     options.User.RequireUniqueEmail = true;
 })
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
+
+builder.Services.AddSingleton<IEmailSender, ConsoleEmailSender>();
+builder.Services.AddSingleton<IIdentityEmailComposer, DefaultIdentityEmailComposer>();
+builder.Services.Configure<IdentityEmailOptions>(builder.Configuration.GetSection("IdentityEmail"));
+builder.Services.AddValidatorsFromAssemblyContaining<Program>(includeInternalTypes: true);
+builder.Services.AddScoped<ISearchService, SearchService>();
+
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new OptionalConverterFactory());
+    options.SerializerOptions.PropertyNameCaseInsensitive = true;
+});
 
 var app = builder.Build();
 
@@ -38,10 +68,15 @@ app.MapGet("/", (HttpContext httpContext) =>
 
 app.MapAuthEndpoints();
 app.MapUsersEndpoints();
+app.MapFollowsEndpoints();
+app.MapFeedEndpoints();
 app.MapRatingsEndpoints();
 app.MapSubjectTypesEndpoints();
 app.MapSubjectsEndpoints();
 app.MapCriteriaTemplatesEndpoints();
 app.MapReviewsEndpoints();
+app.MapSearchEndpoints();
 
 app.Run();
+
+public partial class Program;

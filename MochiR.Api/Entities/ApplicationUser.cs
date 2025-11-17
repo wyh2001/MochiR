@@ -10,5 +10,8 @@ namespace MochiR.Api.Entities
         public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
         [PersonalData]
         public string? AvatarUrl { get; set; }
+        public bool IsDeleted { get; set; }
+        public int FollowersCount { get; set; }
+        public int FollowingCount { get; set; }
     }
 }

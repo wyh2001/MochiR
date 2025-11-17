@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace MochiR.Api.Entities
 {
     public enum MediaType
@@ -19,6 +17,13 @@ namespace MochiR.Api.Entities
 
         public MediaType Type { get; set; }
 
-        public JsonDocument? Metadata { get; set; }
+        public ICollection<ReviewMediaMetadata> Metadata { get; set; } = new List<ReviewMediaMetadata>();
+    }
+
+    public class ReviewMediaMetadata
+    {
+        public string Key { get; set; } = string.Empty;
+        public string? Value { get; set; }
+        public string? Note { get; set; }
     }
 }
