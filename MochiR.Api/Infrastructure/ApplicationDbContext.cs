@@ -27,7 +27,6 @@ namespace MochiR.Api.Infrastructure
 
             if (isNpgsql)
             {
-                builder.HasPostgresExtension("unaccent");
                 builder.HasPostgresExtension("pg_trgm");
                 builder.HasPostgresExtension("citext");
             }
