@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { authStore, isAuthenticated, currentUser } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 	import { logout } from '$lib/api/auth';
 	import logo from '$lib/images/svelte-logo.svg';
 	import github from '$lib/images/github.svg';
 
 	let isLoggingOut = $state(false);
+	const authUser = $derived(() => auth.user);
+	const isAuthed = $derived(() => auth.isAuthenticated);
 
 	const handleLogout = async () => {
 		if (isLoggingOut) return;
@@ -44,16 +46,10 @@
 			<li aria-current={page.url.pathname.startsWith('/sverdle') ? 'page' : undefined}>
 				<a href="/sverdle">Sverdle</a>
 			</li>
-			{#if $isAuthenticated}
+			{#if isAuthed()}
 				<li class="user-info">
 					<span class="text-muted">
-						@{$currentUser?.displayName ??
-							$currentUser?.DisplayName ??
-							$currentUser?.userName ??
-							$currentUser?.UserName ??
-							$currentUser?.email ??
-							$currentUser?.Email ??
-							'User'}
+						@{authUser()?.displayName ?? authUser()?.userName ?? authUser()?.email ?? 'User'}
 					</span>
 				</li>
 				<li>

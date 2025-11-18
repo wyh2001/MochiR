@@ -1,10 +1,10 @@
 import { getLatestReviews, getFollowingReviews } from '$lib/api/reviews';
+import { error } from '@sveltejs/kit';
 import type { PageLoad } from './$types';
 
 export const load: PageLoad = async ({ fetch }) => {
 	try {
-		const latestResponse = await getLatestReviews({ pageSize: 50 }, fetch);
-		// Following feed not implemented on backend; returns empty.
+		const latestResponse = await getLatestReviews({ pageSize: 20 }, fetch);
 		const followingResponse = await getFollowingReviews();
 		return {
 			latestReviews: latestResponse.items,
@@ -13,6 +13,6 @@ export const load: PageLoad = async ({ fetch }) => {
 		};
 	} catch (e) {
 		console.error('Failed to load latest reviews', e);
-		return { latestReviews: [], followingReviews: [], totalCount: 0 };
+		throw error(500, 'Could not fetch latest reviews. Please try again later.');
 	}
 };

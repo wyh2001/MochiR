@@ -11,16 +11,17 @@
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { PenLine, Star } from '@lucide/svelte';
 	import type { PageData } from './$types';
+	import type { ReviewSummaryDto } from '$lib/api/reviews';
 
 	let { data }: { data: PageData } = $props();
 
 	// Get subject and reviews from loaded data
 	const subject = $derived(data.subject);
-	const subjectReviews = $derived(data.reviews || []);
+	const subjectReviews = $derived(() => (data.reviews ?? []) as ReviewSummaryDto[]);
 
 	// Calculate average rating
 	const averageRating = $derived(() => {
-		const reviews = subjectReviews;
+		const reviews = subjectReviews();
 		if (reviews.length === 0) return null;
 
 		const validRatings = reviews
@@ -59,8 +60,8 @@
 						<CardTitle class="mb-2 text-3xl">{subject.name}</CardTitle>
 						<CardDescription class="flex items-center gap-4 text-base">
 							<span
-								>{subjectReviews.length}
-								{subjectReviews.length === 1 ? 'Review' : 'Reviews'}</span
+								>{subjectReviews().length}
+								{subjectReviews().length === 1 ? 'Review' : 'Reviews'}</span
 							>
 							{#if averageRating() !== null}
 								<span class="flex items-center gap-1">
@@ -82,7 +83,7 @@
 		<!-- Reviews List -->
 		<div class="space-y-4">
 			<h2 class="text-xl font-semibold">All Reviews</h2>
-			{#if subjectReviews.length === 0}
+			{#if subjectReviews().length === 0}
 				<Card>
 					<CardContent class="py-8 text-center">
 						<p class="mb-4 text-muted-foreground">No reviews yet. Be the first to review!</p>
@@ -94,7 +95,7 @@
 				</Card>
 			{:else}
 				<div class="space-y-3">
-					{#each subjectReviews as review (review.id)}
+					{#each subjectReviews() as review (review.id)}
 						<RatingCard {review} showSubjectName={false} />
 					{/each}
 				</div>

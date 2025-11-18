@@ -11,7 +11,7 @@
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Star, Heart } from '@lucide/svelte';
 	import { likeReview, unlikeReview } from '$lib/api/reviews';
-	import { isAuthenticated } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 	import { goto } from '$app/navigation';
 
 	let { review, showSubjectName = true }: { review: Review; showSubjectName?: boolean } = $props();
@@ -50,7 +50,7 @@
 		e.stopPropagation();
 
 		// Check if user is authenticated
-		if (!$isAuthenticated) {
+		if (!auth.isAuthenticated) {
 			goto('/auth/login');
 			return;
 		}

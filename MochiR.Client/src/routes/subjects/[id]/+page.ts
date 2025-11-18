@@ -13,12 +13,11 @@ export const load: PageLoad = async ({ params, fetch }) => {
 
 	try {
 		// Load subject details and reviews in parallel
-		const [subject, reviewsResponse] = await Promise.all([
+		const [subject, reviews] = await Promise.all([
 			getSubjectById(subjectId, fetch),
 			getReviewsBySubject(subjectId, { pageNumber: 1, pageSize: 100 }, fetch).catch((err) => {
-				// If reviews not found (404), return empty list
 				if (err instanceof ApiError && err.status === 404) {
-					return { items: [], totalCount: 0, pageNumber: 1, pageSize: 100, totalPages: 0 };
+					return [];
 				}
 				throw err;
 			})
@@ -30,8 +29,8 @@ export const load: PageLoad = async ({ params, fetch }) => {
 
 		return {
 			subject,
-			reviews: reviewsResponse.items,
-			totalReviews: reviewsResponse.totalCount
+			reviews,
+			totalReviews: reviews.length
 		};
 	} catch (err: any) {
 		if (err instanceof ApiError && err.status === 404) {

@@ -114,12 +114,28 @@ export async function apiRequest<T>(endpoint: string, options: ApiRequestOptions
 			return undefined as T;
 		}
 
-		// Try JSON first to avoid header access limits in SSR; fallback to text
-		try {
-			return (await response.clone().json()) as T;
-		} catch {
+		const contentType = response.headers.get('content-type') ?? '';
+		const isJson = contentType.includes('application/json');
+
+		if (!isJson) {
 			return (await response.text()) as unknown as T;
 		}
+
+		const payload = await response.json();
+
+		if (isApiEnvelope(payload)) {
+			if (payload.success === false || payload.error) {
+				throw new ApiError(
+					response.status,
+					payload.error?.message ?? response.statusText,
+					payload.error ?? payload
+				);
+			}
+
+			return payload.data as T;
+		}
+
+		return payload as T;
 	} catch (error) {
 		if (error instanceof ApiError) {
 			throw error;
@@ -127,6 +143,16 @@ export async function apiRequest<T>(endpoint: string, options: ApiRequestOptions
 		// Network errors or other fetch errors
 		throw new Error(`Network error: ${error instanceof Error ? error.message : 'Unknown error'}`);
 	}
+}
+
+interface ApiEnvelope<T = unknown> {
+	success?: boolean;
+	data?: T;
+	error?: { message?: string } | null;
+}
+
+function isApiEnvelope(payload: unknown): payload is ApiEnvelope {
+	return typeof payload === 'object' && payload !== null && 'success' in payload;
 }
 
 /**

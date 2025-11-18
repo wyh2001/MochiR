@@ -1,14 +1,22 @@
 <script lang="ts">
 	import Header from './Header.svelte';
 	import '../app.css';
-	import { browser } from '$app/environment';
-	import { authStore } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 
 	let { data, children } = $props();
 
-	if (browser && data?.currentUser) {
-		authStore.setAuth(data.currentUser);
-	}
+	$effect(() => {
+		const serverUser = data?.currentUser ?? null;
+		const clientUser = auth.user;
+
+		if (serverUser) {
+			if (!clientUser || clientUser.id !== serverUser.id) {
+				auth.setAuth(serverUser);
+			}
+		} else if (clientUser) {
+			auth.clearAuth();
+		}
+	});
 </script>
 
 <div class="app">

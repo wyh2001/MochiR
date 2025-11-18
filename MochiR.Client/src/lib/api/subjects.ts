@@ -1,49 +1,22 @@
+import type { components } from './types';
 import { api } from './client';
 import { SUBJECTS_BASE } from './endpoints';
 
-export interface SubjectSummaryDto {
-	id: number;
-	name: string;
-	slug: string;
-	subjectTypeId: number;
-}
+export type SubjectSummaryDto = components['schemas']['SubjectSummaryDto'];
+export type SubjectDetailDto = components['schemas']['SubjectDetailDto'];
+export type CreateSubjectDto = components['schemas']['CreateSubjectDto'];
+type SubjectSummaryList = components['schemas']['SubjectSummaryDto'][] | null | undefined;
 
-export interface SubjectDetailDto extends SubjectSummaryDto {
-	subjectTypeKey?: string | null;
-	subjectTypeDisplayName?: string | null;
-	attributes?: { key: string; value?: string | null; note?: string | null }[];
-	createdAt?: string | Date;
-}
-
-export interface CreateSubjectDto {
-	name: string;
-	slug: string;
-	subjectTypeId: number;
-	attributes?: { key: string; value?: string | null; note?: string | null }[];
-}
-
-export interface PaginatedResponse<T> {
-	items: T[];
-	totalCount: number;
-	pageNumber: number;
-	pageSize: number;
-	totalPages: number;
+function ensureSubjectList(list: SubjectSummaryList): SubjectSummaryDto[] {
+	return list ?? [];
 }
 
 /**
  * Get list of subjects with optional filters
  */
-export async function getSubjects(
-	fetchFn?: typeof fetch
-): Promise<PaginatedResponse<SubjectSummaryDto>> {
-	const arr = await api.get<SubjectSummaryDto[]>(SUBJECTS_BASE, { auth: false, fetch: fetchFn });
-	return {
-		items: arr,
-		totalCount: arr.length,
-		pageNumber: 1,
-		pageSize: arr.length,
-		totalPages: 1
-	};
+export async function getSubjects(fetchFn?: typeof fetch): Promise<SubjectSummaryDto[]> {
+	const list = await api.get<SubjectSummaryDto[]>(SUBJECTS_BASE, { auth: false, fetch: fetchFn });
+	return ensureSubjectList(list);
 }
 
 /**
@@ -53,7 +26,10 @@ export async function getSubjectById(
 	id: number,
 	fetchFn?: typeof fetch
 ): Promise<SubjectDetailDto> {
-	return await api.get<SubjectDetailDto>(`${SUBJECTS_BASE}/${id}`, { auth: false, fetch: fetchFn });
+	return (await api.get<SubjectDetailDto>(`${SUBJECTS_BASE}/${id}`, {
+		auth: false,
+		fetch: fetchFn
+	}))!;
 }
 
 /**
@@ -70,7 +46,7 @@ export async function createSubject(
 	subject: CreateSubjectDto,
 	fetchFn?: typeof fetch
 ): Promise<SubjectSummaryDto> {
-	return await api.post<SubjectSummaryDto>(SUBJECTS_BASE, subject, { fetch: fetchFn });
+	return (await api.post<SubjectSummaryDto>(SUBJECTS_BASE, subject, { fetch: fetchFn }))!;
 }
 
 /**
@@ -81,7 +57,7 @@ export async function updateSubject(
 	subject: Partial<CreateSubjectDto>,
 	fetchFn?: typeof fetch
 ): Promise<SubjectSummaryDto> {
-	return await api.put<SubjectSummaryDto>(`${SUBJECTS_BASE}/${id}`, subject, { fetch: fetchFn });
+	return (await api.put<SubjectSummaryDto>(`${SUBJECTS_BASE}/${id}`, subject, { fetch: fetchFn }))!;
 }
 
 /**

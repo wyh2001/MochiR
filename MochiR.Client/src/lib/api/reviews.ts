@@ -1,38 +1,40 @@
+import type { components } from './types';
 import { api } from './client';
 import { REVIEWS_BASE, REVIEWS_LATEST } from './endpoints';
 
-// Local review summary type (align with backend ReviewSummaryDto)
-export interface ReviewSummaryDto {
-	id: number;
-	subjectId: number;
-	userId: string;
-	title?: string | null;
-	content?: string | null;
-	status: string | number; // Backend enum numeric or string
-	createdAt: string | Date;
+export type ReviewSummaryDto = components['schemas']['ReviewSummaryDto'];
+export type CreateReviewDto = components['schemas']['CreateReviewDto'];
+export type UpdateReviewDto = components['schemas']['UpdateReviewDto'];
+type ReviewSummaryList = components['schemas']['ReviewSummaryDto'][] | null | undefined;
+type LatestReviewsPayload = components['schemas']['LatestReviewsPageDto'];
+export type LatestReviewsPageDto = NonNullable<LatestReviewsPayload>;
+
+const EMPTY_LATEST_PAGE: LatestReviewsPageDto = {
+	totalCount: 0,
+	page: 1,
+	pageSize: 0,
+	items: [],
+	nextCursor: null,
+	hasMore: false
+};
+
+function ensureReviewList(list: ReviewSummaryList): ReviewSummaryDto[] {
+	return list ?? [];
 }
 
-export interface CreateReviewDto {
-	subjectId: number;
-	title?: string | null;
-	content?: string | null;
-	ratings?: { key: string; score: number; label?: string | null }[];
-}
+function normalizeLatestPage(payload: LatestReviewsPayload): LatestReviewsPageDto {
+	if (!payload) {
+		return { ...EMPTY_LATEST_PAGE };
+	}
 
-export interface UpdateReviewDto {
-	title: string;
-	content?: string | null;
-	ratings?: { key: string; score: number; label?: string | null }[];
-}
-
-export interface PaginatedResponse<T> {
-	items: T[];
-	totalCount: number;
-	pageNumber: number;
-	pageSize: number;
-	totalPages: number;
-	hasMore?: boolean;
-	nextCursor?: any;
+	return {
+		totalCount: payload.totalCount ?? 0,
+		page: payload.page ?? 1,
+		pageSize: payload.pageSize ?? payload.items?.length ?? 0,
+		items: payload.items ?? [],
+		nextCursor: payload.nextCursor ?? null,
+		hasMore: payload.hasMore ?? false
+	};
 }
 
 /**
@@ -44,20 +46,14 @@ export async function getReviews(
 		userId?: string;
 	},
 	fetchFn?: typeof fetch
-): Promise<PaginatedResponse<ReviewSummaryDto>> {
+): Promise<ReviewSummaryDto[]> {
 	const queryParams = new URLSearchParams();
 	if (params?.subjectId) queryParams.append('subjectId', params.subjectId.toString());
 	if (params?.userId) queryParams.append('userId', params.userId);
 	const query = queryParams.toString();
 	const endpoint = query ? `${REVIEWS_BASE}?${query}` : REVIEWS_BASE;
-	const arr = await api.get<ReviewSummaryDto[]>(endpoint, { auth: false, fetch: fetchFn });
-	return {
-		items: arr,
-		totalCount: arr.length,
-		pageNumber: 1,
-		pageSize: arr.length,
-		totalPages: 1
-	};
+	const list = await api.get<ReviewSummaryDto[]>(endpoint, { auth: false, fetch: fetchFn });
+	return ensureReviewList(list);
 }
 
 /**
@@ -67,7 +63,7 @@ export async function getReviewsBySubject(
 	subjectId: number,
 	_params?: { pageNumber?: number; pageSize?: number },
 	fetchFn?: typeof fetch
-): Promise<PaginatedResponse<ReviewSummaryDto>> {
+): Promise<ReviewSummaryDto[]> {
 	return await getReviews({ subjectId }, fetchFn);
 }
 
@@ -75,7 +71,10 @@ export async function getReviewsBySubject(
  * Get review details by ID
  */
 export async function getReviewById(id: number, fetchFn?: typeof fetch): Promise<ReviewSummaryDto> {
-	return await api.get<ReviewSummaryDto>(`${REVIEWS_BASE}/${id}`, { auth: false, fetch: fetchFn });
+	return (await api.get<ReviewSummaryDto>(`${REVIEWS_BASE}/${id}`, {
+		auth: false,
+		fetch: fetchFn
+	}))!;
 }
 
 /**
@@ -85,7 +84,7 @@ export async function createReview(
 	review: CreateReviewDto,
 	fetchFn?: typeof fetch
 ): Promise<ReviewSummaryDto> {
-	return await api.post<ReviewSummaryDto>(REVIEWS_BASE, review, { fetch: fetchFn });
+	return (await api.post<ReviewSummaryDto>(REVIEWS_BASE, review, { fetch: fetchFn }))!;
 }
 
 /**
@@ -96,7 +95,7 @@ export async function updateReview(
 	review: UpdateReviewDto,
 	fetchFn?: typeof fetch
 ): Promise<ReviewSummaryDto> {
-	return await api.put<ReviewSummaryDto>(`${REVIEWS_BASE}/${id}`, review, { fetch: fetchFn });
+	return (await api.put<ReviewSummaryDto>(`${REVIEWS_BASE}/${id}`, review, { fetch: fetchFn }))!;
 }
 
 /**
@@ -131,53 +130,31 @@ export async function getLikedReviews(userId: string): Promise<ReviewSummaryDto[
 /**
  * Get latest reviews (for homepage)
  */
+
 export async function getLatestReviews(
 	params?: {
 		pageNumber?: number;
 		pageSize?: number;
+		after?: string;
+		afterId?: number;
 	},
 	fetchFn?: typeof fetch
-): Promise<PaginatedResponse<ReviewSummaryDto>> {
+): Promise<LatestReviewsPageDto> {
 	const queryParams = new URLSearchParams();
 	if (params?.pageNumber) queryParams.append('page', params.pageNumber.toString());
 	if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
+	if (params?.after) queryParams.append('after', params.after);
+	if (params?.afterId) queryParams.append('afterId', params.afterId.toString());
 	const query = queryParams.toString();
 	const endpoint = query ? `${REVIEWS_LATEST}?${query}` : REVIEWS_LATEST;
-	const raw = await api.get<Record<string, any>>(endpoint, { auth: false, fetch: fetchFn });
-	// Map backend LatestReviewsPageDto to PaginatedResponse
-	const items: ReviewSummaryDto[] = (raw.Items || raw.items || []).map((r: any) => ({
-		id: r.Id ?? r.id,
-		subjectId: r.SubjectId ?? r.subjectId,
-		userId: r.UserId ?? r.userId,
-		title: r.Title ?? r.title,
-		content: r.Content ?? r.content,
-		status: r.Status ?? r.status,
-		createdAt: r.CreatedAt ?? r.createdAt
-	}));
-	const totalCount = raw.TotalCount ?? raw.totalCount ?? items.length;
-	const pageSize = raw.PageSize ?? raw.pageSize ?? items.length;
-	const pageNumber = raw.Page ?? raw.page ?? 1;
-	return {
-		items,
-		totalCount,
-		pageNumber,
-		pageSize,
-		totalPages: pageSize > 0 ? Math.ceil(totalCount / pageSize) : 1,
-		hasMore: raw.HasMore ?? raw.hasMore ?? false,
-		nextCursor: raw.NextCursor ?? raw.nextCursor
-	};
+	const payload = await api.get<LatestReviewsPayload>(endpoint, { auth: false, fetch: fetchFn });
+	return normalizeLatestPage(payload);
 }
 
 /**
  * Get reviews from followed users
  */
-export async function getFollowingReviews(): Promise<PaginatedResponse<ReviewSummaryDto>> {
+export async function getFollowingReviews(): Promise<LatestReviewsPageDto> {
 	// Backend does not provide following feed yet; return empty structure.
-	return {
-		items: [],
-		totalCount: 0,
-		pageNumber: 1,
-		pageSize: 0,
-		totalPages: 0
-	};
+	return { ...EMPTY_LATEST_PAGE };
 }

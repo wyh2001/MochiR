@@ -1,70 +1,59 @@
-import { api } from './client';
-import { authStore } from '$lib/stores/auth';
+import type { components } from './types';
+import { api, ApiError } from './client';
+import { auth, type AuthUser } from '$lib/stores/auth.svelte';
 import { AUTH_LOGIN, AUTH_REGISTER, AUTH_LOGOUT, SELF_PROFILE } from './endpoints';
 
-// Minimal credential types (English comments) - adapt to backend C# DTOs
-export interface LoginCredentials {
-	userNameOrEmail: string;
-	password: string;
-}
+type LoginDto = components['schemas']['LoginDto'];
+type RegisterDto = components['schemas']['RegisterDto'];
+type LoginResponseDto = components['schemas']['LoginResponseDto'];
+type RegisterResponseDto = components['schemas']['RegisterResponseDto'];
+type SelfProfileDto = components['schemas']['SelfProfileDto'];
 
-export interface RegisterData {
-	userName: string;
-	email: string;
-	password: string;
-}
+const isAuthUser = (value: SelfProfileDto): value is AuthUser => value !== null;
 
-// Backend login response (PascalCase from .NET). Keep flexible key access.
-interface BackendLoginResponse {
-	SignedIn: boolean;
-}
-interface BackendRegisterResponse {
-	UserId?: string;
-	UserName?: string;
-	Email?: string;
-}
-
-export async function login(credentials: LoginCredentials): Promise<boolean> {
-	const resp = await api.post<BackendLoginResponse>(AUTH_LOGIN, credentials, { auth: false });
-	if (resp && (resp as any).SignedIn === true) {
-		// Fetch current user profile after successful sign-in.
+export async function login(credentials: LoginDto): Promise<boolean> {
+	const resp = await api.post<LoginResponseDto>(AUTH_LOGIN, credentials, { auth: false });
+	if (resp?.signedIn) {
 		await tryLoadCurrentUser();
 		return true;
 	}
 	return false;
 }
 
-export async function register(data: RegisterData): Promise<boolean> {
-	// Register then login using same credentials.
-	await api.post<BackendRegisterResponse>(AUTH_REGISTER, data, { auth: false });
+export async function register(data: RegisterDto): Promise<boolean> {
+	await api.post<RegisterResponseDto>(AUTH_REGISTER, data, { auth: false });
 	return await login({ userNameOrEmail: data.userName, password: data.password });
 }
 
 export async function logout(): Promise<void> {
 	try {
 		await api.post(AUTH_LOGOUT, null);
-	} catch (e) {
-		// Non-critical: backend may respond with an error if already logged out.
-		console.warn('Logout endpoint returned error', e);
+	} catch (error) {
+		if (!(error instanceof ApiError) || error.status !== 401) {
+			console.warn('Logout endpoint returned error', error);
+		}
 	} finally {
-		authStore.clearAuth();
+		auth.clearAuth();
 	}
 }
 
-export async function getCurrentUser(fetchFn?: typeof fetch) {
-	// Backend wraps responses as { success, data, ... }; unwrap to return the user object
-	const payload = await api.get<Record<string, any>>(SELF_PROFILE, { fetch: fetchFn });
-	return payload && (payload as any).data ? (payload as any).data : payload;
+export async function getCurrentUser(fetchFn?: typeof fetch): Promise<SelfProfileDto> {
+	return await api.get<SelfProfileDto>(SELF_PROFILE, { fetch: fetchFn });
 }
 
 export async function tryLoadCurrentUser(fetchFn?: typeof fetch): Promise<void> {
 	try {
 		const user = await getCurrentUser(fetchFn);
-		authStore.setAuth(user); // Cookie mode: no token.
-	} catch (e: any) {
-		// 401 means not signed in; silently ignore.
-		if (e?.status !== 401) {
-			console.warn('Failed to load current user', e);
+		if (isAuthUser(user)) {
+			auth.setAuth(user);
+		} else {
+			auth.clearAuth();
 		}
+	} catch (error) {
+		if (error instanceof ApiError && error.status === 401) {
+			auth.clearAuth();
+			return;
+		}
+		console.warn('Failed to load current user', error);
 	}
 }
