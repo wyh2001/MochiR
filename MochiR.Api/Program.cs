@@ -1,3 +1,4 @@
+using System.Text.Json;
 using DotNext.Text.Json;
 using FluentValidation;
 using Microsoft.AspNetCore.Identity;
@@ -47,6 +48,8 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(new OptionalConverterFactory());
     options.SerializerOptions.PropertyNameCaseInsensitive = true;
+    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.SerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
 });
 
 var app = builder.Build();
