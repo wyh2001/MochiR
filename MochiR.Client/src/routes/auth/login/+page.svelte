@@ -10,7 +10,7 @@
 		CardHeader,
 		CardTitle
 	} from '$lib/components/ui/card/index.js';
-	import { goto } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { login } from '$lib/api/auth';
 	import { ApiError } from '$lib/api/client';
 	import type { components } from '$lib/api/types';
@@ -47,6 +47,7 @@
 			await login(credentials);
 
 			// Redirect to home after successful login
+			await invalidate('auth:session');
 			goto('/');
 		} catch (err) {
 			if (err instanceof ApiError) {

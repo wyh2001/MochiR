@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { goto } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { logout } from '$lib/api/auth';
 	import logo from '$lib/images/svelte-logo.svg';
 	import github from '$lib/images/github.svg';
 
 	let isLoggingOut = $state(false);
-	const authUser = $derived(auth.user);
-	const isAuthed = $derived(auth.isAuthenticated);
+	const authUser = $derived.by(() => auth.user);
+	const isAuthed = $derived.by(() => auth.isAuthenticated);
 
 	const handleLogout = async () => {
 		if (isLoggingOut) return;
@@ -16,6 +16,7 @@
 		isLoggingOut = true;
 		try {
 			await logout();
+			await invalidate('auth:session');
 			goto('/');
 		} catch (error) {
 			console.error('Logout failed:', error);

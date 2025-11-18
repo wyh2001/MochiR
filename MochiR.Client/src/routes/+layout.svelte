@@ -1,21 +1,22 @@
 <script lang="ts">
 	import Header from './Header.svelte';
 	import '../app.css';
+	import { onMount } from 'svelte';
+	import { tryLoadCurrentUser } from '$lib/api/auth';
 	import { auth } from '$lib/stores/auth.svelte';
 
 	let { data, children } = $props();
 
-	$effect(() => {
+	onMount(() => {
 		const serverUser = data?.currentUser ?? null;
-		const clientUser = auth.user;
-
 		if (serverUser) {
-			if (!clientUser || clientUser.id !== serverUser.id) {
-				auth.setAuth(serverUser);
-			}
-		} else if (clientUser) {
-			auth.clearAuth();
+			auth.setAuth(serverUser);
+			return;
 		}
+
+		tryLoadCurrentUser().catch(() => {
+			// Ignore errors
+		});
 	});
 </script>
 

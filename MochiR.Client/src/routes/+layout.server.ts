@@ -1,7 +1,8 @@
 import type { LayoutServerLoad } from './$types';
 import { SELF_PROFILE } from '$lib/api/endpoints';
 
-export const load: LayoutServerLoad = async ({ fetch }) => {
+export const load: LayoutServerLoad = async ({ fetch, depends }) => {
+	depends('auth:session');
 	try {
 		const res = await fetch(SELF_PROFILE, { method: 'GET' });
 		if (res.ok) {
