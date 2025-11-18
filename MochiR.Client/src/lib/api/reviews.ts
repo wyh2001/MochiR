@@ -52,7 +52,7 @@ export async function getReviews(
 	if (params?.userId) queryParams.append('userId', params.userId);
 	const query = queryParams.toString();
 	const endpoint = query ? `${REVIEWS_BASE}?${query}` : REVIEWS_BASE;
-	const list = await api.get<ReviewSummaryDto[]>(endpoint, { auth: false, fetch: fetchFn });
+	const list = await api.get<ReviewSummaryDto[]>(endpoint, { fetch: fetchFn });
 	return ensureReviewList(list);
 }
 
@@ -72,7 +72,6 @@ export async function getReviewsBySubject(
  */
 export async function getReviewById(id: number, fetchFn?: typeof fetch): Promise<ReviewSummaryDto> {
 	return (await api.get<ReviewSummaryDto>(`${REVIEWS_BASE}/${id}`, {
-		auth: false,
 		fetch: fetchFn
 	}))!;
 }
@@ -147,7 +146,7 @@ export async function getLatestReviews(
 	if (params?.afterId) queryParams.append('afterId', params.afterId.toString());
 	const query = queryParams.toString();
 	const endpoint = query ? `${REVIEWS_LATEST}?${query}` : REVIEWS_LATEST;
-	const payload = await api.get<LatestReviewsPayload>(endpoint, { auth: false, fetch: fetchFn });
+	const payload = await api.get<LatestReviewsPayload>(endpoint, { fetch: fetchFn });
 	return normalizeLatestPage(payload);
 }
 

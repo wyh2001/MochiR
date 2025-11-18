@@ -11,10 +11,17 @@
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Star, Heart } from '@lucide/svelte';
 	import { likeReview, unlikeReview } from '$lib/api/reviews';
-	import { auth } from '$lib/stores/auth.svelte';
 	import { goto } from '$app/navigation';
 
-	let { review, showSubjectName = true }: { review: Review; showSubjectName?: boolean } = $props();
+	let {
+		review,
+		showSubjectName = true,
+		isAuthenticated = false
+	}: {
+		review: Review;
+		showSubjectName?: boolean;
+		isAuthenticated?: boolean;
+	} = $props();
 
 	let localLikeCount = $state(review.likeCount);
 	let localIsLiked = $state(review.isLikedByCurrentUser);
@@ -50,7 +57,7 @@
 		e.stopPropagation();
 
 		// Check if user is authenticated
-		if (!auth.isAuthenticated) {
+		if (!isAuthenticated) {
 			goto('/auth/login');
 			return;
 		}

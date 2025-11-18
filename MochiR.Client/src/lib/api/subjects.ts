@@ -15,7 +15,7 @@ function ensureSubjectList(list: SubjectSummaryList): SubjectSummaryDto[] {
  * Get list of subjects with optional filters
  */
 export async function getSubjects(fetchFn?: typeof fetch): Promise<SubjectSummaryDto[]> {
-	const list = await api.get<SubjectSummaryDto[]>(SUBJECTS_BASE, { auth: false, fetch: fetchFn });
+	const list = await api.get<SubjectSummaryDto[]>(SUBJECTS_BASE, { fetch: fetchFn });
 	return ensureSubjectList(list);
 }
 
@@ -27,7 +27,6 @@ export async function getSubjectById(
 	fetchFn?: typeof fetch
 ): Promise<SubjectDetailDto> {
 	return (await api.get<SubjectDetailDto>(`${SUBJECTS_BASE}/${id}`, {
-		auth: false,
 		fetch: fetchFn
 	}))!;
 }

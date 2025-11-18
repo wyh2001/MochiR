@@ -3,7 +3,6 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Search, Plus } from '@lucide/svelte';
-	import { auth } from '$lib/stores/auth.svelte';
 	import type { PageData } from './$types';
 	import type { components } from '$lib/api/types';
 
@@ -11,7 +10,7 @@
 	type TabType = 'latest' | 'following';
 
 	let { data }: { data: PageData } = $props();
-	const isAuthed = $derived(auth.isAuthenticated);
+	const isAuthed = $derived.by(() => Boolean(data.currentUser));
 
 	// State
 	let searchQuery = $state('');
@@ -121,7 +120,7 @@
 			</div>
 		{:else}
 			{#each filteredReviews as review (review.id)}
-				<RatingCard {review} />
+				<RatingCard {review} isAuthenticated={isAuthed} />
 			{/each}
 		{/if}
 	</div>

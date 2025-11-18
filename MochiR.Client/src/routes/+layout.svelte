@@ -3,16 +3,16 @@
 	import '../app.css';
 	import { onMount } from 'svelte';
 	import { tryLoadCurrentUser } from '$lib/api/auth';
-	import { auth } from '$lib/stores/auth.svelte';
+	import { auth, type PersistedUser } from '$lib/stores/auth.svelte';
 
 	let { data, children } = $props();
 
+	const hydrateFromServer = (user: PersistedUser) => {
+		auth.initializeFrom(user);
+	};
+
 	onMount(() => {
-		const serverUser = data?.currentUser ?? null;
-		if (serverUser) {
-			auth.setAuth(serverUser);
-			return;
-		}
+		hydrateFromServer(data?.currentUser ?? null);
 
 		tryLoadCurrentUser().catch(() => {
 			// Ignore errors

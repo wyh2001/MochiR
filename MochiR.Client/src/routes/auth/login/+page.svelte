@@ -10,9 +10,10 @@
 		CardHeader,
 		CardTitle
 	} from '$lib/components/ui/card/index.js';
-	import { goto, invalidate } from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import { login } from '$lib/api/auth';
 	import { ApiError } from '$lib/api/client';
+	import { invalidateAuthSession } from '$lib/utils/auth-session';
 	import type { components } from '$lib/api/types';
 
 	type LoginDto = components['schemas']['LoginDto'];
@@ -47,7 +48,7 @@
 			await login(credentials);
 
 			// Redirect to home after successful login
-			await invalidate('auth:session');
+			await invalidateAuthSession();
 			goto('/');
 		} catch (err) {
 			if (err instanceof ApiError) {

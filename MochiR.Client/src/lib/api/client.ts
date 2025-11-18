@@ -1,4 +1,3 @@
-import { browser } from '$app/environment';
 import { env } from '$env/dynamic/public';
 
 /**
@@ -6,30 +5,6 @@ import { env } from '$env/dynamic/public';
  */
 // Use relative base in development (dev proxy handles forwarding). In production set PUBLIC_API_BASE_URL.
 export const API_BASE_URL = env.PUBLIC_API_BASE_URL || '';
-
-/**
- * Get authentication token from localStorage
- */
-export function getAuthToken(): string | null {
-	if (!browser) return null;
-	return localStorage.getItem('auth_token');
-}
-
-/**
- * Set authentication token in localStorage
- */
-export function setAuthToken(token: string): void {
-	if (!browser) return;
-	localStorage.setItem('auth_token', token);
-}
-
-/**
- * Remove authentication token from localStorage
- */
-export function clearAuthToken(): void {
-	if (!browser) return;
-	localStorage.removeItem('auth_token');
-}
 
 /**
  * API Error class for structured error handling
@@ -49,8 +24,6 @@ export class ApiError extends Error {
  * Request options for API calls
  */
 export interface ApiRequestOptions extends RequestInit {
-	/** Whether to include authentication token */
-	auth?: boolean;
 	/** Request body data */
 	data?: unknown;
 	/** Injected fetch (use event.fetch in load on server) */
@@ -61,7 +34,7 @@ export interface ApiRequestOptions extends RequestInit {
  * Make an API request with automatic error handling
  */
 export async function apiRequest<T>(endpoint: string, options: ApiRequestOptions = {}): Promise<T> {
-	const { auth = true, data, headers = {}, fetch: injectedFetch, ...fetchOptions } = options;
+	const { data, headers = {}, fetch: injectedFetch, ...fetchOptions } = options;
 
 	const url = `${API_BASE_URL}${endpoint}`;
 
@@ -69,14 +42,6 @@ export async function apiRequest<T>(endpoint: string, options: ApiRequestOptions
 		'Content-Type': 'application/json',
 		...(headers as Record<string, string>)
 	};
-
-	// Add authorization header if needed
-	if (auth) {
-		const token = getAuthToken();
-		if (token) {
-			requestHeaders['Authorization'] = `Bearer ${token}`;
-		}
-	}
 
 	// Prepare request body
 	const requestInit: RequestInit = {

@@ -14,6 +14,7 @@
 	import type { ReviewSummaryDto } from '$lib/api/reviews';
 
 	let { data }: { data: PageData } = $props();
+	const isAuthed = $derived.by(() => Boolean(data.currentUser));
 
 	// Get subject and reviews from loaded data
 	const subject = $derived(data.subject);
@@ -96,7 +97,7 @@
 			{:else}
 				<div class="space-y-3">
 					{#each subjectReviews() as review (review.id)}
-						<RatingCard {review} showSubjectName={false} />
+						<RatingCard {review} showSubjectName={false} isAuthenticated={isAuthed} />
 					{/each}
 				</div>
 			{/if}

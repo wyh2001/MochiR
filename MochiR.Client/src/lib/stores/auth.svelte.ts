@@ -41,33 +41,37 @@ function persistUser(user: PersistedUser): void {
 
 function createAuthStore() {
 	let user = $state<PersistedUser>(loadStoredUser());
-	let isAuthenticated = $derived(!!user);
+
+	const setState = (next: PersistedUser) => {
+		user = next;
+		persistUser(next);
+	};
 
 	return {
 		get user() {
 			return user;
 		},
 		get isAuthenticated() {
-			return isAuthenticated;
+			return Boolean(user);
+		},
+		initializeFrom(initial: PersistedUser) {
+			setState(initial);
 		},
 		setAuth(newUser: AuthUser) {
-			user = newUser;
-			persistUser(newUser);
+			setState(newUser);
 		},
 		clearAuth() {
-			user = null;
-			persistUser(null);
+			setState(null);
 		},
 		updateUser(update: Partial<AuthUser>) {
 			if (!user) {
 				return;
 			}
 
-			user = { ...user, ...update };
-			persistUser(user);
+			setState({ ...user, ...update });
 		}
 	};
 }
 
 export const auth = createAuthStore();
-export type { AuthUser };
+export type { AuthUser, PersistedUser };

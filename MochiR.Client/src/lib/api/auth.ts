@@ -12,7 +12,7 @@ type SelfProfileDto = components['schemas']['SelfProfileDto'];
 const isAuthUser = (value: SelfProfileDto): value is AuthUser => value !== null;
 
 export async function login(credentials: LoginDto): Promise<boolean> {
-	const resp = await api.post<LoginResponseDto>(AUTH_LOGIN, credentials, { auth: false });
+	const resp = await api.post<LoginResponseDto>(AUTH_LOGIN, credentials);
 	if (resp?.signedIn) {
 		await tryLoadCurrentUser();
 		return true;
@@ -21,7 +21,7 @@ export async function login(credentials: LoginDto): Promise<boolean> {
 }
 
 export async function register(data: RegisterDto): Promise<boolean> {
-	await api.post<RegisterResponseDto>(AUTH_REGISTER, data, { auth: false });
+	await api.post<RegisterResponseDto>(AUTH_REGISTER, data);
 	return await login({ userNameOrEmail: data.userName, password: data.password });
 }
 
