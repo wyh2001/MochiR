@@ -114,14 +114,17 @@ export async function apiRequest<T>(endpoint: string, options: ApiRequestOptions
 			return undefined as T;
 		}
 
-		const contentType = response.headers.get('content-type') ?? '';
-		const isJson = contentType.includes('application/json');
-
-		if (!isJson) {
-			return (await response.text()) as unknown as T;
+		const rawBody = await response.text();
+		if (!rawBody) {
+			return undefined as T;
 		}
 
-		const payload = await response.json();
+		let payload: unknown;
+		try {
+			payload = JSON.parse(rawBody);
+		} catch {
+			return rawBody as unknown as T;
+		}
 
 		if (isApiEnvelope(payload)) {
 			if (payload.success === false || payload.error) {

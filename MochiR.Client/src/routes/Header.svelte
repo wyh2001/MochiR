@@ -7,8 +7,8 @@
 	import github from '$lib/images/github.svg';
 
 	let isLoggingOut = $state(false);
-	const authUser = $derived(() => auth.user);
-	const isAuthed = $derived(() => auth.isAuthenticated);
+	const authUser = $derived(auth.user);
+	const isAuthed = $derived(auth.isAuthenticated);
 
 	const handleLogout = async () => {
 		if (isLoggingOut) return;
@@ -46,10 +46,10 @@
 			<li aria-current={page.url.pathname.startsWith('/sverdle') ? 'page' : undefined}>
 				<a href="/sverdle">Sverdle</a>
 			</li>
-			{#if isAuthed()}
+			{#if isAuthed}
 				<li class="user-info">
 					<span class="text-muted">
-						@{authUser()?.displayName ?? authUser()?.userName ?? authUser()?.email ?? 'User'}
+						@{authUser?.displayName ?? authUser?.userName ?? authUser?.email ?? 'User'}
 					</span>
 				</li>
 				<li>

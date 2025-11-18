@@ -11,7 +11,7 @@
 	type TabType = 'latest' | 'following';
 
 	let { data }: { data: PageData } = $props();
-	const isAuthed = $derived(() => auth.isAuthenticated);
+	const isAuthed = $derived(auth.isAuthenticated);
 
 	// State
 	let searchQuery = $state('');
@@ -79,7 +79,7 @@
 		>
 			Latest
 		</button>
-		{#if isAuthed()}
+		{#if isAuthed}
 			<button
 				class="tab"
 				class:active={activeTab === 'following'}
