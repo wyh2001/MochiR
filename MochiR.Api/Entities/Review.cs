@@ -1,3 +1,5 @@
+using NpgsqlTypes;
+
 namespace MochiR.Api.Entities
 {
     public enum ReviewStatus
@@ -20,9 +22,12 @@ namespace MochiR.Api.Entities
 
         public string? Title { get; set; }
         public string? Content { get; set; }
+        public string? Excerpt { get; set; }
 
         // Collection of per-criteria ratings, including overall
         public ICollection<ReviewRating> Ratings { get; set; } = new List<ReviewRating>();
+        public ICollection<ReviewTag> Tags { get; set; } = new List<ReviewTag>();
+        public ICollection<ReviewLike> Likes { get; set; } = new List<ReviewLike>();
 
         public int MediaCount { get; set; }
 
@@ -33,6 +38,20 @@ namespace MochiR.Api.Entities
         public bool IsDeleted { get; set; }
 
         public ICollection<ReviewMedia> Media { get; set; } = new List<ReviewMedia>();
+
+        public NpgsqlTsVector? SearchVector { get; private set; }
+    }
+
+    public class ReviewRating
+    {
+        public string Key { get; set; } = string.Empty;
+        public decimal Score { get; set; }
+        public string? Label { get; set; }
+    }
+
+    public class ReviewTag
+    {
+        public string Value { get; set; } = string.Empty;
     }
 
     public class ReviewRating

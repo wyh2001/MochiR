@@ -1,6 +1,7 @@
 using DotNext;
 using DotNext.Text.Json;
 using Microsoft.AspNetCore.Identity;
+using MochiR.Api.Dtos;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
 using System.Text.Json.Serialization;
@@ -24,7 +25,12 @@ namespace MochiR.Api.Endpoints
                 }
 
                 return ApiResults.Ok(ToSelfProfile(user), httpContext);
-            }).WithOpenApi();
+            })
+            .Produces<ApiResponse<SelfProfileDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
+            .WithSummary("Get the current user's profile.")
+            .WithDescription("GET /api/me. Requires authentication. Returns 200 with the caller's profile attributes including counts and security flags.")
+            .WithOpenApi();
 
             selfGroup.MapPatch("/", async (SelfProfilePatchRequestDto dto, UserManager<ApplicationUser> userManager, HttpContext httpContext) =>
             {
@@ -50,6 +56,11 @@ namespace MochiR.Api.Endpoints
 
                 return ApiResults.Ok(ToSelfProfile(user), httpContext);
             })
+            .Produces<ApiResponse<SelfProfileDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
+            .WithSummary("Update the current user's profile.")
+            .WithDescription("PATCH /api/me. Requires authentication. Accepts optional displayName and avatarUrl fields. Returns 200 with the updated profile or 400 when validation fails.")
             .Accepts<SelfProfilePatchRequestDto>("application/json")
             .WithMetadata(new InvalidPayloadMetadata(
                 "SELF_INVALID_PAYLOAD",

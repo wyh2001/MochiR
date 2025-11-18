@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MochiR.Api.Dtos;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
 using MochiR.Api.Infrastructure.Validation;
@@ -25,7 +26,11 @@ namespace MochiR.Api.Endpoints
                     .ToListAsync(ct);
 
                 return ApiResults.Ok(subjects, httpContext);
-            }).WithOpenApi();
+            })
+            .Produces<ApiResponse<IReadOnlyList<SubjectSummaryDto>>>(StatusCodes.Status200OK)
+            .WithSummary("List subjects.")
+            .WithDescription("GET /api/subjects. Returns 200 with subject summaries (id, name, slug, subjectTypeId) for all non-deleted subjects sorted by id.")
+            .WithOpenApi();
 
             group.MapPost("/", async (CreateSubjectDto dto, ApplicationDbContext db, HttpContext httpContext, CancellationToken ct) =>
             {
@@ -71,6 +76,11 @@ namespace MochiR.Api.Endpoints
                 var payload = new SubjectSummaryDto(subject.Id, subject.Name, subject.Slug, subject.SubjectTypeId);
                 return ApiResults.Created($"/api/subjects/{subject.Id}", payload, httpContext);
             })
+            .Produces<ApiResponse<SubjectSummaryDto>>(StatusCodes.Status201Created)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse<object>>(StatusCodes.Status409Conflict)
+            .WithSummary("Create a subject.")
+            .WithDescription("POST /api/subjects. Requires admin authorization. Accepts name, slug, subjectTypeId, and optional attributes. Returns 201 with the created subject summary, or 400/409 when validation fails.")
             .AddValidation<CreateSubjectDto>(
                 "SUBJECT_INVALID_INPUT",
                 "Name and Slug are required.")
@@ -103,7 +113,12 @@ namespace MochiR.Api.Endpoints
                     subject.CreatedAt);
 
                 return ApiResults.Ok(payload, httpContext);
-            }).WithOpenApi();
+            })
+            .Produces<ApiResponse<SubjectDetailDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .WithSummary("Get subject details.")
+            .WithDescription("GET /api/subjects/{id}. Returns 200 with detailed subject information including attributes and type metadata, or 404 if the subject does not exist or is deleted.")
+            .WithOpenApi();
 
             group.MapPut("/{id:int}", async (int id, UpdateSubjectDto dto, ApplicationDbContext db, HttpContext httpContext, CancellationToken ct) =>
             {
@@ -160,6 +175,12 @@ namespace MochiR.Api.Endpoints
                 var payload = new SubjectSummaryDto(subject.Id, subject.Name, subject.Slug, subject.SubjectTypeId);
                 return ApiResults.Ok(payload, httpContext);
             })
+            .Produces<ApiResponse<SubjectSummaryDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .Produces<ApiResponse<object>>(StatusCodes.Status409Conflict)
+            .WithSummary("Update a subject.")
+            .WithDescription("PUT /api/subjects/{id}. Requires admin authorization. Accepts name, slug, subjectTypeId, and optional attributes. Returns 200 with the updated subject summary, or 400/404/409 when validation fails.")
             .AddValidation<UpdateSubjectDto>(
                 "SUBJECT_INVALID_INPUT",
                 "Name and Slug are required.")
@@ -199,7 +220,12 @@ namespace MochiR.Api.Endpoints
                 await db.SaveChangesAsync(ct);
 
                 return ApiResults.Ok(new SubjectDeleteResultDto(id, true), httpContext);
-            }).RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
+            })
+            .Produces<ApiResponse<SubjectDeleteResultDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .WithSummary("Delete a subject.")
+            .WithDescription("DELETE /api/subjects/{id}. Requires admin authorization. Soft deletes the subject and related reviews, removes aggregates, and returns 200 with deletion status. Responds with 404 when the subject cannot be found.")
+            .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
         }
 
         internal record SubjectAttributeDto(string Key, string? Value, string? Note);

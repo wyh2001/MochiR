@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MochiR.Api.Dtos;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
 using MochiR.Api.Infrastructure.Validation;
@@ -30,7 +31,11 @@ namespace MochiR.Api.Endpoints
 
                 var templates = await query.ToListAsync(cancellationToken);
                 return ApiResults.Ok(templates, httpContext);
-            }).WithOpenApi();
+            })
+            .Produces<ApiResponse<IReadOnlyList<CriteriaTemplateSummaryDto>>>(StatusCodes.Status200OK)
+            .WithSummary("List criteria templates.")
+            .WithDescription("GET /api/criteria-templates. Optional query parameter subjectTypeId filters templates for a specific type. Returns 200 with template summaries ordered by id.")
+            .WithOpenApi();
 
             group.MapPost("/", async (CreateCriteriaTemplateDto dto, ApplicationDbContext db, HttpContext httpContext, CancellationToken cancellationToken) =>
             {
@@ -77,6 +82,11 @@ namespace MochiR.Api.Endpoints
                     payload,
                     httpContext);
             })
+            .Produces<ApiResponse<CriteriaTemplateSummaryDto>>(StatusCodes.Status201Created)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse<object>>(StatusCodes.Status409Conflict)
+            .WithSummary("Create a criteria template.")
+            .WithDescription("POST /api/criteria-templates. Requires admin authorization. Accepts subjectTypeId, key, displayName, and isRequired. Returns 201 with the created template summary, or 400/409 when validation fails.")
             .AddValidation<CreateCriteriaTemplateDto>(
                 "CRITERIA_TEMPLATE_INVALID_INPUT",
                 "Key and display name are required.")
@@ -108,7 +118,12 @@ namespace MochiR.Api.Endpoints
                     template.IsRequired);
 
                 return ApiResults.Ok(payload, httpContext);
-            }).WithOpenApi();
+            })
+            .Produces<ApiResponse<CriteriaTemplateDetailDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .WithSummary("Get criteria template details.")
+            .WithDescription("GET /api/criteria-templates/{id}. Returns 200 with template metadata and its subject type information, or 404 when the template is not found.")
+            .WithOpenApi();
         }
 
         internal record CreateCriteriaTemplateDto(int SubjectTypeId, string Key, string DisplayName, bool IsRequired);

@@ -15,6 +15,7 @@ namespace MochiR.Api.Infrastructure
         public DbSet<CriteriaTemplate> CriteriaTemplates => Set<CriteriaTemplate>();
         public DbSet<Review> Reviews => Set<Review>();
         public DbSet<ReviewMedia> ReviewMedia => Set<ReviewMedia>();
+        public DbSet<ReviewLike> ReviewLikes => Set<ReviewLike>();
         public DbSet<Aggregate> Aggregates => Set<Aggregate>();
         public DbSet<Follow> Follows => Set<Follow>();
 
@@ -22,9 +23,35 @@ namespace MochiR.Api.Infrastructure
         {
             base.OnModelCreating(builder);
 
+            var isNpgsql = Database.IsNpgsql();
+
+            if (isNpgsql)
+            {
+                builder.HasPostgresExtension("pg_trgm");
+                builder.HasPostgresExtension("citext");
+            }
+            else
+            {
+                builder.Entity<Subject>().Ignore(s => s.SearchVector);
+                builder.Entity<Review>().Ignore(r => r.SearchVector);
+                Console.WriteLine("Warning: PostgreSQL provider is not configured. Full-text search features are disabled in ApplicationDbContext.");
+            }
+
             // Subject
             builder.Entity<Subject>(e =>
             {
+                if (isNpgsql)
+                {
+                    e.Property(s => s.SearchVector)
+                        .HasColumnType("tsvector")
+                        .HasComputedColumnSql(
+                            "setweight(to_tsvector('simple', coalesce(\"Name\", '')), 'A') || " +
+                            "setweight(to_tsvector('simple', coalesce(\"Slug\", '')), 'B')",
+                            stored: true);
+
+                    e.HasIndex(s => s.SearchVector).HasMethod("GIN");
+                }
+
                 e.HasIndex(s => s.Slug).IsUnique();
                 e.Property(s => s.Name).IsRequired();
                 e.Property(s => s.Slug).IsRequired();
@@ -81,6 +108,19 @@ namespace MochiR.Api.Infrastructure
             // Review
             builder.Entity<Review>(e =>
             {
+                if (isNpgsql)
+                {
+                    e.Property(r => r.SearchVector)
+                        .HasColumnType("tsvector")
+                        .HasComputedColumnSql(
+                            "setweight(to_tsvector('simple', coalesce(\"Title\", '')), 'A') || " +
+                            "setweight(to_tsvector('simple', coalesce(\"Excerpt\", '')), 'B') || " +
+                            "setweight(to_tsvector('simple', coalesce(\"Content\", '')), 'C')",
+                            stored: true);
+
+                    e.HasIndex(r => r.SearchVector).HasMethod("GIN");
+                }
+
                 // Filtered unique index: UNIQUE(UserId, SubjectId) WHERE IsDeleted = 0
                 e.HasIndex(r => new { r.UserId, r.SubjectId })
                     .IsUnique()
@@ -99,6 +139,12 @@ namespace MochiR.Api.Infrastructure
                     .HasForeignKey(r => r.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
 
+                e.Property(r => r.Title)
+                    .HasMaxLength(256);
+
+                e.Property(r => r.Content)
+                    .HasMaxLength(20000);
+
                 e.Property(r => r.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
                 e.Property(r => r.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
@@ -110,6 +156,23 @@ namespace MochiR.Api.Infrastructure
                     ratingsBuilder.Property(rr => rr.Label).HasMaxLength(128);
                     ratingsBuilder.ToTable("ReviewRatings");
                 });
+
+                e.OwnsMany(r => r.Tags, tagsBuilder =>
+                {
+                    tagsBuilder.WithOwner().HasForeignKey("ReviewId");
+                    tagsBuilder.Property(tag => tag.Value)
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("citext");
+                    tagsBuilder.HasIndex("ReviewId", nameof(ReviewTag.Value))
+                        .IsUnique();
+                    tagsBuilder.ToTable("ReviewTags");
+                });
+
+                e.HasMany(r => r.Likes)
+                    .WithOne(l => l.Review)
+                    .HasForeignKey(l => l.ReviewId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // ReviewMedia
@@ -186,6 +249,20 @@ namespace MochiR.Api.Infrastructure
                 e.HasIndex(f => new { f.FollowerId, f.TargetType, f.FollowedUserId })
                     .IsUnique()
                     .HasFilter("\"FollowedUserId\" IS NOT NULL");
+            });
+
+            // ReviewLike
+            builder.Entity<ReviewLike>(e =>
+            {
+                e.Property(l => l.CreatedAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                e.HasOne(l => l.User)
+                    .WithMany()
+                    .HasForeignKey(l => l.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasIndex(l => new { l.ReviewId, l.UserId })
+                    .IsUnique();
             });
         }
     }

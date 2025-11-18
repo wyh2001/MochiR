@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using MochiR.Api.Dtos;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
 using MochiR.Api.Infrastructure.Validation;
@@ -114,7 +115,14 @@ namespace MochiR.Api.Endpoints
                 await DispatchEmailTokenAsync(emailSender, emailComposer, targetEmail, EmailTokenPurpose.Change, changeToken, httpContext.RequestAborted);
                 var changeResponse = new SelfEmailTokenDispatchResponseDto(user.Id, targetEmail, EmailTokenPurpose.Change);
                 return ApiResults.Ok(changeResponse, httpContext);
-            }).WithOpenApi();
+            })
+            .Produces<ApiResponse<SelfEmailTokenDispatchResponseDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
+            .Produces<ApiResponse<object>>(StatusCodes.Status409Conflict)
+            .WithSummary("Request an email verification or change token.")
+            .WithDescription("POST /api/me/email/token. Requires authentication. Accepts optional email and currentPassword values. Returns 200 with dispatch details, or 400/401/409 when validation fails.")
+            .WithOpenApi();
 
             selfGroup.MapPost("/email/confirm", async (
                 SelfEmailConfirmRequestDto dto,
@@ -194,6 +202,12 @@ namespace MochiR.Api.Endpoints
                 var refreshed = await userManager.FindByIdAsync(user.Id) ?? user;
                 return ApiResults.Ok(ToSelfProfile(refreshed), httpContext);
             })
+            .Produces<ApiResponse<SelfProfileDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
+            .Produces<ApiResponse<object>>(StatusCodes.Status409Conflict)
+            .WithSummary("Confirm the user's email or email change.")
+            .WithDescription("POST /api/me/email/confirm. Requires authentication. Accepts token and optional email. Returns 200 with the refreshed profile when confirmation succeeds, or 400/401/409 when validation fails.")
             .AddValidation<SelfEmailConfirmRequestDto>(
                 "SELF_EMAIL_TOKEN_REQUIRED",
                 "A valid token is required.")
