@@ -79,6 +79,11 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'subjects/:id',
+    loadComponent: () =>
+      import('./pages/subjects/subject-detail/subject-detail').then((m) => m.PublicSubjectDetail),
+  },
+  {
     path: 'search',
     loadComponent: () => import('./pages/search/search-results').then((m) => m.SearchResults),
   },
