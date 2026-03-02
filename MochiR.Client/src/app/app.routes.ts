@@ -43,6 +43,26 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/admin/subjects/subject-form/subject-form').then((m) => m.SubjectForm),
       },
+      {
+        path: 'users',
+        loadComponent: () =>
+          import('./pages/admin/users/user-list/user-list').then((m) => m.AdminUserList),
+      },
+      {
+        path: 'users/new',
+        loadComponent: () =>
+          import('./pages/admin/users/user-form/user-form').then((m) => m.AdminUserForm),
+      },
+      {
+        path: 'users/:id',
+        loadComponent: () =>
+          import('./pages/admin/users/user-detail/user-detail').then((m) => m.AdminUserDetail),
+      },
+      {
+        path: 'users/:id/edit',
+        loadComponent: () =>
+          import('./pages/admin/users/user-form/user-form').then((m) => m.AdminUserForm),
+      },
     ],
   },
   {
@@ -137,6 +157,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () =>
       import('./pages/profile/email-confirm/email-confirm').then((m) => m.EmailConfirm),
+  },
+  {
+    path: 'follows',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/follows/follows-page/follows-page').then((m) => m.FollowsPage),
   },
   {
     path: 'users/:id',
