@@ -1,0 +1,102 @@
+<div class="container mt-4">
+  <input
+    type="search"
+    class="form-control search-input mb-3"
+    placeholder="Search reviews..."
+    [value]="searchQuery()"
+    (input)="searchQuery.set($any($event.target).value)"
+  />
+
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+      <button
+        class="nav-link"
+        [class.active]="activeTab() === 'latest'"
+        (click)="activeTab.set('latest')"
+      >
+        Latest
+      </button>
+    </li>
+    @if (authState.isAuthenticated()) {
+      <li class="nav-item">
+        <button
+          class="nav-link"
+          [class.active]="activeTab() === 'following'"
+          (click)="activeTab.set('following')"
+        >
+          Following
+        </button>
+      </li>
+    }
+  </ul>
+
+  @if (loading()) {
+    <div class="text-center py-4">
+      <div class="spinner-border spinner-border-sm" role="status"></div>
+      <span class="ms-2">Loading...</span>
+    </div>
+  } @else if (error()) {
+    <div class="alert alert-danger">
+      <p class="mb-2">{{ error() }}</p>
+      <button class="btn btn-sm btn-outline-danger btn-retry" (click)="retry()">Retry</button>
+    </div>
+  } @else if (activeItems().length === 0) {
+    @if (searchQuery()) {
+      <p class="text-muted text-center py-4">No results found for "{{ searchQuery() }}"</p>
+    } @else if (activeTab() === 'following') {
+      <p class="text-muted text-center py-4">You're not following anyone yet</p>
+    } @else {
+      <p class="text-muted text-center py-4">No reviews available</p>
+    }
+  } @else {
+    <ul class="list-group">
+      @for (item of activeItems(); track item.id) {
+        <li class="list-group-item">
+          <div class="d-flex align-items-start gap-3">
+            @if (item.authorAvatarUrl) {
+              <img
+                [src]="item.authorAvatarUrl"
+                class="rounded-circle"
+                width="40"
+                height="40"
+                alt=""
+              />
+            } @else {
+              <div
+                class="avatar-placeholder rounded-circle d-flex align-items-center justify-content-center bg-secondary text-white"
+                style="width: 40px; height: 40px; font-size: 1.1rem"
+              >
+                {{ (item.authorDisplayName || item.authorUserName || '?').charAt(0).toUpperCase() }}
+              </div>
+            }
+            <div class="flex-grow-1">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span>
+                  <span class="fw-semibold">{{ item.authorDisplayName || item.authorUserName }}</span>
+                  @if (item.authorUserName) {
+                    <small class="text-muted">@{{ item.authorUserName }}</small>
+                  }
+                </span>
+                <small class="text-muted">{{ item.createdAt | date: 'yyyy-MM-dd' }}</small>
+              </div>
+              <div class="mb-1">
+                <a [href]="'/reviews?subjectId=' + item.subjectId" class="text-decoration-none">
+                  {{ item.subjectName }}
+                </a>
+                @if (item.overallRating !== null) {
+                  <span class="rating badge bg-warning text-dark ms-2">{{ item.overallRating }}</span>
+                }
+              </div>
+              @if (item.title) {
+                <div class="review-title fw-medium">{{ item.title }}</div>
+              }
+              @if (item.excerpt) {
+                <p class="text-muted mb-0 small">{{ item.excerpt }}</p>
+              }
+            </div>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</div>
