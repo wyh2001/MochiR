@@ -12,11 +12,18 @@ namespace MochiR.Api.Endpoints
         {
             var group = routes.MapGroup("/api/subjects").WithTags("Subjects");
 
-            group.MapGet("/", async (ApplicationDbContext db, HttpContext httpContext, CancellationToken ct) =>
+            group.MapGet("/", async (int? subjectTypeId, ApplicationDbContext db, HttpContext httpContext, CancellationToken ct) =>
             {
-                var subjects = await db.Subjects
+                var query = db.Subjects
                     .AsNoTracking()
-                    .Where(s => !s.IsDeleted)
+                    .Where(s => !s.IsDeleted);
+
+                if (subjectTypeId.HasValue)
+                {
+                    query = query.Where(s => s.SubjectTypeId == subjectTypeId.Value);
+                }
+
+                var subjects = await query
                     .OrderBy(s => s.Id)
                     .Select(s => new SubjectSummaryDto(
                         s.Id,
@@ -29,7 +36,7 @@ namespace MochiR.Api.Endpoints
             })
             .Produces<ApiResponse<IReadOnlyList<SubjectSummaryDto>>>(StatusCodes.Status200OK)
             .WithSummary("List subjects.")
-            .WithDescription("GET /api/subjects. Returns 200 with subject summaries (id, name, slug, subjectTypeId) for all non-deleted subjects sorted by id.")
+            .WithDescription("GET /api/subjects. Optional query parameter subjectTypeId filters subjects for a specific type. Returns 200 with subject summaries (id, name, slug, subjectTypeId) for all non-deleted subjects sorted by id.")
             .WithOpenApi();
 
             group.MapPost("/", async (CreateSubjectDto dto, ApplicationDbContext db, HttpContext httpContext, CancellationToken ct) =>
