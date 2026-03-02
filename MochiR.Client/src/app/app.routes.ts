@@ -124,6 +124,18 @@ export const routes: Routes = [
         (m) => m.PasswordResetConfirm,
       ),
   },
+  {
+    path: 'profile',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/profile/profile-page/profile-page').then((m) => m.ProfilePage),
+  },
+  {
+    path: 'profile/email/confirm',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/profile/email-confirm/email-confirm').then((m) => m.EmailConfirm),
+  },
   { path: 'access-denied', component: AccessDenied },
   { path: '**', component: NotFound },
 ];

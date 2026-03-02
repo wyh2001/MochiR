@@ -1,0 +1,364 @@
+<div class="container mt-4">
+  <h2 class="mb-4">My Profile</h2>
+
+  @if (loading()) {
+    <p>Loading profile...</p>
+  } @else if (error()) {
+    <div class="alert alert-danger">{{ error() }}</div>
+    <a routerLink="/">Go back to home</a>
+  } @else if (profile(); as p) {
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs mb-4">
+      <li class="nav-item">
+        <button
+          class="nav-link"
+          [class.active]="activeTab() === 'info'"
+          (click)="onTabChange('info')"
+        >
+          Profile
+        </button>
+      </li>
+      <li class="nav-item">
+        <button
+          class="nav-link"
+          [class.active]="activeTab() === 'followers'"
+          (click)="onTabChange('followers')"
+        >
+          Followers
+        </button>
+      </li>
+      <li class="nav-item">
+        <button
+          class="nav-link"
+          [class.active]="activeTab() === 'following'"
+          (click)="onTabChange('following')"
+        >
+          Following
+        </button>
+      </li>
+    </ul>
+
+    <!-- Profile Info Tab -->
+    @if (activeTab() === 'info') {
+      <div class="row">
+        <div class="col-md-3 text-center mb-3">
+          @if (p.avatarUrl) {
+            <img
+              [src]="p.avatarUrl"
+              alt="Avatar"
+              class="rounded-circle img-fluid"
+              style="max-width: 150px"
+            />
+          } @else {
+            <div
+              class="avatar-placeholder rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto"
+              style="width: 150px; height: 150px"
+            >
+              <span class="text-white fs-1">{{
+                (p.displayName ?? p.userName ?? '?')[0] | uppercase
+              }}</span>
+            </div>
+          }
+        </div>
+        <div class="col-md-9">
+          <dl class="row">
+            <dt class="col-sm-4">Username</dt>
+            <dd class="col-sm-8">{{ p.userName }}</dd>
+
+            <dt class="col-sm-4">Display Name</dt>
+            <dd class="col-sm-8">{{ p.displayName ?? '—' }}</dd>
+
+            <dt class="col-sm-4">Email</dt>
+            <dd class="col-sm-8">{{ p.email }}</dd>
+
+            <dt class="col-sm-4">Member Since</dt>
+            <dd class="col-sm-8">{{ p.createdAtUtc | date: 'yyyy-MM-dd' }}</dd>
+
+            <dt class="col-sm-4">Followers</dt>
+            <dd class="col-sm-8">{{ p.followersCount }}</dd>
+
+            <dt class="col-sm-4">Following</dt>
+            <dd class="col-sm-8">{{ p.followingCount }}</dd>
+          </dl>
+
+          @if (!editing() && !showChangePassword() && !showChangeEmail()) {
+            <div class="d-flex gap-2">
+              <button class="btn btn-primary btn-sm" (click)="onEdit()">Edit Profile</button>
+              <button class="btn btn-outline-secondary btn-sm" (click)="onShowChangePassword()">
+                Change Password
+              </button>
+              <button class="btn btn-outline-secondary btn-sm" (click)="onShowChangeEmail()">
+                Change Email
+              </button>
+            </div>
+          }
+
+          @if (serverError()) {
+            <div class="alert alert-danger mt-3">{{ serverError() }}</div>
+          }
+
+          <!-- Edit Profile Form -->
+          @if (editing()) {
+            <form [formGroup]="editForm" (ngSubmit)="onSubmitEdit()" class="mt-3">
+              <div class="mb-3">
+                <label for="displayName" class="form-label">Display Name</label>
+                <input
+                  id="displayName"
+                  type="text"
+                  class="form-control"
+                  formControlName="displayName"
+                />
+              </div>
+              <div class="mb-3">
+                <label for="avatarUrl" class="form-label">Avatar URL</label>
+                <input
+                  id="avatarUrl"
+                  type="text"
+                  class="form-control"
+                  formControlName="avatarUrl"
+                />
+              </div>
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm" [disabled]="submitting()">
+                  @if (submitting()) {
+                    Saving...
+                  } @else {
+                    Save
+                  }
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" (click)="onCancelEdit()">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          }
+
+          <!-- Change Password Form -->
+          @if (showChangePassword()) {
+            <form [formGroup]="passwordForm" (ngSubmit)="onSubmitPassword()" class="mt-3">
+              <div class="mb-3">
+                <label for="currentPassword" class="form-label">Current Password</label>
+                <input
+                  id="currentPassword"
+                  type="password"
+                  class="form-control"
+                  formControlName="currentPassword"
+                />
+              </div>
+              <div class="mb-3">
+                <label for="newPassword" class="form-label">New Password</label>
+                <input
+                  id="newPassword"
+                  type="password"
+                  class="form-control"
+                  formControlName="newPassword"
+                />
+              </div>
+              <div class="d-flex gap-2">
+                <button
+                  type="submit"
+                  class="btn btn-primary btn-sm"
+                  [disabled]="passwordForm.invalid || submitting()"
+                >
+                  @if (submitting()) {
+                    Changing...
+                  } @else {
+                    Change Password
+                  }
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" (click)="onCancelPassword()">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          }
+
+          <!-- Change Email Form -->
+          @if (showChangeEmail()) {
+            <form [formGroup]="emailForm" (ngSubmit)="onSubmitEmail()" class="mt-3">
+              <div class="mb-3">
+                <label for="emailCurrentPassword" class="form-label">Current Password</label>
+                <input
+                  id="emailCurrentPassword"
+                  type="password"
+                  class="form-control"
+                  formControlName="currentPassword"
+                />
+              </div>
+              <div class="mb-3">
+                <label for="newEmail" class="form-label">New Email</label>
+                <input id="newEmail" type="email" class="form-control" formControlName="newEmail" />
+              </div>
+              <div class="d-flex gap-2">
+                <button
+                  type="submit"
+                  class="btn btn-primary btn-sm"
+                  [disabled]="emailForm.invalid || submitting()"
+                >
+                  @if (submitting()) {
+                    Sending...
+                  } @else {
+                    Request Email Change
+                  }
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" (click)="onCancelEmail()">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Followers Tab -->
+    @if (activeTab() === 'followers') {
+      @if (followersLoading()) {
+        <p>Loading followers...</p>
+      } @else if (followers().length === 0) {
+        <p class="text-muted">No followers yet.</p>
+      } @else {
+        <ul class="list-group mb-3">
+          @for (f of followers(); track f.userId) {
+            <li class="list-group-item d-flex align-items-center justify-content-between">
+              <div class="d-flex align-items-center gap-2">
+                @if (f.avatarUrl) {
+                  <img
+                    [src]="f.avatarUrl"
+                    [alt]="f.userName ?? 'Avatar'"
+                    class="rounded-circle"
+                    style="width: 32px; height: 32px"
+                  />
+                } @else {
+                  <div
+                    class="rounded-circle bg-secondary d-flex align-items-center justify-content-center"
+                    style="width: 32px; height: 32px"
+                  >
+                    <span class="text-white small">{{
+                      (f.displayName ?? f.userName ?? '?')[0] | uppercase
+                    }}</span>
+                  </div>
+                }
+                <div>
+                  <strong>{{ f.displayName ?? f.userName }}</strong>
+                  @if (f.displayName && f.userName) {
+                    <small class="text-muted ms-1">@{{ f.userName }}</small>
+                  }
+                  <br />
+                  <small class="text-muted">Since {{ f.followedAtUtc | date: 'yyyy-MM-dd' }}</small>
+                </div>
+              </div>
+              <div>
+                @if (removingFollowerId() === f.userId) {
+                  <span class="me-2">Are you sure?</span>
+                  <button class="btn btn-danger btn-sm me-1" (click)="onConfirmRemove()">
+                    Confirm
+                  </button>
+                  <button class="btn btn-secondary btn-sm" (click)="onCancelRemove()">
+                    Cancel
+                  </button>
+                } @else {
+                  <button
+                    class="btn btn-outline-danger btn-sm"
+                    (click)="onRemoveFollower(f.userId)"
+                  >
+                    Remove
+                  </button>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+
+        <!-- Followers Pagination -->
+        @if (followersTotalPages > 1) {
+          <nav>
+            <ul class="pagination">
+              <li class="page-item" [class.disabled]="followersPage() === 1">
+                <button class="page-link" (click)="onFollowersPage(followersPage() - 1)">
+                  Previous
+                </button>
+              </li>
+              <li class="page-item disabled">
+                <span class="page-link"
+                  >Page {{ followersPage() }} of {{ followersTotalPages }}</span
+                >
+              </li>
+              <li class="page-item" [class.disabled]="followersPage() >= followersTotalPages">
+                <button class="page-link" (click)="onFollowersPage(followersPage() + 1)">
+                  Next
+                </button>
+              </li>
+            </ul>
+          </nav>
+        }
+      }
+    }
+
+    <!-- Following Tab -->
+    @if (activeTab() === 'following') {
+      @if (followingLoading()) {
+        <p>Loading following...</p>
+      } @else if (following().length === 0) {
+        <p class="text-muted">Not following anyone yet.</p>
+      } @else {
+        <ul class="list-group mb-3">
+          @for (f of following(); track f.userId) {
+            <li class="list-group-item d-flex align-items-center">
+              <div class="d-flex align-items-center gap-2">
+                @if (f.avatarUrl) {
+                  <img
+                    [src]="f.avatarUrl"
+                    [alt]="f.userName ?? 'Avatar'"
+                    class="rounded-circle"
+                    style="width: 32px; height: 32px"
+                  />
+                } @else {
+                  <div
+                    class="rounded-circle bg-secondary d-flex align-items-center justify-content-center"
+                    style="width: 32px; height: 32px"
+                  >
+                    <span class="text-white small">{{
+                      (f.displayName ?? f.userName ?? '?')[0] | uppercase
+                    }}</span>
+                  </div>
+                }
+                <div>
+                  <strong>{{ f.displayName ?? f.userName }}</strong>
+                  @if (f.displayName && f.userName) {
+                    <small class="text-muted ms-1">@{{ f.userName }}</small>
+                  }
+                  <br />
+                  <small class="text-muted">Since {{ f.followedAtUtc | date: 'yyyy-MM-dd' }}</small>
+                </div>
+              </div>
+            </li>
+          }
+        </ul>
+
+        <!-- Following Pagination -->
+        @if (followingTotalPages > 1) {
+          <nav>
+            <ul class="pagination">
+              <li class="page-item" [class.disabled]="followingPage() === 1">
+                <button class="page-link" (click)="onFollowingPage(followingPage() - 1)">
+                  Previous
+                </button>
+              </li>
+              <li class="page-item disabled">
+                <span class="page-link"
+                  >Page {{ followingPage() }} of {{ followingTotalPages }}</span
+                >
+              </li>
+              <li class="page-item" [class.disabled]="followingPage() >= followingTotalPages">
+                <button class="page-link" (click)="onFollowingPage(followingPage() + 1)">
+                  Next
+                </button>
+              </li>
+            </ul>
+          </nav>
+        }
+      }
+    }
+  }
+</div>
