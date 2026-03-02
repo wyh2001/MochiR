@@ -1,0 +1,26 @@
+<div class="container mt-4">
+  <h2>{{ isFiltered() ? 'Reviews' : 'Latest Reviews' }}</h2>
+
+  @if (loading() && reviews().length === 0) {
+    <p>Loading...</p>
+  } @else if (reviews().length === 0) {
+    <p>No reviews found.</p>
+  } @else {
+    @for (review of reviews(); track review.id) {
+      <app-review-card [review]="review" />
+    }
+
+    @if (hasMore() && !isFiltered()) {
+      <div class="text-center mb-4">
+        <button
+          type="button"
+          class="btn btn-outline-primary btn-load-more"
+          (click)="loadMore()"
+          [disabled]="loading()"
+        >
+          {{ loading() ? 'Loading...' : 'Load More' }}
+        </button>
+      </div>
+    }
+  }
+</div>

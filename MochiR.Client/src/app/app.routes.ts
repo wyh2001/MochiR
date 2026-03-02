@@ -79,6 +79,28 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'reviews',
+    loadComponent: () =>
+      import('./pages/reviews/review-list/review-list').then((m) => m.ReviewList),
+  },
+  {
+    path: 'reviews/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/reviews/review-form/review-form').then((m) => m.ReviewForm),
+  },
+  {
+    path: 'reviews/:id',
+    loadComponent: () =>
+      import('./pages/reviews/review-detail/review-detail').then((m) => m.ReviewDetail),
+  },
+  {
+    path: 'reviews/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/reviews/review-form/review-form').then((m) => m.ReviewForm),
+  },
+  {
     path: 'login',
     canActivate: [guestGuard],
     loadComponent: () => import('./pages/auth/login/login').then((m) => m.Login),

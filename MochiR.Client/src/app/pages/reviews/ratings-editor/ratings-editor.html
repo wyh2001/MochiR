@@ -1,0 +1,49 @@
+<div class="mb-3">
+  <span class="form-label fw-bold d-block">Ratings</span>
+
+  @for (group of ratings().controls; track $index) {
+    <div class="rating-row row g-2 mb-2">
+      <div class="col">
+        <input
+          type="text"
+          class="form-control form-control-sm"
+          placeholder="Key"
+          [formControl]="ctrl(group, 'key')"
+        />
+      </div>
+      <div class="col">
+        <input
+          type="text"
+          class="form-control form-control-sm"
+          placeholder="Label"
+          [formControl]="ctrl(group, 'label')"
+        />
+      </div>
+      <div class="col">
+        <input
+          type="number"
+          class="form-control form-control-sm"
+          placeholder="Score"
+          [formControl]="ctrl(group, 'score')"
+        />
+      </div>
+      <div class="col-auto">
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-danger btn-remove-rating"
+          (click)="removeRating($index)"
+        >
+          Remove
+        </button>
+      </div>
+    </div>
+  }
+
+  <button
+    type="button"
+    class="btn btn-sm btn-outline-secondary btn-add-rating"
+    (click)="addRating()"
+  >
+    Add Rating
+  </button>
+</div>
