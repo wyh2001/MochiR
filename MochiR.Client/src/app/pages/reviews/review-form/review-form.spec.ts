@@ -18,7 +18,12 @@ describe('ReviewForm', () => {
 
   const mockSubjects = [
     { id: 1, name: 'Inception', slug: 'inception', subjectTypeId: 1 },
-    { id: 2, name: 'Dune', slug: 'dune', subjectTypeId: 1 },
+    { id: 2, name: 'Dune', slug: 'dune', subjectTypeId: 2 },
+  ];
+
+  const mockCriteriaTemplates = [
+    { id: 1, subjectTypeId: 1, key: 'acting', displayName: 'Acting', isRequired: true },
+    { id: 2, subjectTypeId: 1, key: 'plot', displayName: 'Plot', isRequired: false },
   ];
 
   const mockSummary = {
@@ -75,6 +80,18 @@ describe('ReviewForm', () => {
 
     afterEach(() => http.verify());
 
+    function selectSubject(subjectId: number, templates: unknown[] = mockCriteriaTemplates) {
+      const component = fixture.componentInstance;
+      component.form.patchValue({ subjectId });
+      const subject = mockSubjects.find((s) => s.id === subjectId);
+      if (subject) {
+        http
+          .expectOne(`/api/criteria-templates?subjectTypeId=${subject.subjectTypeId}`)
+          .flush(envelope(templates));
+        fixture.detectChanges();
+      }
+    }
+
     it('renders form fields', () => {
       const el: HTMLElement = fixture.nativeElement;
       expect(el.querySelector('select[formControlName="subjectId"]')).toBeTruthy();
@@ -97,7 +114,45 @@ describe('ReviewForm', () => {
       expect(component.form.get('subjectId')!.valid).toBe(false);
     });
 
-    it('adds and removes ratings via DOM click', () => {
+    it('loads criteria templates when subject is selected', () => {
+      selectSubject(1);
+
+      const component = fixture.componentInstance;
+      expect(component.ratings.length).toBe(2);
+      expect(component.ratings.at(0).get('key')!.value).toBe('acting');
+      expect(component.ratings.at(0).get('label')!.value).toBe('Acting');
+      expect(component.ratings.at(1).get('key')!.value).toBe('plot');
+      expect(component.ratings.at(1).get('label')!.value).toBe('Plot');
+    });
+
+    it('disables key and label for template-loaded ratings', () => {
+      selectSubject(1);
+
+      const component = fixture.componentInstance;
+      expect(component.ratings.at(0).get('key')!.disabled).toBe(true);
+      expect(component.ratings.at(0).get('label')!.disabled).toBe(true);
+      expect(component.ratings.at(0).get('score')!.disabled).toBe(false);
+    });
+
+    it('does not show Remove button for template-loaded ratings', () => {
+      selectSubject(1);
+
+      const removeButtons = fixture.nativeElement.querySelectorAll('.btn-remove-rating');
+      expect(removeButtons.length).toBe(0);
+    });
+
+    it('clears previous ratings when subject changes', () => {
+      selectSubject(1);
+      expect(fixture.componentInstance.ratings.length).toBe(2);
+
+      selectSubject(2, [
+        { id: 3, subjectTypeId: 2, key: 'writing', displayName: 'Writing', isRequired: true },
+      ]);
+      expect(fixture.componentInstance.ratings.length).toBe(1);
+      expect(fixture.componentInstance.ratings.at(0).get('key')!.value).toBe('writing');
+    });
+
+    it('adds and removes manual ratings via DOM click', () => {
       const addBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-add-rating');
       addBtn.click();
       fixture.detectChanges();
@@ -112,21 +167,16 @@ describe('ReviewForm', () => {
       expect(fixture.componentInstance.ratings.length).toBe(0);
     });
 
-    it('sends POST with correct payload including ratings and tags', () => {
+    it('sends POST with correct payload including template ratings and tags', () => {
+      selectSubject(1);
+
       const component = fixture.componentInstance;
-      component.form.patchValue({
-        subjectId: 1,
-        title: 'Great movie',
-        content: 'Full content',
-        excerpt: '',
-      });
+      component.form.patchValue({ title: 'Great movie', content: 'Full content', excerpt: '' });
       component.tagsInput.set('sci-fi, thriller');
 
-      // Add a rating
-      const addBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-add-rating');
-      addBtn.click();
-      fixture.detectChanges();
-      component.ratings.at(0).patchValue({ key: 'story', label: 'Story', score: 9 });
+      // Set scores for template ratings
+      component.ratings.at(0).patchValue({ score: 4 });
+      component.ratings.at(1).patchValue({ score: 3 });
 
       component.onSubmit();
 
@@ -134,15 +184,21 @@ describe('ReviewForm', () => {
       expect(req.request.method).toBe('POST');
       expect(req.request.body.subjectId).toBe(1);
       expect(req.request.body.title).toBe('Great movie');
-      expect(req.request.body.content).toBe('Full content');
-      expect(req.request.body.ratings).toEqual([{ key: 'story', label: 'Story', score: 9 }]);
+      expect(req.request.body.ratings).toEqual([
+        { key: 'acting', label: 'Acting', score: 4 },
+        { key: 'plot', label: 'Plot', score: 3 },
+      ]);
       expect(req.request.body.tags).toEqual(['sci-fi', 'thriller']);
       req.flush(envelope({ ...mockSummary, id: 5 }));
     });
 
     it('shows success notification after create', () => {
+      selectSubject(1);
+
       const component = fixture.componentInstance;
-      component.form.patchValue({ subjectId: 1, title: 'Test', content: '', excerpt: '' });
+      component.form.patchValue({ title: 'Test', content: '', excerpt: '' });
+      component.ratings.at(0).patchValue({ score: 3 });
+      component.ratings.at(1).patchValue({ score: 3 });
       component.onSubmit();
 
       http.expectOne('/api/reviews').flush(envelope({ ...mockSummary, id: 5 }));
@@ -153,8 +209,12 @@ describe('ReviewForm', () => {
     });
 
     it('disables submit button during submission', () => {
+      selectSubject(1);
+
       const component = fixture.componentInstance;
-      component.form.patchValue({ subjectId: 1, title: 'Test', content: '', excerpt: '' });
+      component.form.patchValue({ title: 'Test', content: '', excerpt: '' });
+      component.ratings.at(0).patchValue({ score: 3 });
+      component.ratings.at(1).patchValue({ score: 3 });
       component.onSubmit();
 
       expect(component.submitting()).toBe(true);
@@ -164,6 +224,7 @@ describe('ReviewForm', () => {
 
     it('shows server error', () => {
       const component = fixture.componentInstance;
+      // subjectId 999 not in subjects list, no criteria templates request
       component.form.patchValue({ subjectId: 999, title: 'Test', content: '', excerpt: '' });
       component.onSubmit();
 
@@ -266,10 +327,13 @@ describe('ReviewForm', () => {
       expect(component.form.getRawValue().excerpt).toBe('Great movie...');
     });
 
-    it('pre-fills ratings', () => {
-      expect(fixture.componentInstance.ratings.length).toBe(1);
-      expect(fixture.componentInstance.ratings.at(0).get('key')!.value).toBe('story');
-      expect(fixture.componentInstance.ratings.at(0).get('score')!.value).toBe(9);
+    it('pre-fills ratings with disabled key and label', () => {
+      const component = fixture.componentInstance;
+      expect(component.ratings.length).toBe(1);
+      expect(component.ratings.at(0).get('key')!.value).toBe('story');
+      expect(component.ratings.at(0).get('key')!.disabled).toBe(true);
+      expect(component.ratings.at(0).get('label')!.disabled).toBe(true);
+      expect(component.ratings.at(0).get('score')!.value).toBe(9);
     });
 
     it('pre-fills tags', () => {

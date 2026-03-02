@@ -2,6 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CriteriaTemplateService } from '../../../../core/services/criteria-template.service';
 import { SubjectTypeService } from '../../../../core/services/subject-type.service';
+import { AuthStateService } from '../../../../core/services/auth-state.service';
 import { CriteriaTemplateSummaryDto } from '../../../../api/models/criteria-template-summary-dto';
 import { SubjectTypeSummaryDto } from '../../../../api/models/subject-type-summary-dto';
 
@@ -14,6 +15,9 @@ import { SubjectTypeSummaryDto } from '../../../../api/models/subject-type-summa
 export class CriteriaTemplateList implements OnInit {
   private readonly criteriaTemplateService = inject(CriteriaTemplateService);
   private readonly subjectTypeService = inject(SubjectTypeService);
+  private readonly authState = inject(AuthStateService);
+
+  readonly isAdmin = this.authState.isAdmin;
 
   readonly criteriaTemplates = signal<CriteriaTemplateSummaryDto[]>([]);
   readonly subjectTypes = signal<SubjectTypeSummaryDto[]>([]);

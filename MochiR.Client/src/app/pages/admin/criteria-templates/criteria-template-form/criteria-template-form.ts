@@ -63,7 +63,7 @@ export class CriteriaTemplateForm implements OnInit {
       next: () => {
         this.submitting.set(false);
         this.notification.show('success', 'Criteria template created successfully.');
-        this.router.navigateByUrl('/admin/criteria-templates');
+        this.router.navigateByUrl('/criteria-templates');
       },
       error: (err: unknown) => {
         this.submitting.set(false);

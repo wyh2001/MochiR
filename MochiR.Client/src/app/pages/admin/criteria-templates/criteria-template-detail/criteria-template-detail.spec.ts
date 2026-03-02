@@ -81,11 +81,11 @@ describe('CriteriaTemplateDetail', () => {
     expect(badge.textContent).toContain('Required');
   });
 
-  it('Back to list link navigates to /admin/criteria-templates', () => {
+  it('Back to list link navigates to /criteria-templates', () => {
     fixture.detectChanges();
     flushDetail();
 
-    const link = fixture.nativeElement.querySelector('a[href="/admin/criteria-templates"]');
+    const link = fixture.nativeElement.querySelector('a[href="/criteria-templates"]');
     expect(link).toBeTruthy();
     expect(link.textContent).toContain('Back');
   });

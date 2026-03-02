@@ -24,7 +24,7 @@ export class RatingsEditor {
       this.fb.group({
         key: ['', Validators.required],
         label: [''],
-        score: [0, [Validators.required, Validators.min(0)]],
+        score: [0, [Validators.required, Validators.min(0), Validators.max(5)]],
       }),
     );
   }

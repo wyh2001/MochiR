@@ -74,7 +74,18 @@ describe('RatingsEditor', () => {
     scoreControl.setValue(null);
     expect(scoreControl.valid).toBe(false);
 
-    scoreControl.setValue(8);
+    scoreControl.setValue(3);
+    expect(scoreControl.valid).toBe(true);
+  });
+
+  it('validates score max 5', () => {
+    clickAddRating();
+
+    const scoreControl = ratings.at(0).get('score')!;
+    scoreControl.setValue(6);
+    expect(scoreControl.valid).toBe(false);
+
+    scoreControl.setValue(5);
     expect(scoreControl.valid).toBe(true);
   });
 
@@ -84,7 +95,7 @@ describe('RatingsEditor', () => {
     const group = ratings.at(0);
     group.get('key')!.setValue('story');
     group.get('label')!.setValue('');
-    group.get('score')!.setValue(8);
+    group.get('score')!.setValue(4);
 
     expect(group.valid).toBe(true);
   });

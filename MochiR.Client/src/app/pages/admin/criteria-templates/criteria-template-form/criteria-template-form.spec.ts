@@ -236,7 +236,7 @@ describe('CriteriaTemplateForm', () => {
   it('Cancel link navigates to list', () => {
     initForm();
 
-    const cancelLink = fixture.nativeElement.querySelector('a[href="/admin/criteria-templates"]');
+    const cancelLink = fixture.nativeElement.querySelector('a[href="/criteria-templates"]');
     expect(cancelLink).toBeTruthy();
     expect(cancelLink.textContent).toContain('Cancel');
   });

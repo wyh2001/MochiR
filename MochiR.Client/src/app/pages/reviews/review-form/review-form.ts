@@ -3,6 +3,7 @@ import { ReactiveFormsModule, FormBuilder, FormArray, FormGroup, Validators } fr
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { ReviewService } from '../../../core/services/review.service';
 import { SubjectService } from '../../../core/services/subject.service';
+import { CriteriaTemplateService } from '../../../core/services/criteria-template.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { SubjectSummaryDto } from '../../../api/models/subject-summary-dto';
 import { RatingsEditor } from '../ratings-editor/ratings-editor';
@@ -29,6 +30,7 @@ export class ReviewForm implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly reviewService = inject(ReviewService);
   private readonly subjectService = inject(SubjectService);
+  private readonly criteriaTemplateService = inject(CriteriaTemplateService);
   private readonly notification = inject(NotificationService);
 
   readonly form = this.fb.nonNullable.group({
@@ -55,6 +57,12 @@ export class ReviewForm implements OnInit {
     });
 
     const idParam = this.route.snapshot.params['id'];
+    if (!idParam) {
+      this.form.get('subjectId')!.valueChanges.subscribe((subjectId) => {
+        this.loadCriteriaTemplates(Number(subjectId));
+      });
+    }
+
     if (idParam) {
       this.editId = Number(idParam);
       this.isEditMode.set(true);
@@ -73,9 +81,9 @@ export class ReviewForm implements OnInit {
           for (const r of detail.ratings) {
             this.ratings.push(
               this.fb.group({
-                key: [r.key, Validators.required],
-                label: [r.label ?? ''],
-                score: [r.score, [Validators.required, Validators.min(0)]],
+                key: [{ value: r.key, disabled: true }, Validators.required],
+                label: [{ value: r.label ?? '', disabled: true }],
+                score: [r.score, [Validators.required, Validators.min(0), Validators.max(5)]],
               }),
             );
           }
@@ -87,6 +95,25 @@ export class ReviewForm implements OnInit {
         },
       });
     }
+  }
+
+  private loadCriteriaTemplates(subjectId: number): void {
+    const subject = this.subjects().find((s) => s.id === subjectId);
+    if (!subject) return;
+
+    this.criteriaTemplateService.getAll(subject.subjectTypeId).subscribe({
+      next: (templates) => {
+        this.ratings.clear();
+        for (const t of templates) {
+          const group = this.fb.group({
+            key: [{ value: t.key, disabled: true }, Validators.required],
+            label: [{ value: t.displayName, disabled: true }],
+            score: [0, [Validators.required, Validators.min(0), Validators.max(5)]],
+          });
+          this.ratings.push(group);
+        }
+      },
+    });
   }
 
   onSubmit(): void {

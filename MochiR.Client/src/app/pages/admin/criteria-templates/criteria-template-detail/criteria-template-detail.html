@@ -5,7 +5,7 @@
         <p>Loading...</p>
       } @else if (error()) {
         <div class="alert alert-danger">{{ error() }}</div>
-        <a routerLink="/admin/criteria-templates" class="btn btn-secondary">Back to list</a>
+        <a routerLink="/criteria-templates" class="btn btn-secondary">Back to list</a>
       } @else if (template()) {
         <h2>Criteria Template: {{ template()!.displayName }}</h2>
 
@@ -40,7 +40,7 @@
           </tbody>
         </table>
 
-        <a routerLink="/admin/criteria-templates" class="btn btn-secondary">Back to list</a>
+        <a routerLink="/criteria-templates" class="btn btn-secondary">Back to list</a>
       }
     </div>
   </div>
