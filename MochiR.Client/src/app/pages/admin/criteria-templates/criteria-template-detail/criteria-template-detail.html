@@ -1,0 +1,47 @@
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      @if (loading()) {
+        <p>Loading...</p>
+      } @else if (error()) {
+        <div class="alert alert-danger">{{ error() }}</div>
+        <a routerLink="/admin/criteria-templates" class="btn btn-secondary">Back to list</a>
+      } @else if (template()) {
+        <h2>Criteria Template: {{ template()!.displayName }}</h2>
+
+        <table class="table">
+          <tbody>
+            <tr>
+              <th>Key</th>
+              <td>{{ template()!.key }}</td>
+            </tr>
+            <tr>
+              <th>Display Name</th>
+              <td>{{ template()!.displayName }}</td>
+            </tr>
+            <tr>
+              <th>Required</th>
+              <td>
+                @if (template()!.isRequired) {
+                  <span class="badge bg-success">Required</span>
+                } @else {
+                  <span class="badge bg-secondary">Optional</span>
+                }
+              </td>
+            </tr>
+            <tr>
+              <th>Subject Type Key</th>
+              <td>{{ template()!.subjectTypeKey }}</td>
+            </tr>
+            <tr>
+              <th>Subject Type</th>
+              <td>{{ template()!.subjectTypeDisplayName }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <a routerLink="/admin/criteria-templates" class="btn btn-secondary">Back to list</a>
+      }
+    </div>
+  </div>
+</div>

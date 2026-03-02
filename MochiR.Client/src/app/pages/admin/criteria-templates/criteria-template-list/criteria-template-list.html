@@ -1,0 +1,56 @@
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Criteria Templates</h2>
+    <a routerLink="/admin/criteria-templates/new" class="btn btn-primary">Create</a>
+  </div>
+
+  <div class="mb-3">
+    <select class="form-select" (change)="onFilterChange($event)">
+      <option value="">All Subject Types</option>
+      @for (st of subjectTypes(); track st.id) {
+        <option [value]="st.id">{{ st.displayName }}</option>
+      }
+    </select>
+  </div>
+
+  @if (loading()) {
+    <p>Loading...</p>
+  } @else if (criteriaTemplates().length === 0) {
+    <p>No criteria templates found.</p>
+  } @else {
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Key</th>
+          <th>Display Name</th>
+          <th>Subject Type</th>
+          <th>Required</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (ct of criteriaTemplates(); track ct.id) {
+          <tr>
+            <td>{{ ct.key }}</td>
+            <td>{{ ct.displayName }}</td>
+            <td>{{ getSubjectTypeName(ct.subjectTypeId) }}</td>
+            <td>
+              @if (ct.isRequired) {
+                <span class="badge bg-success">Required</span>
+              } @else {
+                <span class="badge bg-secondary">Optional</span>
+              }
+            </td>
+            <td>
+              <a
+                [routerLink]="['/admin/criteria-templates', ct.id]"
+                class="btn btn-sm btn-outline-primary"
+                >View</a
+              >
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

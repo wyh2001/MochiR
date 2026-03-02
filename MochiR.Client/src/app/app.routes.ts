@@ -33,6 +33,27 @@ export const routes: Routes = [
             (m) => m.SubjectTypeForm,
           ),
       },
+      {
+        path: 'criteria-templates',
+        loadComponent: () =>
+          import('./pages/admin/criteria-templates/criteria-template-list/criteria-template-list').then(
+            (m) => m.CriteriaTemplateList,
+          ),
+      },
+      {
+        path: 'criteria-templates/new',
+        loadComponent: () =>
+          import('./pages/admin/criteria-templates/criteria-template-form/criteria-template-form').then(
+            (m) => m.CriteriaTemplateForm,
+          ),
+      },
+      {
+        path: 'criteria-templates/:id',
+        loadComponent: () =>
+          import('./pages/admin/criteria-templates/criteria-template-detail/criteria-template-detail').then(
+            (m) => m.CriteriaTemplateDetail,
+          ),
+      },
     ],
   },
   {
