@@ -105,6 +105,77 @@ describe('AuthService', () => {
       expect(authState.user()?.userName).toBe('test');
     });
 
+    it('sets isAdmin true when roles include Admin', () => {
+      service.bootstrap().subscribe();
+
+      controller.expectOne('/api/me').flush({
+        id: '1',
+        userName: 'admin',
+        displayName: 'Admin User',
+        email: 'admin@test.com',
+        emailConfirmed: true,
+        phoneNumber: null,
+        phoneNumberConfirmed: false,
+        avatarUrl: null,
+        twoFactorEnabled: false,
+        lockoutEnabled: true,
+        lockoutEnd: null,
+        createdAtUtc: '2026-01-01T00:00:00Z',
+        followersCount: 0,
+        followingCount: 0,
+        roles: ['Admin'],
+      });
+
+      expect(authState.isAdmin()).toBe(true);
+    });
+
+    it('sets isAdmin false when roles do not include Admin', () => {
+      service.bootstrap().subscribe();
+
+      controller.expectOne('/api/me').flush({
+        id: '1',
+        userName: 'user',
+        displayName: 'Normal User',
+        email: 'user@test.com',
+        emailConfirmed: true,
+        phoneNumber: null,
+        phoneNumberConfirmed: false,
+        avatarUrl: null,
+        twoFactorEnabled: false,
+        lockoutEnabled: true,
+        lockoutEnd: null,
+        createdAtUtc: '2026-01-01T00:00:00Z',
+        followersCount: 0,
+        followingCount: 0,
+        roles: ['User'],
+      });
+
+      expect(authState.isAdmin()).toBe(false);
+    });
+
+    it('sets isAdmin false when roles not present in response', () => {
+      service.bootstrap().subscribe();
+
+      controller.expectOne('/api/me').flush({
+        id: '1',
+        userName: 'test',
+        displayName: 'Test',
+        email: 'test@test.com',
+        emailConfirmed: true,
+        phoneNumber: null,
+        phoneNumberConfirmed: false,
+        avatarUrl: null,
+        twoFactorEnabled: false,
+        lockoutEnabled: true,
+        lockoutEnd: null,
+        createdAtUtc: '2026-01-01T00:00:00Z',
+        followersCount: 0,
+        followingCount: 0,
+      });
+
+      expect(authState.isAdmin()).toBe(false);
+    });
+
     it('clears auth state on 401 without throwing', () => {
       let completed = false;
       service.bootstrap().subscribe(() => (completed = true));

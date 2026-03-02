@@ -1,0 +1,58 @@
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <h2>{{ isEditMode() ? 'Edit' : 'Create' }} Subject Type</h2>
+
+      @if (serverError()) {
+        <div class="alert alert-danger">{{ serverError() }}</div>
+      }
+
+      @if (isEditMode()) {
+        <div class="alert alert-info">
+          Settings cannot be pre-loaded from the list view. Add settings below if needed.
+        </div>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <div class="mb-3">
+          <label for="key" class="form-label">Key</label>
+          <input
+            type="text"
+            id="key"
+            class="form-control"
+            formControlName="key"
+            [class.is-invalid]="form.get('key')!.touched && form.get('key')!.invalid"
+          />
+          @if (form.get('key')!.touched && form.get('key')!.invalid) {
+            <div class="invalid-feedback">Key is required.</div>
+          }
+        </div>
+
+        <div class="mb-3">
+          <label for="displayName" class="form-label">Display Name</label>
+          <input
+            type="text"
+            id="displayName"
+            class="form-control"
+            formControlName="displayName"
+            [class.is-invalid]="
+              form.get('displayName')!.touched && form.get('displayName')!.invalid
+            "
+          />
+          @if (form.get('displayName')!.touched && form.get('displayName')!.invalid) {
+            <div class="invalid-feedback">Display Name is required.</div>
+          }
+        </div>
+
+        <app-settings-editor [settings]="settings" />
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary" [disabled]="form.invalid || submitting()">
+            {{ isEditMode() ? 'Save' : 'Create' }}
+          </button>
+          <a routerLink="/admin/subject-types" class="btn btn-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

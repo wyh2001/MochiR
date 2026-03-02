@@ -55,11 +55,13 @@ export class AuthService {
   }
 
   private mapProfile(dto: SelfProfileDto): UserProfile {
+    const roles = (dto as Record<string, unknown>)['roles'];
+    const isAdmin = Array.isArray(roles) && roles.includes('Admin');
     return {
       userName: dto.userName ?? '',
       displayName: dto.displayName ?? dto.userName ?? '',
       email: dto.email ?? '',
-      isAdmin: false,
+      isAdmin,
     };
   }
 }
