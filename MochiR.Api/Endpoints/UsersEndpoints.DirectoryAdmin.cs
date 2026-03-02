@@ -18,54 +18,6 @@ namespace MochiR.Api.Endpoints
                 .WithTags("Users")
                 .RequireAuthorization();
 
-            usersGroup.MapGet("/", async (
-                string? query,
-                int? page,
-                int? pageSize,
-                string? sort,
-                UserManager<ApplicationUser> userManager,
-                HttpContext httpContext,
-                CancellationToken ct) =>
-            {
-                var pageNumber = page is > 0 ? page.Value : 1;
-                var size = pageSize is > 0 ? Math.Min(pageSize.Value, MaxPageSize) : DefaultPageSize;
-                var normalizedQuery = string.IsNullOrWhiteSpace(query) ? null : query.Trim();
-
-                var usersQuery = userManager.Users
-                    .AsNoTracking()
-                    .Where(u => !u.IsDeleted);
-
-                if (!string.IsNullOrWhiteSpace(normalizedQuery))
-                {
-                    var pattern = $"%{normalizedQuery}%";
-                    usersQuery = usersQuery.Where(u =>
-                        EF.Functions.Like(u.UserName ?? string.Empty, pattern) ||
-                        EF.Functions.Like(u.DisplayName ?? string.Empty, pattern));
-                }
-
-                usersQuery = ApplySorting(usersQuery, sort);
-
-                var totalCount = await usersQuery.CountAsync(ct);
-
-                var items = await usersQuery
-                    .Skip((pageNumber - 1) * size)
-                    .Take(size)
-                    .Select(u => new DirectoryUserDto(
-                        u.Id,
-                        u.UserName,
-                        u.DisplayName,
-                        u.AvatarUrl,
-                        u.CreatedAtUtc))
-                    .ToListAsync(ct);
-
-                var payload = new DirectoryPageDto(totalCount, pageNumber, size, items);
-                return ApiResults.Ok(payload, httpContext);
-            })
-            .Produces<ApiResponse<DirectoryPageDto>>(StatusCodes.Status200OK)
-            .WithSummary("Search users.")
-            .WithDescription("GET /api/users. Requires authentication. Supports query, page, pageSize, and sort parameters to page through non-deleted users. Returns 200 with a paginated directory listing.")
-            .WithOpenApi();
-
             usersGroup.MapGet("/{id}", async (
                 string id,
                 UserManager<ApplicationUser> userManager,
@@ -122,6 +74,54 @@ namespace MochiR.Api.Endpoints
 
             var adminGroup = usersGroup.MapGroup(string.Empty)
                 .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin));
+
+            adminGroup.MapGet("/", async (
+                string? query,
+                int? page,
+                int? pageSize,
+                string? sort,
+                UserManager<ApplicationUser> userManager,
+                HttpContext httpContext,
+                CancellationToken ct) =>
+            {
+                var pageNumber = page is > 0 ? page.Value : 1;
+                var size = pageSize is > 0 ? Math.Min(pageSize.Value, MaxPageSize) : DefaultPageSize;
+                var normalizedQuery = string.IsNullOrWhiteSpace(query) ? null : query.Trim();
+
+                var usersQuery = userManager.Users
+                    .AsNoTracking()
+                    .Where(u => !u.IsDeleted);
+
+                if (!string.IsNullOrWhiteSpace(normalizedQuery))
+                {
+                    var pattern = $"%{normalizedQuery}%";
+                    usersQuery = usersQuery.Where(u =>
+                        EF.Functions.Like(u.UserName ?? string.Empty, pattern) ||
+                        EF.Functions.Like(u.DisplayName ?? string.Empty, pattern));
+                }
+
+                usersQuery = ApplySorting(usersQuery, sort);
+
+                var totalCount = await usersQuery.CountAsync(ct);
+
+                var items = await usersQuery
+                    .Skip((pageNumber - 1) * size)
+                    .Take(size)
+                    .Select(u => new DirectoryUserDto(
+                        u.Id,
+                        u.UserName,
+                        u.DisplayName,
+                        u.AvatarUrl,
+                        u.CreatedAtUtc))
+                    .ToListAsync(ct);
+
+                var payload = new DirectoryPageDto(totalCount, pageNumber, size, items);
+                return ApiResults.Ok(payload, httpContext);
+            })
+            .Produces<ApiResponse<DirectoryPageDto>>(StatusCodes.Status200OK)
+            .WithSummary("Search users (admin).")
+            .WithDescription("GET /api/users. Requires admin authorization. Supports query, page, pageSize, and sort parameters to page through non-deleted users. Returns 200 with a paginated directory listing.")
+            .WithOpenApi();
 
             adminGroup.MapPost("/", async (
                 CreateUserDto dto,
