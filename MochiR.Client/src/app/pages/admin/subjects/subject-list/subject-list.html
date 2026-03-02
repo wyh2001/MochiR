@@ -1,0 +1,46 @@
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Subjects</h2>
+    <a routerLink="/admin/subjects/new" class="btn btn-primary">Create</a>
+  </div>
+
+  <div class="mb-3">
+    <select class="form-select" (change)="onFilterChange($event)">
+      <option value="">All Subject Types</option>
+      @for (st of subjectTypes(); track st.id) {
+        <option [value]="st.id">{{ st.displayName }}</option>
+      }
+    </select>
+  </div>
+
+  @if (loading()) {
+    <p>Loading...</p>
+  } @else if (subjects().length === 0) {
+    <p>No subjects found.</p>
+  } @else {
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Slug</th>
+          <th>Subject Type</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (s of subjects(); track s.id) {
+          <tr>
+            <td>{{ s.name }}</td>
+            <td>{{ s.slug }}</td>
+            <td>{{ getSubjectTypeName(s.subjectTypeId) }}</td>
+            <td>
+              <a [routerLink]="['/admin/subjects', s.id]" class="btn btn-sm btn-outline-primary"
+                >View</a
+              >
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

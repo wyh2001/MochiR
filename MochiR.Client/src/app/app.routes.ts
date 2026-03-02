@@ -54,6 +54,28 @@ export const routes: Routes = [
             (m) => m.CriteriaTemplateDetail,
           ),
       },
+      {
+        path: 'subjects',
+        loadComponent: () =>
+          import('./pages/admin/subjects/subject-list/subject-list').then((m) => m.SubjectList),
+      },
+      {
+        path: 'subjects/new',
+        loadComponent: () =>
+          import('./pages/admin/subjects/subject-form/subject-form').then((m) => m.SubjectForm),
+      },
+      {
+        path: 'subjects/:id',
+        loadComponent: () =>
+          import('./pages/admin/subjects/subject-detail/subject-detail').then(
+            (m) => m.SubjectDetail,
+          ),
+      },
+      {
+        path: 'subjects/:id/edit',
+        loadComponent: () =>
+          import('./pages/admin/subjects/subject-form/subject-form').then((m) => m.SubjectForm),
+      },
     ],
   },
   {

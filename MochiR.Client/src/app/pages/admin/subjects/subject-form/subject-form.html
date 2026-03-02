@@ -1,0 +1,55 @@
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <h2>{{ isEditMode() ? 'Edit Subject' : 'Create Subject' }}</h2>
+
+      @if (serverError()) {
+        <div class="alert alert-danger">{{ serverError() }}</div>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <div class="mb-3">
+          <label for="subjectTypeId" class="form-label">Subject Type</label>
+          <select id="subjectTypeId" class="form-select" formControlName="subjectTypeId">
+            <option [value]="0" disabled>Select a subject type</option>
+            @for (st of subjectTypes(); track st.id) {
+              <option [value]="st.id">{{ st.displayName }}</option>
+            }
+          </select>
+          @if (form.get('subjectTypeId')!.invalid && form.get('subjectTypeId')!.touched) {
+            <div class="invalid-feedback d-block">Subject type is required.</div>
+          }
+        </div>
+
+        <div class="mb-3">
+          <label for="name" class="form-label">Name</label>
+          <input id="name" type="text" class="form-control" formControlName="name" />
+          @if (form.get('name')!.invalid && form.get('name')!.touched) {
+            <div class="invalid-feedback d-block">Name is required.</div>
+          }
+        </div>
+
+        <div class="mb-3">
+          <label for="slug" class="form-label">Slug</label>
+          <input id="slug" type="text" class="form-control" formControlName="slug" />
+          @if (form.get('slug')!.invalid && form.get('slug')!.touched) {
+            <div class="invalid-feedback d-block">Slug is required.</div>
+          }
+        </div>
+
+        <app-attributes-editor [attributes]="attributes" />
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary" [disabled]="submitting()">
+            {{ isEditMode() ? 'Save Changes' : 'Create' }}
+          </button>
+          @if (isEditMode()) {
+            <a [routerLink]="['/admin/subjects', editId]" class="btn btn-secondary">Cancel</a>
+          } @else {
+            <a routerLink="/admin/subjects" class="btn btn-secondary">Cancel</a>
+          }
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
