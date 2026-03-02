@@ -87,12 +87,15 @@ describe('SearchResults', () => {
       createComponent({ q: 'inception' });
       fixture.detectChanges();
 
-      http.expectOne((r) => r.url === '/api/search' && r.params.get('Query') === 'inception')
+      http
+        .expectOne((r) => r.url === '/api/search' && r.params.get('Query') === 'inception')
         .flush(envelope(mockSearchResponse));
       fixture.detectChanges();
 
       const el = fixture.nativeElement as HTMLElement;
-      const searchInput = el.querySelector('input[type="search"], input.search-input') as HTMLInputElement;
+      const searchInput = el.querySelector(
+        'input[type="search"], input.search-input',
+      ) as HTMLInputElement;
       expect(searchInput).toBeTruthy();
       expect(searchInput.value).toBe('inception');
 
@@ -137,9 +140,9 @@ describe('SearchResults', () => {
       createComponent({ q: 'zzzznonexistent' });
       fixture.detectChanges();
 
-      http.expectOne((r) => r.url === '/api/search').flush(
-        envelope({ results: [], sort: 'Relevance', type: 'All', nextCursor: null }),
-      );
+      http
+        .expectOne((r) => r.url === '/api/search')
+        .flush(envelope({ results: [], sort: 'Relevance', type: 'All', nextCursor: null }));
       fixture.detectChanges();
 
       const el = fixture.nativeElement as HTMLElement;
@@ -151,7 +154,8 @@ describe('SearchResults', () => {
       createComponent({ q: 'fail' });
       fixture.detectChanges();
 
-      http.expectOne((r) => r.url === '/api/search')
+      http
+        .expectOne((r) => r.url === '/api/search')
         .flush(errorEnvelope('INTERNAL_ERROR', 'Something went wrong'));
       fixture.detectChanges();
 
@@ -242,13 +246,28 @@ describe('SearchResults', () => {
       queryParams$.next({ q: 'matrix' });
       fixture.detectChanges();
 
-      const req = http.expectOne((r) => r.url === '/api/search' && r.params.get('Query') === 'matrix');
-      req.flush(envelope({
-        results: [{ type: 'Subject', subjectId: 11, reviewId: null, title: 'The Matrix', subtitle: 'Movie', excerpt: 'Neo discovers...', score: 0.9, createdAtUtc: '2026-01-10T10:00:00Z' }],
-        sort: 'Relevance',
-        type: 'All',
-        nextCursor: null,
-      }));
+      const req = http.expectOne(
+        (r) => r.url === '/api/search' && r.params.get('Query') === 'matrix',
+      );
+      req.flush(
+        envelope({
+          results: [
+            {
+              type: 'Subject',
+              subjectId: 11,
+              reviewId: null,
+              title: 'The Matrix',
+              subtitle: 'Movie',
+              excerpt: 'Neo discovers...',
+              score: 0.9,
+              createdAtUtc: '2026-01-10T10:00:00Z',
+            },
+          ],
+          sort: 'Relevance',
+          type: 'All',
+          nextCursor: null,
+        }),
+      );
       fixture.detectChanges();
 
       const el = fixture.nativeElement as HTMLElement;
@@ -276,9 +295,12 @@ describe('SearchResults', () => {
       typeSelect.dispatchEvent(new Event('change'));
       fixture.detectChanges();
 
-      expect(navigateSpy).toHaveBeenCalledWith(['/search'], expect.objectContaining({
-        queryParams: expect.objectContaining({ type: 'subjects' }),
-      }));
+      expect(navigateSpy).toHaveBeenCalledWith(
+        ['/search'],
+        expect.objectContaining({
+          queryParams: expect.objectContaining({ type: 'subjects' }),
+        }),
+      );
     });
 
     it('selecting type "reviews" re-fetches with Type param', () => {
@@ -295,9 +317,12 @@ describe('SearchResults', () => {
       typeSelect.dispatchEvent(new Event('change'));
       fixture.detectChanges();
 
-      expect(navigateSpy).toHaveBeenCalledWith(['/search'], expect.objectContaining({
-        queryParams: expect.objectContaining({ type: 'reviews' }),
-      }));
+      expect(navigateSpy).toHaveBeenCalledWith(
+        ['/search'],
+        expect.objectContaining({
+          queryParams: expect.objectContaining({ type: 'reviews' }),
+        }),
+      );
     });
 
     it('selecting sort "latest" re-fetches with Sort param', () => {
@@ -316,9 +341,12 @@ describe('SearchResults', () => {
       sortSelect.dispatchEvent(new Event('change'));
       fixture.detectChanges();
 
-      expect(navigateSpy).toHaveBeenCalledWith(['/search'], expect.objectContaining({
-        queryParams: expect.objectContaining({ sort: 'latest' }),
-      }));
+      expect(navigateSpy).toHaveBeenCalledWith(
+        ['/search'],
+        expect.objectContaining({
+          queryParams: expect.objectContaining({ sort: 'latest' }),
+        }),
+      );
     });
 
     it('navigating with type and sort pre-selects filters and fetches with params', () => {
@@ -351,12 +379,14 @@ describe('SearchResults', () => {
 
       const req = http.expectOne((r) => r.url === '/api/search');
       expect(req.request.params.get('Type')).toBe('subjects');
-      req.flush(envelope({
-        results: [mockSearchResponse.results[0]],
-        sort: 'Relevance',
-        type: 'Subjects',
-        nextCursor: null,
-      }));
+      req.flush(
+        envelope({
+          results: [mockSearchResponse.results[0]],
+          sort: 'Relevance',
+          type: 'Subjects',
+          nextCursor: null,
+        }),
+      );
       fixture.detectChanges();
 
       const el = fixture.nativeElement as HTMLElement;
@@ -514,7 +544,9 @@ describe('SearchResults', () => {
       loadMoreBtn.click();
       fixture.detectChanges();
 
-      const req = http.expectOne((r) => r.url === '/api/search' && r.params.get('Cursor') === 'cursor-page-2');
+      const req = http.expectOne(
+        (r) => r.url === '/api/search' && r.params.get('Cursor') === 'cursor-page-2',
+      );
       req.flush(envelope(mockPage2Response));
       fixture.detectChanges();
 
@@ -574,7 +606,9 @@ describe('SearchResults', () => {
       queryParams$.next({ q: 'newquery' });
       fixture.detectChanges();
 
-      const req = http.expectOne((r) => r.url === '/api/search' && r.params.get('Query') === 'newquery');
+      const req = http.expectOne(
+        (r) => r.url === '/api/search' && r.params.get('Query') === 'newquery',
+      );
       expect(req.request.params.has('Cursor')).toBe(false);
       req.flush(envelope(mockSearchResponse));
       fixture.detectChanges();

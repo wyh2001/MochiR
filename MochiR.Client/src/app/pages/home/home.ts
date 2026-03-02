@@ -1,6 +1,5 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { FeedService } from '../../core/services/feed.service';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { ReviewSummaryDto } from '../../api/models/review-summary-dto';
@@ -27,8 +26,7 @@ export function mapLatestItem(dto: ReviewSummaryDto): FeedReviewItem {
     if (overall) {
       overallRating = overall.score;
     } else {
-      overallRating =
-        dto.ratings.reduce((sum, r) => sum + r.score, 0) / dto.ratings.length;
+      overallRating = dto.ratings.reduce((sum, r) => sum + r.score, 0) / dto.ratings.length;
     }
   }
   return {
@@ -75,7 +73,7 @@ function isApiError(err: unknown): err is ApiError {
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [RouterLink, DatePipe],
+  imports: [DatePipe],
   templateUrl: './home.html',
 })
 export class Home implements OnInit {
@@ -89,8 +87,7 @@ export class Home implements OnInit {
   readonly activeTab = signal<'latest' | 'following'>('latest');
   readonly searchQuery = signal('');
   readonly activeItems = computed(() => {
-    const items =
-      this.activeTab() === 'following' ? this.followingItems() : this.latestItems();
+    const items = this.activeTab() === 'following' ? this.followingItems() : this.latestItems();
     const query = this.searchQuery().toLowerCase().trim();
     if (!query) return items;
     return items.filter(

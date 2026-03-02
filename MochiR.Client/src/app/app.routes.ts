@@ -80,8 +80,7 @@ export const routes: Routes = [
   },
   {
     path: 'search',
-    loadComponent: () =>
-      import('./pages/search/search-results').then((m) => m.SearchResults),
+    loadComponent: () => import('./pages/search/search-results').then((m) => m.SearchResults),
   },
   {
     path: 'reviews',

@@ -367,7 +367,9 @@ describe('Home', () => {
       fixture.detectChanges();
 
       const el = fixture.nativeElement as HTMLElement;
-      const searchInput = el.querySelector('input[type="search"], input.search-input') as HTMLInputElement;
+      const searchInput = el.querySelector(
+        'input[type="search"], input.search-input',
+      ) as HTMLInputElement;
       expect(searchInput).toBeTruthy();
 
       searchInput.value = 'Inception';
@@ -387,7 +389,9 @@ describe('Home', () => {
       fixture.detectChanges();
 
       const el = fixture.nativeElement as HTMLElement;
-      const searchInput = el.querySelector('input[type="search"], input.search-input') as HTMLInputElement;
+      const searchInput = el.querySelector(
+        'input[type="search"], input.search-input',
+      ) as HTMLInputElement;
 
       searchInput.value = 'Inception';
       searchInput.dispatchEvent(new Event('input'));
@@ -408,7 +412,9 @@ describe('Home', () => {
       fixture.detectChanges();
 
       const el = fixture.nativeElement as HTMLElement;
-      const searchInput = el.querySelector('input[type="search"], input.search-input') as HTMLInputElement;
+      const searchInput = el.querySelector(
+        'input[type="search"], input.search-input',
+      ) as HTMLInputElement;
 
       searchInput.value = 'zzzznonexistent';
       searchInput.dispatchEvent(new Event('input'));
@@ -428,7 +434,9 @@ describe('Home', () => {
       fixture.detectChanges();
 
       const el = fixture.nativeElement as HTMLElement;
-      const searchInput = el.querySelector('input[type="search"], input.search-input') as HTMLInputElement;
+      const searchInput = el.querySelector(
+        'input[type="search"], input.search-input',
+      ) as HTMLInputElement;
 
       // Search on Latest tab
       searchInput.value = 'Inception';

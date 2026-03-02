@@ -54,7 +54,9 @@ describe('Navbar', () => {
   describe('Search bar (US2)', () => {
     it('shows a search input in the navbar', () => {
       const el: HTMLElement = fixture.nativeElement;
-      const searchInput = el.querySelector('input[type="search"], input.navbar-search-input') as HTMLInputElement;
+      const searchInput = el.querySelector(
+        'input[type="search"], input.navbar-search-input',
+      ) as HTMLInputElement;
       expect(searchInput).toBeTruthy();
     });
 
@@ -62,7 +64,9 @@ describe('Navbar', () => {
       const navigateSpy = vi.spyOn(router, 'navigateByUrl');
 
       const el: HTMLElement = fixture.nativeElement;
-      const searchInput = el.querySelector('input[type="search"], input.navbar-search-input') as HTMLInputElement;
+      const searchInput = el.querySelector(
+        'input[type="search"], input.navbar-search-input',
+      ) as HTMLInputElement;
       searchInput.value = 'inception';
       searchInput.dispatchEvent(new Event('input'));
       fixture.detectChanges();
@@ -79,7 +83,9 @@ describe('Navbar', () => {
       const navigateSpy = vi.spyOn(router, 'navigateByUrl');
 
       const el: HTMLElement = fixture.nativeElement;
-      const searchInput = el.querySelector('input[type="search"], input.navbar-search-input') as HTMLInputElement;
+      const searchInput = el.querySelector(
+        'input[type="search"], input.navbar-search-input',
+      ) as HTMLInputElement;
       searchInput.value = '   ';
       searchInput.dispatchEvent(new Event('input'));
       fixture.detectChanges();
@@ -95,7 +101,9 @@ describe('Navbar', () => {
       const navigateSpy = vi.spyOn(router, 'navigateByUrl');
 
       const el: HTMLElement = fixture.nativeElement;
-      const searchInput = el.querySelector('input[type="search"], input.navbar-search-input') as HTMLInputElement;
+      const searchInput = el.querySelector(
+        'input[type="search"], input.navbar-search-input',
+      ) as HTMLInputElement;
       searchInput.value = '';
       searchInput.dispatchEvent(new Event('input'));
       fixture.detectChanges();
