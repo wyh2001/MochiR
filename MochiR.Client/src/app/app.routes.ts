@@ -79,6 +79,11 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'search',
+    loadComponent: () =>
+      import('./pages/search/search-results').then((m) => m.SearchResults),
+  },
+  {
     path: 'reviews',
     loadComponent: () =>
       import('./pages/reviews/review-list/review-list').then((m) => m.ReviewList),

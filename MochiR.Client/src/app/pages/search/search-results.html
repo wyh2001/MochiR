@@ -1,0 +1,89 @@
+<div class="container mt-4">
+  <form (submit)="onSearch($event)" class="mb-3">
+    <input
+      type="search"
+      class="form-control search-input"
+      placeholder="Search subjects and reviews..."
+      [value]="query()"
+      (input)="query.set($any($event.target).value)"
+    />
+  </form>
+
+  @if (query().trim()) {
+    <div class="d-flex gap-2 mb-3">
+      <select
+        class="form-select form-select-sm type-filter"
+        [value]="activeType()"
+        (change)="onTypeChange($any($event.target).value)"
+      >
+        <option value="all">All</option>
+        <option value="subjects">Subjects</option>
+        <option value="reviews">Reviews</option>
+      </select>
+      <select
+        class="form-select form-select-sm sort-filter"
+        [value]="activeSort()"
+        (change)="onSortChange($any($event.target).value)"
+      >
+        <option value="relevance">Relevance</option>
+        <option value="latest">Latest</option>
+      </select>
+    </div>
+  }
+
+  @if (!query().trim()) {
+    <p class="text-muted text-center py-4">Enter a search term to find subjects and reviews</p>
+  } @else if (loading()) {
+    <div class="text-center py-4">
+      <div class="spinner-border spinner-border-sm" role="status"></div>
+      <span class="ms-2">Loading...</span>
+    </div>
+  } @else if (error()) {
+    <div class="alert alert-danger">
+      <p class="mb-2">{{ error() }}</p>
+      <button class="btn btn-sm btn-outline-danger btn-retry" (click)="retry()">Retry</button>
+    </div>
+  } @else if (results().length === 0) {
+    <p class="text-muted text-center py-4">No results found for "{{ query() }}"</p>
+  } @else {
+    <ul class="list-group">
+      @for (result of results(); track result.type + '-' + (result.subjectId ?? '') + '-' + (result.reviewId ?? '')) {
+        <li class="list-group-item">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="flex-grow-1">
+              <div class="mb-1">
+                <span class="badge me-2" [class.bg-primary]="result.type === 'Subject'" [class.bg-info]="result.type === 'Review'">
+                  {{ result.type }}
+                </span>
+                <a [href]="getResultLink(result)" class="text-decoration-none fw-semibold">
+                  {{ result.title }}
+                </a>
+              </div>
+              @if (result.subtitle) {
+                <small class="result-subtitle text-muted d-block">{{ result.subtitle }}</small>
+              }
+              @if (result.excerpt) {
+                <p class="result-excerpt text-muted mb-0 small">{{ result.excerpt }}</p>
+              }
+            </div>
+            <small class="text-muted ms-3 text-nowrap">{{ result.createdAtUtc | date: 'yyyy-MM-dd' }}</small>
+          </div>
+        </li>
+      }
+    </ul>
+    @if (nextCursor()) {
+      <div class="text-center mt-3">
+        <button
+          class="btn btn-outline-secondary btn-load-more"
+          [disabled]="loadingMore()"
+          (click)="loadMore()"
+        >
+          @if (loadingMore()) {
+            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+          }
+          Load more
+        </button>
+      </div>
+    }
+  }
+</div>
