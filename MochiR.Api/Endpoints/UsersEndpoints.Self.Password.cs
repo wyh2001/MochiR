@@ -44,7 +44,8 @@ namespace MochiR.Api.Endpoints
                 }
 
                 var refreshed = await userManager.FindByIdAsync(user.Id) ?? user;
-                return ApiResults.Ok(ToSelfProfile(refreshed), httpContext);
+                var isAdmin = httpContext.User.IsInRole(AppRoles.Admin);
+                return ApiResults.Ok(ToSelfProfile(refreshed, isAdmin), httpContext);
             })
             .Produces<ApiResponse<SelfProfileDto>>(StatusCodes.Status200OK)
             .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)

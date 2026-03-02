@@ -24,7 +24,8 @@ namespace MochiR.Api.Endpoints
                     return SelfNotFound(httpContext);
                 }
 
-                return ApiResults.Ok(ToSelfProfile(user), httpContext);
+                var isAdmin = httpContext.User.IsInRole(AppRoles.Admin);
+                return ApiResults.Ok(ToSelfProfile(user, isAdmin), httpContext);
             })
             .Produces<ApiResponse<SelfProfileDto>>(StatusCodes.Status200OK)
             .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
@@ -54,7 +55,8 @@ namespace MochiR.Api.Endpoints
                         BuildIdentityErrorDetails(updateResult));
                 }
 
-                return ApiResults.Ok(ToSelfProfile(user), httpContext);
+                var isAdmin = httpContext.User.IsInRole(AppRoles.Admin);
+                return ApiResults.Ok(ToSelfProfile(user, isAdmin), httpContext);
             })
             .Produces<ApiResponse<SelfProfileDto>>(StatusCodes.Status200OK)
             .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
@@ -72,7 +74,7 @@ namespace MochiR.Api.Endpoints
             MapSelfEmailEndpoints(selfGroup);
         }
 
-        private static SelfProfileDto ToSelfProfile(ApplicationUser user) => new(
+        private static SelfProfileDto ToSelfProfile(ApplicationUser user, bool isAdmin) => new(
             user.Id,
             user.UserName,
             user.DisplayName,
@@ -86,7 +88,8 @@ namespace MochiR.Api.Endpoints
             user.LockoutEnd,
             user.CreatedAtUtc,
             user.FollowersCount,
-            user.FollowingCount);
+            user.FollowingCount,
+            isAdmin);
 
         private static IResult SelfNotFound(HttpContext httpContext) => ApiResults.Failure(
             "SELF_NOT_FOUND",
@@ -112,7 +115,8 @@ namespace MochiR.Api.Endpoints
             DateTimeOffset? LockoutEnd,
             DateTime CreatedAtUtc,
             int FollowersCount,
-            int FollowingCount);
+            int FollowingCount,
+            bool IsAdmin);
 
         private sealed record SelfProfilePatchRequestDto
         {
