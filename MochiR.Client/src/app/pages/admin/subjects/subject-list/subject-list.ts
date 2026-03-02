@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { SubjectService } from '../../../../core/services/subject.service';
 import { SubjectTypeService } from '../../../../core/services/subject-type.service';
 import { SubjectSummaryDto } from '../../../../api/models/subject-summary-dto';
+import { AuthStateService } from '../../../../core/services/auth-state.service';
 import { SubjectTypeSummaryDto } from '../../../../api/models/subject-type-summary-dto';
 
 @Component({
@@ -14,7 +15,9 @@ import { SubjectTypeSummaryDto } from '../../../../api/models/subject-type-summa
 export class SubjectList implements OnInit {
   private readonly subjectService = inject(SubjectService);
   private readonly subjectTypeService = inject(SubjectTypeService);
+  private readonly authState = inject(AuthStateService);
 
+  readonly isAdmin = this.authState.isAdmin;
   readonly subjects = signal<SubjectSummaryDto[]>([]);
   readonly subjectTypes = signal<SubjectTypeSummaryDto[]>([]);
   readonly loading = signal(true);

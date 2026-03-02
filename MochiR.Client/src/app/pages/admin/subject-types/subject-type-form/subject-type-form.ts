@@ -94,7 +94,7 @@ export class SubjectTypeForm implements OnInit {
         this.submitting.set(false);
         const action = this.isEditMode() ? 'updated' : 'created';
         this.notification.show('success', `Subject type ${action} successfully.`);
-        this.router.navigateByUrl('/admin/subject-types');
+        this.router.navigateByUrl('/subject-types');
       },
       error: (err: unknown) => {
         this.submitting.set(false);

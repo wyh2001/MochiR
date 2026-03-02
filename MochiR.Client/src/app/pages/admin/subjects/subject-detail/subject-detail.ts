@@ -2,6 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SubjectService } from '../../../../core/services/subject.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { AuthStateService } from '../../../../core/services/auth-state.service';
 import { SubjectDetailDto } from '../../../../api/models/subject-detail-dto';
 
 interface ApiError {
@@ -25,7 +26,9 @@ export class SubjectDetail implements OnInit {
   private readonly router = inject(Router);
   private readonly subjectService = inject(SubjectService);
   private readonly notification = inject(NotificationService);
+  private readonly authState = inject(AuthStateService);
 
+  readonly isAdmin = this.authState.isAdmin;
   readonly subject = signal<SubjectDetailDto | null>(null);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -61,7 +64,7 @@ export class SubjectDetail implements OnInit {
     this.subjectService.delete(this.subjectId).subscribe({
       next: () => {
         this.notification.show('success', 'Subject deleted successfully.');
-        this.router.navigateByUrl('/admin/subjects');
+        this.router.navigateByUrl('/subjects');
       },
       error: (err: unknown) => {
         this.confirmingDelete.set(false);

@@ -5,7 +5,7 @@
         <p>Loading...</p>
       } @else if (error()) {
         <div class="alert alert-danger">{{ error() }}</div>
-        <a routerLink="/admin/subjects" class="btn btn-secondary">Back to list</a>
+        <a routerLink="/subjects" class="btn btn-secondary">Back to list</a>
       } @else if (subject()) {
         <h2>{{ subject()!.name }}</h2>
 
@@ -58,27 +58,29 @@
           </table>
         }
 
-        @if (confirmingDelete()) {
-          <div class="alert alert-warning">
-            <strong>Warning:</strong> Deleting this subject will also remove all associated reviews.
-            This action cannot be undone.
-            <div class="mt-2">
-              <button class="btn btn-danger btn-confirm-delete me-2" (click)="onConfirmDelete()">
-                Confirm Delete
-              </button>
-              <button class="btn btn-secondary btn-cancel-delete" (click)="onCancelDelete()">
-                Cancel
-              </button>
+        @if (isAdmin()) {
+          @if (confirmingDelete()) {
+            <div class="alert alert-warning">
+              <strong>Warning:</strong> Deleting this subject will also remove all associated
+              reviews. This action cannot be undone.
+              <div class="mt-2">
+                <button class="btn btn-danger btn-confirm-delete me-2" (click)="onConfirmDelete()">
+                  Confirm Delete
+                </button>
+                <button class="btn btn-secondary btn-cancel-delete" (click)="onCancelDelete()">
+                  Cancel
+                </button>
+              </div>
             </div>
-          </div>
-        } @else {
-          <div class="d-flex gap-2">
-            <a [routerLink]="['/admin/subjects', subject()!.id, 'edit']" class="btn btn-primary"
-              >Edit</a
-            >
-            <button class="btn btn-danger btn-delete" (click)="onDelete()">Delete</button>
-            <a routerLink="/admin/subjects" class="btn btn-secondary">Back to list</a>
-          </div>
+          } @else {
+            <div class="d-flex gap-2">
+              <a [routerLink]="['/admin/subjects', subject()!.id, 'edit']" class="btn btn-primary"
+                >Edit</a
+              >
+              <button class="btn btn-danger btn-delete" (click)="onDelete()">Delete</button>
+              <a routerLink="/subjects" class="btn btn-secondary">Back to list</a>
+            </div>
+          }
         }
       }
     </div>

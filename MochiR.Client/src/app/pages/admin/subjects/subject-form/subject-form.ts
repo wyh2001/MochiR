@@ -120,9 +120,9 @@ export class SubjectForm implements OnInit {
         const action = this.isEditMode() ? 'updated' : 'created';
         this.notification.show('success', `Subject ${action} successfully.`);
         if (this.isEditMode()) {
-          this.router.navigateByUrl(`/admin/subjects/${this.editId}`);
+          this.router.navigateByUrl(`/subjects/${this.editId}`);
         } else {
-          this.router.navigateByUrl('/admin/subjects');
+          this.router.navigateByUrl('/subjects');
         }
       },
       error: (err: unknown) => {

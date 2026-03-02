@@ -1,7 +1,9 @@
 <div class="container mt-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>Subjects</h2>
-    <a routerLink="/admin/subjects/new" class="btn btn-primary">Create</a>
+    @if (isAdmin()) {
+      <a routerLink="/admin/subjects/new" class="btn btn-primary">Create</a>
+    }
   </div>
 
   <div class="mb-3">
@@ -34,9 +36,7 @@
             <td>{{ s.slug }}</td>
             <td>{{ getSubjectTypeName(s.subjectTypeId) }}</td>
             <td>
-              <a [routerLink]="['/admin/subjects', s.id]" class="btn btn-sm btn-outline-primary"
-                >View</a
-              >
+              <a [routerLink]="['/subjects', s.id]" class="btn btn-sm btn-outline-primary">View</a>
             </td>
           </tr>
         }

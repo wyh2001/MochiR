@@ -13,13 +13,6 @@ export const routes: Routes = [
     canActivate: [authGuard, adminGuard],
     children: [
       {
-        path: 'subject-types',
-        loadComponent: () =>
-          import('./pages/admin/subject-types/subject-type-list/subject-type-list').then(
-            (m) => m.SubjectTypeList,
-          ),
-      },
-      {
         path: 'subject-types/new',
         loadComponent: () =>
           import('./pages/admin/subject-types/subject-type-form/subject-type-form').then(
@@ -55,21 +48,9 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'subjects',
-        loadComponent: () =>
-          import('./pages/admin/subjects/subject-list/subject-list').then((m) => m.SubjectList),
-      },
-      {
         path: 'subjects/new',
         loadComponent: () =>
           import('./pages/admin/subjects/subject-form/subject-form').then((m) => m.SubjectForm),
-      },
-      {
-        path: 'subjects/:id',
-        loadComponent: () =>
-          import('./pages/admin/subjects/subject-detail/subject-detail').then(
-            (m) => m.SubjectDetail,
-          ),
       },
       {
         path: 'subjects/:id/edit',
@@ -81,19 +62,19 @@ export const routes: Routes = [
   {
     path: 'subject-types',
     loadComponent: () =>
-      import('./pages/subject-types/subject-type-list/subject-type-list').then(
-        (m) => m.PublicSubjectTypeList,
+      import('./pages/admin/subject-types/subject-type-list/subject-type-list').then(
+        (m) => m.SubjectTypeList,
       ),
   },
   {
     path: 'subjects',
     loadComponent: () =>
-      import('./pages/subjects/subject-list/subject-list').then((m) => m.PublicSubjectList),
+      import('./pages/admin/subjects/subject-list/subject-list').then((m) => m.SubjectList),
   },
   {
     path: 'subjects/:id',
     loadComponent: () =>
-      import('./pages/subjects/subject-detail/subject-detail').then((m) => m.PublicSubjectDetail),
+      import('./pages/admin/subjects/subject-detail/subject-detail').then((m) => m.SubjectDetail),
   },
   {
     path: 'search',

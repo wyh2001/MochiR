@@ -258,7 +258,7 @@ describe('SubjectForm', () => {
     it('Cancel link navigates to list', () => {
       initCreateForm();
 
-      const cancelLink = fixture.nativeElement.querySelector('a[href="/admin/subjects"]');
+      const cancelLink = fixture.nativeElement.querySelector('a[href="/subjects"]');
       expect(cancelLink).toBeTruthy();
       expect(cancelLink.textContent).toContain('Cancel');
     });
@@ -428,7 +428,7 @@ describe('SubjectForm (edit mode)', () => {
   it('Cancel link navigates to detail page', () => {
     initEditForm();
 
-    const cancelLink = fixture.nativeElement.querySelector('a[href="/admin/subjects/1"]');
+    const cancelLink = fixture.nativeElement.querySelector('a[href="/subjects/1"]');
     expect(cancelLink).toBeTruthy();
     expect(cancelLink.textContent).toContain('Cancel');
   });

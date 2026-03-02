@@ -44,9 +44,9 @@
             {{ isEditMode() ? 'Save Changes' : 'Create' }}
           </button>
           @if (isEditMode()) {
-            <a [routerLink]="['/admin/subjects', editId]" class="btn btn-secondary">Cancel</a>
+            <a [routerLink]="['/subjects', editId]" class="btn btn-secondary">Cancel</a>
           } @else {
-            <a routerLink="/admin/subjects" class="btn btn-secondary">Cancel</a>
+            <a routerLink="/subjects" class="btn btn-secondary">Cancel</a>
           }
         </div>
       </form>

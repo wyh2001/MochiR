@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { SubjectTypeService } from '../../../../core/services/subject-type.service';
 import { SubjectTypeSummaryDto } from '../../../../api/models/subject-type-summary-dto';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { AuthStateService } from '../../../../core/services/auth-state.service';
 
 interface ApiError {
   code: string;
@@ -23,7 +24,9 @@ function isApiError(err: unknown): err is ApiError {
 export class SubjectTypeList implements OnInit {
   private readonly subjectTypeService = inject(SubjectTypeService);
   private readonly notification = inject(NotificationService);
+  private readonly authState = inject(AuthStateService);
 
+  readonly isAdmin = this.authState.isAdmin;
   readonly subjectTypes = signal<SubjectTypeSummaryDto[]>([]);
   readonly loading = signal(true);
   readonly deletingId = signal<number | null>(null);
