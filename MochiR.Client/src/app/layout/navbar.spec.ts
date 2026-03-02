@@ -35,6 +35,7 @@ describe('Navbar', () => {
 
   it('shows username and logout button when authenticated', () => {
     authState.setUser({
+      id: 'user-1',
       userName: 'testuser',
       displayName: 'Test User',
       email: 'test@test.com',

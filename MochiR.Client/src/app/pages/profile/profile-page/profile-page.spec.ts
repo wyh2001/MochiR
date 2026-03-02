@@ -55,6 +55,7 @@ describe('ProfilePage', () => {
 
     const authState = TestBed.inject(AuthStateService);
     authState.setUser({
+      id: 'user-1',
       userName: 'john',
       displayName: 'John Doe',
       email: 'john@example.com',
@@ -565,6 +566,21 @@ describe('ProfilePage', () => {
 
       expect(component.serverError()).toBe('Follower not found');
     });
+
+    it('has links to public profiles for each follower', () => {
+      createAndSwitchToFollowers();
+
+      http.expectOne('/api/me/followers?Page=1&PageSize=10').flush(envelope(mockFollowers));
+      fixture.detectChanges();
+
+      const el = fixture.nativeElement as HTMLElement;
+      const link1 = el.querySelector('a[href="/users/f1"]');
+      const link2 = el.querySelector('a[href="/users/f2"]');
+      expect(link1).toBeTruthy();
+      expect(link1!.textContent).toContain('Alice');
+      expect(link2).toBeTruthy();
+      expect(link2!.textContent).toContain('Bob');
+    });
   });
 
   describe('following tab', () => {
@@ -645,6 +661,18 @@ describe('ProfilePage', () => {
       const el = fixture.nativeElement as HTMLElement;
       const removeBtn = el.querySelector('.btn-outline-danger');
       expect(removeBtn).toBeNull();
+    });
+
+    it('has links to public profiles for each followed user', () => {
+      createAndSwitchToFollowing();
+
+      http.expectOne('/api/me/following?Page=1&PageSize=10').flush(envelope(mockFollowing));
+      fixture.detectChanges();
+
+      const el = fixture.nativeElement as HTMLElement;
+      const link = el.querySelector('a[href="/users/u2"]');
+      expect(link).toBeTruthy();
+      expect(link!.textContent).toContain('Carol');
     });
   });
 });

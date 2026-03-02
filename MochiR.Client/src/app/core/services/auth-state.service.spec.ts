@@ -5,6 +5,7 @@ describe('AuthStateService', () => {
   let service: AuthStateService;
 
   const mockUser: UserProfile = {
+    id: 'user-1',
     userName: 'testuser',
     displayName: 'Test User',
     email: 'test@example.com',
@@ -12,6 +13,7 @@ describe('AuthStateService', () => {
   };
 
   const mockAdmin: UserProfile = {
+    id: 'admin-1',
     userName: 'admin',
     displayName: 'Admin',
     email: 'admin@example.com',

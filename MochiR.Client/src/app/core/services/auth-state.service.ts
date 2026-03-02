@@ -1,6 +1,7 @@
 import { Injectable, computed, signal } from '@angular/core';
 
 export interface UserProfile {
+  id: string;
   userName: string;
   displayName: string;
   email: string;

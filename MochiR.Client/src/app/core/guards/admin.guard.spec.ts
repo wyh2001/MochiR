@@ -26,6 +26,7 @@ describe('adminGuard', () => {
 
   it('allows access when user is admin', async () => {
     authState.setUser({
+      id: 'admin-1',
       userName: 'admin',
       displayName: 'Admin',
       email: 'admin@test.com',
@@ -39,6 +40,7 @@ describe('adminGuard', () => {
 
   it('redirects to /access-denied when not admin', async () => {
     authState.setUser({
+      id: 'user-1',
       userName: 'user',
       displayName: 'User',
       email: 'user@test.com',

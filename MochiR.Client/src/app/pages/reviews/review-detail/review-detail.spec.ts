@@ -150,6 +150,7 @@ describe('ReviewDetail', () => {
 
   it('shows Edit and Delete buttons when user is author', () => {
     authState.setUser({
+      id: 'john-1',
       userName: 'john',
       displayName: 'John Doe',
       email: 'john@test.com',
@@ -168,6 +169,7 @@ describe('ReviewDetail', () => {
 
   it('hides Edit and Delete buttons when user is not author', () => {
     authState.setUser({
+      id: 'jane-1',
       userName: 'jane',
       displayName: 'Jane Doe',
       email: 'jane@test.com',
@@ -235,6 +237,7 @@ describe('ReviewDetail', () => {
     beforeEach(() => {
       notification = TestBed.inject(NotificationService);
       authState.setUser({
+        id: 'john-1',
         userName: 'john',
         displayName: 'John Doe',
         email: 'john@test.com',
@@ -325,6 +328,7 @@ describe('ReviewDetail', () => {
   describe('like/unlike', () => {
     it('sends POST like and updates count and liked state', () => {
       authState.setUser({
+        id: 'jane-1',
         userName: 'jane',
         displayName: 'Jane Doe',
         email: 'jane@test.com',
@@ -354,6 +358,7 @@ describe('ReviewDetail', () => {
 
     it('sends DELETE unlike and reverts state', () => {
       authState.setUser({
+        id: 'jane-1',
         userName: 'jane',
         displayName: 'Jane Doe',
         email: 'jane@test.com',
@@ -388,6 +393,7 @@ describe('ReviewDetail', () => {
 
     it('shows like button when authenticated (non-author)', () => {
       authState.setUser({
+        id: 'jane-1',
         userName: 'jane',
         displayName: 'Jane Doe',
         email: 'jane@test.com',
@@ -402,6 +408,7 @@ describe('ReviewDetail', () => {
 
     it('preserves state on like error', () => {
       authState.setUser({
+        id: 'jane-1',
         userName: 'jane',
         displayName: 'Jane Doe',
         email: 'jane@test.com',

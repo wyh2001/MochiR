@@ -66,6 +66,7 @@ describe('AuthService', () => {
   describe('logout', () => {
     it('calls POST /api/auth/logout and clears auth state', () => {
       authState.setUser({
+        id: 'user-1',
         userName: 'test',
         displayName: 'Test',
         email: 'test@test.com',

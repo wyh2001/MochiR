@@ -43,6 +43,7 @@ describe('authRedirectInterceptor', () => {
 
   it('clears auth state on 401', () => {
     authState.setUser({
+      id: 'user-1',
       userName: 'test',
       displayName: 'Test',
       email: 'test@test.com',

@@ -32,6 +32,7 @@ describe('guestGuard', () => {
 
   it('redirects to / when authenticated', async () => {
     authState.setUser({
+      id: 'user-1',
       userName: 'test',
       displayName: 'Test',
       email: 'test@test.com',
