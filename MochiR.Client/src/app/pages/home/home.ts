@@ -85,19 +85,8 @@ export class Home implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly activeTab = signal<'latest' | 'following'>('latest');
-  readonly searchQuery = signal('');
   readonly activeItems = computed(() => {
-    const items = this.activeTab() === 'following' ? this.followingItems() : this.latestItems();
-    const query = this.searchQuery().toLowerCase().trim();
-    if (!query) return items;
-    return items.filter(
-      (item) =>
-        item.subjectName?.toLowerCase().includes(query) ||
-        item.authorUserName?.toLowerCase().includes(query) ||
-        item.authorDisplayName?.toLowerCase().includes(query) ||
-        item.title?.toLowerCase().includes(query) ||
-        item.excerpt?.toLowerCase().includes(query),
-    );
+    return this.activeTab() === 'following' ? this.followingItems() : this.latestItems();
   });
 
   ngOnInit(): void {
