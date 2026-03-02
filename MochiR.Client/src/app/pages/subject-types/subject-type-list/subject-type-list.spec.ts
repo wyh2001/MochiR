@@ -12,7 +12,7 @@ describe('SubjectTypeList', () => {
   let http: HttpTestingController;
   let authState: AuthStateService;
 
-  function createComponent(admin = false) {
+  function createComponent(role: 'anon' | 'user' | 'admin' = 'anon') {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       imports: [SubjectTypeList],
@@ -24,13 +24,21 @@ describe('SubjectTypeList', () => {
     });
 
     authState = TestBed.inject(AuthStateService);
-    if (admin) {
+    if (role === 'admin') {
       authState.setUser({
         id: 'admin-1',
         userName: 'admin',
         displayName: 'Admin',
         email: 'admin@test.com',
         isAdmin: true,
+      });
+    } else if (role === 'user') {
+      authState.setUser({
+        id: 'user-1',
+        userName: 'testuser',
+        displayName: 'Test User',
+        email: 'user@test.com',
+        isAdmin: false,
       });
     }
 
@@ -50,6 +58,23 @@ describe('SubjectTypeList', () => {
 
   function flushList(data: unknown[]) {
     http.expectOne('/api/subject-types').flush(envelope(data));
+    fixture.detectChanges();
+  }
+
+  function flushFollowState(followedIds: number[] = []) {
+    const page = {
+      totalCount: followedIds.length,
+      page: 1,
+      pageSize: 50,
+      items: followedIds.map((id) => ({
+        followId: id,
+        subjectTypeId: id,
+        subjectTypeKey: `type-${id}`,
+        subjectTypeDisplayName: `Type ${id}`,
+        followedAtUtc: '2026-02-01T00:00:00Z',
+      })),
+    };
+    http.expectOne('/api/follows/subject-types?Page=1&PageSize=50').flush(envelope(page));
     fixture.detectChanges();
   }
 
@@ -87,7 +112,7 @@ describe('SubjectTypeList', () => {
     });
 
     it('does not show Create button for non-admin', () => {
-      createComponent(false);
+      createComponent('anon');
       fixture.detectChanges();
       flushList([]);
 
@@ -96,7 +121,7 @@ describe('SubjectTypeList', () => {
     });
 
     it('does not show Actions column for non-admin', () => {
-      createComponent(false);
+      createComponent('anon');
       fixture.detectChanges();
       flushList([{ id: 1, key: 'movie', displayName: 'Movie' }]);
 
@@ -104,13 +129,117 @@ describe('SubjectTypeList', () => {
       const texts = Array.from(headers).map((h: unknown) => (h as HTMLElement).textContent);
       expect(texts).not.toContain('Actions');
     });
+
+    it('does not show Follow column for unauthenticated user', () => {
+      createComponent('anon');
+      fixture.detectChanges();
+      flushList([{ id: 1, key: 'movie', displayName: 'Movie' }]);
+
+      const headers = fixture.nativeElement.querySelectorAll('thead th');
+      const texts = Array.from(headers).map((h: unknown) => (h as HTMLElement).textContent);
+      expect(texts).not.toContain('Follow');
+    });
+  });
+
+  describe('authenticated view', () => {
+    it('shows Follow column and buttons for authenticated user', () => {
+      createComponent('user');
+      fixture.detectChanges();
+      flushList([{ id: 1, key: 'movie', displayName: 'Movie' }]);
+      flushFollowState([]);
+
+      const headers = fixture.nativeElement.querySelectorAll('thead th');
+      const texts = Array.from(headers).map((h: unknown) => (h as HTMLElement).textContent);
+      expect(texts).toContain('Follow');
+
+      const btn = fixture.nativeElement.querySelector('.btn-follow');
+      expect(btn).toBeTruthy();
+      expect(btn.textContent).toContain('Follow');
+    });
+
+    it('shows Unfollow for already followed types', () => {
+      createComponent('user');
+      fixture.detectChanges();
+      flushList([
+        { id: 1, key: 'movie', displayName: 'Movie' },
+        { id: 2, key: 'book', displayName: 'Book' },
+      ]);
+      flushFollowState([1]);
+
+      const buttons = fixture.nativeElement.querySelectorAll('.btn-follow');
+      expect(buttons[0].textContent).toContain('Unfollow');
+      expect(buttons[1].textContent).toContain('Follow');
+    });
+
+    it('follows subject type on click', () => {
+      createComponent('user');
+      fixture.detectChanges();
+      flushList([{ id: 1, key: 'movie', displayName: 'Movie' }]);
+      flushFollowState([]);
+
+      const notification = TestBed.inject(NotificationService);
+
+      const btn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-follow');
+      btn.click();
+
+      const req = http.expectOne('/api/follows/subject-types/1');
+      expect(req.request.method).toBe('POST');
+      req.flush(
+        envelope({
+          followId: 10,
+          subjectTypeId: 1,
+          subjectTypeKey: 'movie',
+          subjectTypeDisplayName: 'Movie',
+          followedAtUtc: '2026-03-01T00:00:00Z',
+        }),
+      );
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.followedTypeIds().has(1)).toBe(true);
+      expect(notification.notifications().length).toBe(1);
+      expect(notification.notifications()[0].type).toBe('success');
+    });
+
+    it('unfollows subject type on click', () => {
+      createComponent('user');
+      fixture.detectChanges();
+      flushList([{ id: 1, key: 'movie', displayName: 'Movie' }]);
+      flushFollowState([1]);
+
+      const notification = TestBed.inject(NotificationService);
+
+      const btn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-follow');
+      btn.click();
+
+      const req = http.expectOne('/api/follows/subject-types/1');
+      expect(req.request.method).toBe('DELETE');
+      req.flush(envelope({ followId: 10, removed: true }));
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.followedTypeIds().has(1)).toBe(false);
+      expect(notification.notifications().length).toBe(1);
+      expect(notification.notifications()[0].type).toBe('success');
+    });
+
+    it('disables button while follow state is loading', () => {
+      createComponent('user');
+      fixture.detectChanges();
+      flushList([{ id: 1, key: 'movie', displayName: 'Movie' }]);
+
+      const btn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-follow');
+      expect(btn.disabled).toBe(true);
+
+      flushFollowState([]);
+      expect(btn.disabled).toBe(false);
+    });
   });
 
   describe('admin view', () => {
     it('shows Create button for admin', () => {
-      createComponent(true);
+      createComponent('admin');
       fixture.detectChanges();
       flushList([]);
+      flushFollowState([]);
 
       const link = fixture.nativeElement.querySelector('a[href="/admin/subject-types/new"]');
       expect(link).toBeTruthy();
@@ -118,9 +247,10 @@ describe('SubjectTypeList', () => {
     });
 
     it('shows Edit and Delete buttons per row', () => {
-      createComponent(true);
+      createComponent('admin');
       fixture.detectChanges();
       flushList([{ id: 1, key: 'movie', displayName: 'Movie' }]);
+      flushFollowState([]);
 
       const row = fixture.nativeElement.querySelector('tbody tr');
       expect(row.textContent).toContain('Edit');
@@ -128,12 +258,13 @@ describe('SubjectTypeList', () => {
     });
 
     it('shows inline confirmation when Delete is clicked', () => {
-      createComponent(true);
+      createComponent('admin');
       fixture.detectChanges();
       flushList([
         { id: 1, key: 'movie', displayName: 'Movie' },
         { id: 2, key: 'book', displayName: 'Book' },
       ]);
+      flushFollowState([]);
 
       const deleteBtn = fixture.nativeElement.querySelector('.btn-outline-danger');
       deleteBtn.click();
@@ -146,9 +277,10 @@ describe('SubjectTypeList', () => {
     });
 
     it('hides confirmation when Cancel is clicked', () => {
-      createComponent(true);
+      createComponent('admin');
       fixture.detectChanges();
       flushList([{ id: 1, key: 'movie', displayName: 'Movie' }]);
+      flushFollowState([]);
 
       const deleteBtn = fixture.nativeElement.querySelector('.btn-outline-danger');
       deleteBtn.click();
@@ -164,12 +296,13 @@ describe('SubjectTypeList', () => {
     });
 
     it('calls DELETE API and removes row on confirm', () => {
-      createComponent(true);
+      createComponent('admin');
       fixture.detectChanges();
       flushList([
         { id: 1, key: 'movie', displayName: 'Movie' },
         { id: 2, key: 'book', displayName: 'Book' },
       ]);
+      flushFollowState([]);
 
       const deleteBtn = fixture.nativeElement.querySelector('.btn-outline-danger');
       deleteBtn.click();
@@ -190,9 +323,10 @@ describe('SubjectTypeList', () => {
     });
 
     it('shows error notification on delete failure', () => {
-      createComponent(true);
+      createComponent('admin');
       fixture.detectChanges();
       flushList([{ id: 1, key: 'movie', displayName: 'Movie' }]);
+      flushFollowState([]);
 
       const deleteBtn = fixture.nativeElement.querySelector('.btn-outline-danger');
       deleteBtn.click();

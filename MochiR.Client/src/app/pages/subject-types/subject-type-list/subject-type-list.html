@@ -16,6 +16,9 @@
         <tr>
           <th>Key</th>
           <th>Display Name</th>
+          @if (isAuthenticated()) {
+            <th>Follow</th>
+          }
           @if (isAdmin()) {
             <th>Actions</th>
           }
@@ -26,6 +29,19 @@
           <tr>
             <td>{{ type.key }}</td>
             <td>{{ type.displayName }}</td>
+            @if (isAuthenticated()) {
+              <td>
+                <button
+                  class="btn btn-sm btn-follow"
+                  [class.btn-primary]="!followedTypeIds().has(type.id)"
+                  [class.btn-outline-secondary]="followedTypeIds().has(type.id)"
+                  [disabled]="followStateLoading() || followLoadingIds().has(type.id)"
+                  (click)="onFollowToggle(type.id)"
+                >
+                  {{ followedTypeIds().has(type.id) ? 'Unfollow' : 'Follow' }}
+                </button>
+              </td>
+            }
             @if (isAdmin()) {
               <td>
                 @if (deletingId() === type.id) {
