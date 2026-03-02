@@ -7,7 +7,20 @@
         <div class="alert alert-danger">{{ error() }}</div>
         <a routerLink="/subjects" class="btn btn-secondary">Back to list</a>
       } @else if (subject()) {
-        <h2>{{ subject()!.name }}</h2>
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <h2 class="mb-0">{{ subject()!.name }}</h2>
+          @if (isAuthenticated()) {
+            <button
+              class="btn btn-sm btn-follow"
+              [class.btn-primary]="!isFollowing()"
+              [class.btn-outline-secondary]="isFollowing()"
+              [disabled]="followLoading() || followActionLoading()"
+              (click)="onFollowToggle()"
+            >
+              {{ isFollowing() ? 'Unfollow' : 'Follow' }}
+            </button>
+          }
+        </div>
 
         <table class="table">
           <tbody>
@@ -56,6 +69,41 @@
               }
             </tbody>
           </table>
+        }
+
+        <h4>Ratings</h4>
+        @if (aggregateLoading()) {
+          <p>Loading ratings...</p>
+        } @else if (aggregate(); as agg) {
+          <div class="ratings-section mb-3">
+            <p>
+              <strong>Average Overall:</strong>
+              <span class="avg-overall">{{ agg.avgOverall | number: '1.1-1' }}</span>
+              <span class="text-muted ms-2">({{ agg.countReviews }} reviews)</span>
+            </p>
+            @if (agg.metrics.length > 0) {
+              <table class="table table-sm metrics-table">
+                <thead>
+                  <tr>
+                    <th>Metric</th>
+                    <th>Average</th>
+                    <th>Count</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (m of agg.metrics; track m.key) {
+                    <tr>
+                      <td>{{ m.key }}</td>
+                      <td>{{ m.value | number: '1.1-1' }}</td>
+                      <td>{{ m.count }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          </div>
+        } @else {
+          <p class="text-muted">No ratings yet.</p>
         }
 
         @if (isAdmin()) {
