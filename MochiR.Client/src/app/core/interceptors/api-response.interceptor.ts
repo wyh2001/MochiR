@@ -1,5 +1,7 @@
-import { HttpInterceptorFn, HttpResponse } from '@angular/common/http';
+import { HttpContextToken, HttpInterceptorFn, HttpResponse } from '@angular/common/http';
 import { map } from 'rxjs';
+
+export const SKIP_API_RESPONSE_UNWRAP = new HttpContextToken<boolean>(() => false);
 
 interface ApiResponseEnvelope {
   success: boolean;
@@ -14,6 +16,10 @@ function isApiResponseEnvelope(body: unknown): body is ApiResponseEnvelope {
 }
 
 export const apiResponseInterceptor: HttpInterceptorFn = (req, next) => {
+  if (req.context.get(SKIP_API_RESPONSE_UNWRAP)) {
+    return next(req);
+  }
+
   return next(req).pipe(
     map((event) => {
       if (event instanceof HttpResponse && isApiResponseEnvelope(event.body)) {

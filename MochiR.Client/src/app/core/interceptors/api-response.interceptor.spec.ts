@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient, withInterceptors, HttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors, HttpClient, HttpContext } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { apiResponseInterceptor } from './api-response.interceptor';
+import { apiResponseInterceptor, SKIP_API_RESPONSE_UNWRAP } from './api-response.interceptor';
 
 describe('apiResponseInterceptor', () => {
   let http: HttpClient;
@@ -67,5 +67,25 @@ describe('apiResponseInterceptor', () => {
     controller.expectOne('/api/file').flush('raw text');
 
     expect(result).toBe('raw text');
+  });
+
+  it('can skip envelope unwrapping via HttpContext', () => {
+    const payload = { id: 1, name: 'Test' };
+    const context = new HttpContext().set(SKIP_API_RESPONSE_UNWRAP, true);
+    let result: unknown;
+
+    http.get('/api/test', { context }).subscribe((data) => (result = data));
+
+    const envelope = {
+      success: true,
+      data: payload,
+      error: null,
+      traceId: 'abc',
+      timestampUtc: '2026-01-01T00:00:00Z',
+    };
+
+    controller.expectOne('/api/test').flush(envelope);
+
+    expect(result).toEqual(envelope);
   });
 });
