@@ -79,6 +79,18 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'subject-types',
+    loadComponent: () =>
+      import('./pages/subject-types/subject-type-list/subject-type-list').then(
+        (m) => m.PublicSubjectTypeList,
+      ),
+  },
+  {
+    path: 'subjects',
+    loadComponent: () =>
+      import('./pages/subjects/subject-list/subject-list').then((m) => m.PublicSubjectList),
+  },
+  {
     path: 'subjects/:id',
     loadComponent: () =>
       import('./pages/subjects/subject-detail/subject-detail').then((m) => m.PublicSubjectDetail),
