@@ -2,6 +2,7 @@ import { Component, inject, OnInit, signal, DestroyRef } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, debounceTime, distinctUntilChanged, filter } from 'rxjs';
 import { SearchService } from '../../core/services/search.service';
 import { SearchResultDto } from '../../api/models/search-result-dto';
 
@@ -35,23 +36,36 @@ export class SearchResults implements OnInit {
   readonly activeSort = signal('relevance');
   readonly nextCursor = signal<string | null>(null);
   readonly loadingMore = signal(false);
+  private readonly inputSubject = new Subject<string>();
 
   ngOnInit(): void {
-    this.route.queryParams
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((params) => {
-        const q = params['q'] || '';
-        const type = params['type'] || 'all';
-        const sort = params['sort'] || 'relevance';
-        this.query.set(q);
-        this.activeType.set(type);
-        this.activeSort.set(sort);
-        if (q.trim()) {
-          this.results.set([]);
-          this.nextCursor.set(null);
-          this.executeSearch(q, type, sort);
-        }
+    this.inputSubject
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        filter((q) => q.trim().length > 0),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((q) => {
+        this.router.navigate(['/search'], {
+          queryParams: { q, type: this.activeType(), sort: this.activeSort() },
+          replaceUrl: true,
+        });
       });
+
+    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const q = params['q'] || '';
+      const type = params['type'] || 'all';
+      const sort = params['sort'] || 'relevance';
+      this.query.set(q);
+      this.activeType.set(type);
+      this.activeSort.set(sort);
+      if (q.trim()) {
+        this.results.set([]);
+        this.nextCursor.set(null);
+        this.executeSearch(q, type, sort);
+      }
+    });
   }
 
   private executeSearch(q: string, type?: string, sort?: string, cursor?: string): void {
@@ -118,6 +132,11 @@ export class SearchResults implements OnInit {
       return '/reviews/' + result.reviewId;
     }
     return '#';
+  }
+
+  onInputChange(value: string): void {
+    this.query.set(value);
+    this.inputSubject.next(value);
   }
 
   onSearch(event: Event): void {

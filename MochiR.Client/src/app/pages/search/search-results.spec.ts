@@ -387,6 +387,105 @@ describe('SearchResults', () => {
     nextCursor: null,
   };
 
+  describe('Debounce search', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('typing triggers navigation after 300ms debounce', () => {
+      createComponent({});
+      fixture.detectChanges();
+
+      const navigateSpy = vi.spyOn(router, 'navigate');
+      const el = fixture.nativeElement as HTMLElement;
+      const input = el.querySelector('.search-input') as HTMLInputElement;
+
+      input.value = 'inception';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      expect(navigateSpy).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(300);
+
+      expect(navigateSpy).toHaveBeenCalledWith(['/search'], {
+        queryParams: { q: 'inception', type: 'all', sort: 'relevance' },
+        replaceUrl: true,
+      });
+    });
+
+    it('rapid typing only triggers one navigation with final value', () => {
+      createComponent({});
+      fixture.detectChanges();
+
+      const navigateSpy = vi.spyOn(router, 'navigate');
+      const el = fixture.nativeElement as HTMLElement;
+      const input = el.querySelector('.search-input') as HTMLInputElement;
+
+      input.value = 'i';
+      input.dispatchEvent(new Event('input'));
+      vi.advanceTimersByTime(100);
+
+      input.value = 'in';
+      input.dispatchEvent(new Event('input'));
+      vi.advanceTimersByTime(100);
+
+      input.value = 'inception';
+      input.dispatchEvent(new Event('input'));
+      vi.advanceTimersByTime(300);
+
+      expect(navigateSpy).toHaveBeenCalledTimes(1);
+      expect(navigateSpy).toHaveBeenCalledWith(['/search'], {
+        queryParams: { q: 'inception', type: 'all', sort: 'relevance' },
+        replaceUrl: true,
+      });
+    });
+
+    it('empty input does not trigger debounced navigation', () => {
+      createComponent({ q: 'test' });
+      fixture.detectChanges();
+
+      http.expectOne((r) => r.url === '/api/search').flush(envelope(mockSearchResponse));
+      fixture.detectChanges();
+
+      const navigateSpy = vi.spyOn(router, 'navigate');
+      const el = fixture.nativeElement as HTMLElement;
+      const input = el.querySelector('.search-input') as HTMLInputElement;
+
+      input.value = '';
+      input.dispatchEvent(new Event('input'));
+      vi.advanceTimersByTime(300);
+
+      expect(navigateSpy).not.toHaveBeenCalled();
+    });
+
+    it('Enter submits immediately without waiting for debounce', () => {
+      createComponent({});
+      fixture.detectChanges();
+
+      const navigateByUrlSpy = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+      vi.spyOn(router, 'navigate').mockResolvedValue(true);
+      const el = fixture.nativeElement as HTMLElement;
+      const input = el.querySelector('.search-input') as HTMLInputElement;
+
+      input.value = 'inception';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const form = el.querySelector('form') as HTMLFormElement;
+      form.dispatchEvent(new Event('submit'));
+      fixture.detectChanges();
+
+      expect(navigateByUrlSpy).toHaveBeenCalledWith('/search?q=inception');
+
+      vi.advanceTimersByTime(300);
+    });
+  });
+
   describe('US4: Load More Pagination', () => {
     it('shows "Load more" button when nextCursor exists', () => {
       createComponent({ q: 'test' });
