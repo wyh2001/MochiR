@@ -19,12 +19,7 @@ export interface ApiSearchGet$Params {
   cursor?: string;
 }
 
-export function apiSearchGet(
-  http: HttpClient,
-  rootUrl: string,
-  params: ApiSearchGet$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfSearchResponseDto>> {
+export function apiSearchGet(http: HttpClient, rootUrl: string, params: ApiSearchGet$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfSearchResponseDto>> {
   const rb = new RequestBuilder(rootUrl, apiSearchGet.PATH, 'get');
   if (params) {
     rb.query('query', params.query, {});
@@ -34,11 +29,13 @@ export function apiSearchGet(
     rb.query('cursor', params.cursor, {});
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfSearchResponseDto>;
-    }),
+    })
   );
 }
 

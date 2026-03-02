@@ -11,25 +11,22 @@ import { ApiResponseOfSubjectTypeSummaryDto } from '../../models/api-response-of
 import { CreateSubjectTypeDto } from '../../models/create-subject-type-dto';
 
 export interface ApiSubjectTypesPost$Params {
-  body: CreateSubjectTypeDto;
+      body: CreateSubjectTypeDto
 }
 
-export function apiSubjectTypesPost(
-  http: HttpClient,
-  rootUrl: string,
-  params: ApiSubjectTypesPost$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfSubjectTypeSummaryDto>> {
+export function apiSubjectTypesPost(http: HttpClient, rootUrl: string, params: ApiSubjectTypesPost$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfSubjectTypeSummaryDto>> {
   const rb = new RequestBuilder(rootUrl, apiSubjectTypesPost.PATH, 'post');
   if (params) {
     rb.body(params.body, 'application/json');
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfSubjectTypeSummaryDto>;
-    }),
+    })
   );
 }
 

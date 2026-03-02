@@ -11,25 +11,22 @@ import { TwoFactorRequest } from '../../models/two-factor-request';
 import { TwoFactorResponse } from '../../models/two-factor-response';
 
 export interface Manage2FaPost$Params {
-  body: TwoFactorRequest;
+      body: TwoFactorRequest
 }
 
-export function manage2FaPost(
-  http: HttpClient,
-  rootUrl: string,
-  params: Manage2FaPost$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<TwoFactorResponse>> {
+export function manage2FaPost(http: HttpClient, rootUrl: string, params: Manage2FaPost$Params, context?: HttpContext): Observable<StrictHttpResponse<TwoFactorResponse>> {
   const rb = new RequestBuilder(rootUrl, manage2FaPost.PATH, 'post');
   if (params) {
     rb.body(params.body, 'application/json');
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<TwoFactorResponse>;
-    }),
+    })
   );
 }
 

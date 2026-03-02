@@ -48,31 +48,31 @@ export const routes: Routes = [
   {
     path: 'subject-types',
     loadComponent: () =>
-      import('./pages/admin/subject-types/subject-type-list/subject-type-list').then(
+      import('./pages/subject-types/subject-type-list/subject-type-list').then(
         (m) => m.SubjectTypeList,
       ),
   },
   {
     path: 'subjects',
     loadComponent: () =>
-      import('./pages/admin/subjects/subject-list/subject-list').then((m) => m.SubjectList),
+      import('./pages/subjects/subject-list/subject-list').then((m) => m.SubjectList),
   },
   {
     path: 'subjects/:id',
     loadComponent: () =>
-      import('./pages/admin/subjects/subject-detail/subject-detail').then((m) => m.SubjectDetail),
+      import('./pages/subjects/subject-detail/subject-detail').then((m) => m.SubjectDetail),
   },
   {
     path: 'criteria-templates',
     loadComponent: () =>
-      import('./pages/admin/criteria-templates/criteria-template-list/criteria-template-list').then(
+      import('./pages/criteria-templates/criteria-template-list/criteria-template-list').then(
         (m) => m.CriteriaTemplateList,
       ),
   },
   {
     path: 'criteria-templates/:id',
     loadComponent: () =>
-      import('./pages/admin/criteria-templates/criteria-template-detail/criteria-template-detail').then(
+      import('./pages/criteria-templates/criteria-template-detail/criteria-template-detail').then(
         (m) => m.CriteriaTemplateDetail,
       ),
   },

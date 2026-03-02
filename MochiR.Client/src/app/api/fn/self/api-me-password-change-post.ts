@@ -11,25 +11,22 @@ import { ApiResponseOfSelfProfileDto } from '../../models/api-response-of-self-p
 import { SelfPasswordChangeRequestDto } from '../../models/self-password-change-request-dto';
 
 export interface ApiMePasswordChangePost$Params {
-  body: SelfPasswordChangeRequestDto;
+      body: SelfPasswordChangeRequestDto
 }
 
-export function apiMePasswordChangePost(
-  http: HttpClient,
-  rootUrl: string,
-  params: ApiMePasswordChangePost$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfSelfProfileDto>> {
+export function apiMePasswordChangePost(http: HttpClient, rootUrl: string, params: ApiMePasswordChangePost$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfSelfProfileDto>> {
   const rb = new RequestBuilder(rootUrl, apiMePasswordChangePost.PATH, 'post');
   if (params) {
     rb.body(params.body, 'application/json');
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfSelfProfileDto>;
-    }),
+    })
   );
 }
 

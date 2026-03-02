@@ -5,16 +5,7 @@ import { ReviewService } from '../../../core/services/review.service';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ReviewDetailDto } from '../../../api/models/review-detail-dto';
-
-interface ApiError {
-  code: string;
-  message: string;
-  details: Record<string, string[]> | null;
-}
-
-function isApiError(err: unknown): err is ApiError {
-  return err !== null && typeof err === 'object' && 'code' in err && 'message' in err;
-}
+import { isApiError } from '../../../core/utils/api-error';
 
 @Component({
   selector: 'app-review-detail',
@@ -39,7 +30,7 @@ export class ReviewDetail implements OnInit {
   readonly isAuthor = computed(() => {
     const review = this.review();
     const user = this.authState.user();
-    return review != null && user != null && review.userId === user.userName;
+    return review != null && user != null && review.userId === user.id;
   });
 
   ngOnInit(): void {

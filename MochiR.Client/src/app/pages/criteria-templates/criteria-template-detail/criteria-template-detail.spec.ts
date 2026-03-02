@@ -4,7 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideRouter, ActivatedRoute } from '@angular/router';
 import { of } from 'rxjs';
 import { CriteriaTemplateDetail } from './criteria-template-detail';
-import { apiResponseInterceptor } from '../../../../core/interceptors/api-response.interceptor';
+import { apiResponseInterceptor } from '../../../core/interceptors/api-response.interceptor';
 
 describe('CriteriaTemplateDetail', () => {
   let fixture: ComponentFixture<CriteriaTemplateDetail>;

@@ -12,26 +12,23 @@ import { LockUserRequestDto } from '../../models/lock-user-request-dto';
 
 export interface ApiUsersIdLockPost$Params {
   id: string;
-  body: LockUserRequestDto;
+      body: LockUserRequestDto
 }
 
-export function apiUsersIdLockPost(
-  http: HttpClient,
-  rootUrl: string,
-  params: ApiUsersIdLockPost$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfUserLockResponseDto>> {
+export function apiUsersIdLockPost(http: HttpClient, rootUrl: string, params: ApiUsersIdLockPost$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfUserLockResponseDto>> {
   const rb = new RequestBuilder(rootUrl, apiUsersIdLockPost.PATH, 'post');
   if (params) {
     rb.path('id', params.id, {});
     rb.body(params.body, 'application/json');
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfUserLockResponseDto>;
-    }),
+    })
   );
 }
 

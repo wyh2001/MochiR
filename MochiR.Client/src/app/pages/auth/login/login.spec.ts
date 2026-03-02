@@ -89,6 +89,7 @@ describe('Login', () => {
       createdAtUtc: '2026-01-01T00:00:00Z',
       followersCount: 0,
       followingCount: 0,
+      roles: [],
     });
 
     expect(spy).toHaveBeenCalledWith('/');
@@ -167,6 +168,7 @@ describe('Login', () => {
       createdAtUtc: '2026-01-01T00:00:00Z',
       followersCount: 0,
       followingCount: 0,
+      roles: [],
     });
 
     expect(component.submitting()).toBe(false);

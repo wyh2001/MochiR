@@ -1,24 +1,25 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { SubjectService } from '../../../../core/services/subject.service';
-import { SubjectTypeService } from '../../../../core/services/subject-type.service';
-import { SubjectSummaryDto } from '../../../../api/models/subject-summary-dto';
-import { AuthStateService } from '../../../../core/services/auth-state.service';
-import { SubjectTypeSummaryDto } from '../../../../api/models/subject-type-summary-dto';
+import { CriteriaTemplateService } from '../../../core/services/criteria-template.service';
+import { SubjectTypeService } from '../../../core/services/subject-type.service';
+import { AuthStateService } from '../../../core/services/auth-state.service';
+import { CriteriaTemplateSummaryDto } from '../../../api/models/criteria-template-summary-dto';
+import { SubjectTypeSummaryDto } from '../../../api/models/subject-type-summary-dto';
 
 @Component({
-  selector: 'app-subject-list',
+  selector: 'app-criteria-template-list',
   standalone: true,
   imports: [RouterLink],
-  templateUrl: './subject-list.html',
+  templateUrl: './criteria-template-list.html',
 })
-export class SubjectList implements OnInit {
-  private readonly subjectService = inject(SubjectService);
+export class CriteriaTemplateList implements OnInit {
+  private readonly criteriaTemplateService = inject(CriteriaTemplateService);
   private readonly subjectTypeService = inject(SubjectTypeService);
   private readonly authState = inject(AuthStateService);
 
   readonly isAdmin = this.authState.isAdmin;
-  readonly subjects = signal<SubjectSummaryDto[]>([]);
+
+  readonly criteriaTemplates = signal<CriteriaTemplateSummaryDto[]>([]);
   readonly subjectTypes = signal<SubjectTypeSummaryDto[]>([]);
   readonly loading = signal(true);
   readonly filterSubjectTypeId = signal<number | null>(null);
@@ -32,22 +33,22 @@ export class SubjectList implements OnInit {
 
   onFilterChange(event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
-    const id = value ? Number(value) : null;
-    this.filterSubjectTypeId.set(id);
+    const subjectTypeId = value ? Number(value) : null;
+    this.filterSubjectTypeId.set(subjectTypeId);
     this.loadList();
   }
 
   getSubjectTypeName(subjectTypeId: number): string {
-    const st = this.subjectTypes().find((t) => t.id === subjectTypeId);
-    return st ? st.displayName : String(subjectTypeId);
+    const st = this.subjectTypes().find((s) => s.id === subjectTypeId);
+    return st?.displayName ?? '';
   }
 
   private loadList(): void {
     this.loading.set(true);
     const filter = this.filterSubjectTypeId() ?? undefined;
-    this.subjectService.getAll(filter).subscribe({
+    this.criteriaTemplateService.getAll(filter).subscribe({
       next: (data) => {
-        this.subjects.set(data);
+        this.criteriaTemplates.set(data);
         this.loading.set(false);
       },
       error: () => {

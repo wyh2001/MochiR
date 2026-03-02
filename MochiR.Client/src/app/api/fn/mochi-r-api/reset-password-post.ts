@@ -10,25 +10,22 @@ import { RequestBuilder } from '../../request-builder';
 import { ResetPasswordRequest } from '../../models/reset-password-request';
 
 export interface ResetPasswordPost$Params {
-  body: ResetPasswordRequest;
+      body: ResetPasswordRequest
 }
 
-export function resetPasswordPost(
-  http: HttpClient,
-  rootUrl: string,
-  params: ResetPasswordPost$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<void>> {
+export function resetPasswordPost(http: HttpClient, rootUrl: string, params: ResetPasswordPost$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
   const rb = new RequestBuilder(rootUrl, resetPasswordPost.PATH, 'post');
   if (params) {
     rb.body(params.body, 'application/json');
   }
 
-  return http.request(rb.build({ responseType: 'text', accept: '*/*', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'text', accept: '*/*', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return (r as HttpResponse<any>).clone({ body: undefined }) as StrictHttpResponse<void>;
-    }),
+    })
   );
 }
 

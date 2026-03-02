@@ -9,23 +9,21 @@ import { RequestBuilder } from '../../request-builder';
 
 import { ApiResponseOfSelfProfileDto } from '../../models/api-response-of-self-profile-dto';
 
-export interface ApiMeGet$Params {}
+export interface ApiMeGet$Params {
+}
 
-export function apiMeGet(
-  http: HttpClient,
-  rootUrl: string,
-  params?: ApiMeGet$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfSelfProfileDto>> {
+export function apiMeGet(http: HttpClient, rootUrl: string, params?: ApiMeGet$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfSelfProfileDto>> {
   const rb = new RequestBuilder(rootUrl, apiMeGet.PATH, 'get');
   if (params) {
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfSelfProfileDto>;
-    }),
+    })
   );
 }
 

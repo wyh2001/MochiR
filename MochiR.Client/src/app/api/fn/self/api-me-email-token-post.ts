@@ -11,25 +11,22 @@ import { ApiResponseOfSelfEmailTokenDispatchResponseDto } from '../../models/api
 import { SelfEmailTokenRequestDto } from '../../models/self-email-token-request-dto';
 
 export interface ApiMeEmailTokenPost$Params {
-  body: SelfEmailTokenRequestDto;
+      body: SelfEmailTokenRequestDto
 }
 
-export function apiMeEmailTokenPost(
-  http: HttpClient,
-  rootUrl: string,
-  params: ApiMeEmailTokenPost$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfSelfEmailTokenDispatchResponseDto>> {
+export function apiMeEmailTokenPost(http: HttpClient, rootUrl: string, params: ApiMeEmailTokenPost$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfSelfEmailTokenDispatchResponseDto>> {
   const rb = new RequestBuilder(rootUrl, apiMeEmailTokenPost.PATH, 'post');
   if (params) {
     rb.body(params.body, 'application/json');
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfSelfEmailTokenDispatchResponseDto>;
-    }),
+    })
   );
 }
 

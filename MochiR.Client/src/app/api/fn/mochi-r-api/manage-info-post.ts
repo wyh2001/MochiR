@@ -11,25 +11,22 @@ import { InfoRequest } from '../../models/info-request';
 import { InfoResponse } from '../../models/info-response';
 
 export interface ManageInfoPost$Params {
-  body: InfoRequest;
+      body: InfoRequest
 }
 
-export function manageInfoPost(
-  http: HttpClient,
-  rootUrl: string,
-  params: ManageInfoPost$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<InfoResponse>> {
+export function manageInfoPost(http: HttpClient, rootUrl: string, params: ManageInfoPost$Params, context?: HttpContext): Observable<StrictHttpResponse<InfoResponse>> {
   const rb = new RequestBuilder(rootUrl, manageInfoPost.PATH, 'post');
   if (params) {
     rb.body(params.body, 'application/json');
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<InfoResponse>;
-    }),
+    })
   );
 }
 

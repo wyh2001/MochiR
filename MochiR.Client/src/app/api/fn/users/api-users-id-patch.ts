@@ -12,26 +12,23 @@ import { DirectoryAdminPatchRequestDto } from '../../models/directory-admin-patc
 
 export interface ApiUsersIdPatch$Params {
   id: string;
-  body: DirectoryAdminPatchRequestDto;
+      body: DirectoryAdminPatchRequestDto
 }
 
-export function apiUsersIdPatch(
-  http: HttpClient,
-  rootUrl: string,
-  params: ApiUsersIdPatch$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfUserDirectoryResponseDto>> {
+export function apiUsersIdPatch(http: HttpClient, rootUrl: string, params: ApiUsersIdPatch$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfUserDirectoryResponseDto>> {
   const rb = new RequestBuilder(rootUrl, apiUsersIdPatch.PATH, 'patch');
   if (params) {
     rb.path('id', params.id, {});
     rb.body(params.body, 'application/json');
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfUserDirectoryResponseDto>;
-    }),
+    })
   );
 }
 

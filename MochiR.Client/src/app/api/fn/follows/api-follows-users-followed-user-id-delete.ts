@@ -13,22 +13,19 @@ export interface ApiFollowsUsersFollowedUserIdDelete$Params {
   followedUserId: string;
 }
 
-export function apiFollowsUsersFollowedUserIdDelete(
-  http: HttpClient,
-  rootUrl: string,
-  params: ApiFollowsUsersFollowedUserIdDelete$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfFollowDeletionResultDto>> {
+export function apiFollowsUsersFollowedUserIdDelete(http: HttpClient, rootUrl: string, params: ApiFollowsUsersFollowedUserIdDelete$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfFollowDeletionResultDto>> {
   const rb = new RequestBuilder(rootUrl, apiFollowsUsersFollowedUserIdDelete.PATH, 'delete');
   if (params) {
     rb.path('followedUserId', params.followedUserId, {});
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfFollowDeletionResultDto>;
-    }),
+    })
   );
 }
 

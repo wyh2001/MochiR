@@ -9,23 +9,21 @@ import { RequestBuilder } from '../../request-builder';
 
 import { InfoResponse } from '../../models/info-response';
 
-export interface ManageInfoGet$Params {}
+export interface ManageInfoGet$Params {
+}
 
-export function manageInfoGet(
-  http: HttpClient,
-  rootUrl: string,
-  params?: ManageInfoGet$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<InfoResponse>> {
+export function manageInfoGet(http: HttpClient, rootUrl: string, params?: ManageInfoGet$Params, context?: HttpContext): Observable<StrictHttpResponse<InfoResponse>> {
   const rb = new RequestBuilder(rootUrl, manageInfoGet.PATH, 'get');
   if (params) {
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<InfoResponse>;
-    }),
+    })
   );
 }
 

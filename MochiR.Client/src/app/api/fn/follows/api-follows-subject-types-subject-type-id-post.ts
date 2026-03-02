@@ -13,22 +13,19 @@ export interface ApiFollowsSubjectTypesSubjectTypeIdPost$Params {
   subjectTypeId: number;
 }
 
-export function apiFollowsSubjectTypesSubjectTypeIdPost(
-  http: HttpClient,
-  rootUrl: string,
-  params: ApiFollowsSubjectTypesSubjectTypeIdPost$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfFollowSubjectTypeSummaryDto>> {
+export function apiFollowsSubjectTypesSubjectTypeIdPost(http: HttpClient, rootUrl: string, params: ApiFollowsSubjectTypesSubjectTypeIdPost$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfFollowSubjectTypeSummaryDto>> {
   const rb = new RequestBuilder(rootUrl, apiFollowsSubjectTypesSubjectTypeIdPost.PATH, 'post');
   if (params) {
     rb.path('subjectTypeId', params.subjectTypeId, {});
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfFollowSubjectTypeSummaryDto>;
-    }),
+    })
   );
 }
 

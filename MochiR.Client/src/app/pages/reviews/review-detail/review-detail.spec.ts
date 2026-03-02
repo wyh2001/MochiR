@@ -26,7 +26,7 @@ describe('ReviewDetail', () => {
     subjectId: 1,
     subjectName: 'Inception',
     subjectSlug: 'inception',
-    userId: 'john',
+    userId: 'john-1',
     authorUserName: 'john',
     authorDisplayName: 'John Doe',
     authorAvatarUrl: null,

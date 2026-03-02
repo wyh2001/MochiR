@@ -13,22 +13,19 @@ export interface ApiReviewsIdDelete$Params {
   id: number;
 }
 
-export function apiReviewsIdDelete(
-  http: HttpClient,
-  rootUrl: string,
-  params: ApiReviewsIdDelete$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfReviewDeleteResultDto>> {
+export function apiReviewsIdDelete(http: HttpClient, rootUrl: string, params: ApiReviewsIdDelete$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfReviewDeleteResultDto>> {
   const rb = new RequestBuilder(rootUrl, apiReviewsIdDelete.PATH, 'delete');
   if (params) {
     rb.path('id', params.id, {});
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfReviewDeleteResultDto>;
-    }),
+    })
   );
 }
 

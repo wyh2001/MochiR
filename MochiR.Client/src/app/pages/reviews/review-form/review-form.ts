@@ -7,16 +7,7 @@ import { CriteriaTemplateService } from '../../../core/services/criteria-templat
 import { NotificationService } from '../../../core/services/notification.service';
 import { SubjectSummaryDto } from '../../../api/models/subject-summary-dto';
 import { RatingsEditor } from '../ratings-editor/ratings-editor';
-
-interface ApiError {
-  code: string;
-  message: string;
-  details: Record<string, string[]> | null;
-}
-
-function isApiError(err: unknown): err is ApiError {
-  return err !== null && typeof err === 'object' && 'code' in err && 'message' in err;
-}
+import { isApiError } from '../../../core/utils/api-error';
 
 @Component({
   selector: 'app-review-form',

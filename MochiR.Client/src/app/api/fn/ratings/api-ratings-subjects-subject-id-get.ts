@@ -13,22 +13,19 @@ export interface ApiRatingsSubjectsSubjectIdGet$Params {
   subjectId: number;
 }
 
-export function apiRatingsSubjectsSubjectIdGet(
-  http: HttpClient,
-  rootUrl: string,
-  params: ApiRatingsSubjectsSubjectIdGet$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfSubjectAggregateDto>> {
+export function apiRatingsSubjectsSubjectIdGet(http: HttpClient, rootUrl: string, params: ApiRatingsSubjectsSubjectIdGet$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfSubjectAggregateDto>> {
   const rb = new RequestBuilder(rootUrl, apiRatingsSubjectsSubjectIdGet.PATH, 'get');
   if (params) {
     rb.path('subjectId', params.subjectId, {});
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfSubjectAggregateDto>;
-    }),
+    })
   );
 }
 

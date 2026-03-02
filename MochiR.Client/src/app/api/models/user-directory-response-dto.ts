@@ -4,6 +4,7 @@
 import { DirectoryUserDetailDto } from '../models/directory-user-detail-dto';
 import { SensitiveUserInfoDto } from '../models/sensitive-user-info-dto';
 export type UserDirectoryResponseDto = {
-  public: DirectoryUserDetailDto;
-  sensitive: SensitiveUserInfoDto | null;
+'public': DirectoryUserDetailDto;
+'sensitive': SensitiveUserInfoDto | null;
 };
+

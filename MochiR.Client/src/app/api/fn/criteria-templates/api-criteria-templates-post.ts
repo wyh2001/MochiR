@@ -11,25 +11,22 @@ import { ApiResponseOfCriteriaTemplateSummaryDto } from '../../models/api-respon
 import { CreateCriteriaTemplateDto } from '../../models/create-criteria-template-dto';
 
 export interface ApiCriteriaTemplatesPost$Params {
-  body: CreateCriteriaTemplateDto;
+      body: CreateCriteriaTemplateDto
 }
 
-export function apiCriteriaTemplatesPost(
-  http: HttpClient,
-  rootUrl: string,
-  params: ApiCriteriaTemplatesPost$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfCriteriaTemplateSummaryDto>> {
+export function apiCriteriaTemplatesPost(http: HttpClient, rootUrl: string, params: ApiCriteriaTemplatesPost$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfCriteriaTemplateSummaryDto>> {
   const rb = new RequestBuilder(rootUrl, apiCriteriaTemplatesPost.PATH, 'post');
   if (params) {
     rb.body(params.body, 'application/json');
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfCriteriaTemplateSummaryDto>;
-    }),
+    })
   );
 }
 

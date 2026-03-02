@@ -16,12 +16,7 @@ export interface ApiUsersGet$Params {
   sort?: string;
 }
 
-export function apiUsersGet(
-  http: HttpClient,
-  rootUrl: string,
-  params?: ApiUsersGet$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfDirectoryPageDto>> {
+export function apiUsersGet(http: HttpClient, rootUrl: string, params?: ApiUsersGet$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfDirectoryPageDto>> {
   const rb = new RequestBuilder(rootUrl, apiUsersGet.PATH, 'get');
   if (params) {
     rb.query('query', params.query, {});
@@ -30,11 +25,13 @@ export function apiUsersGet(
     rb.query('sort', params.sort, {});
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfDirectoryPageDto>;
-    }),
+    })
   );
 }
 

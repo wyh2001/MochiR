@@ -16,12 +16,7 @@ export interface ApiReviewsLatestGet$Params {
   AfterId?: number;
 }
 
-export function apiReviewsLatestGet(
-  http: HttpClient,
-  rootUrl: string,
-  params?: ApiReviewsLatestGet$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfLatestReviewsPageDto>> {
+export function apiReviewsLatestGet(http: HttpClient, rootUrl: string, params?: ApiReviewsLatestGet$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfLatestReviewsPageDto>> {
   const rb = new RequestBuilder(rootUrl, apiReviewsLatestGet.PATH, 'get');
   if (params) {
     rb.query('Page', params.Page, {});
@@ -30,11 +25,13 @@ export function apiReviewsLatestGet(
     rb.query('AfterId', params.AfterId, {});
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfLatestReviewsPageDto>;
-    }),
+    })
   );
 }
 

@@ -1,19 +1,10 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { SubjectTypeService } from '../../../../core/services/subject-type.service';
-import { SubjectTypeSummaryDto } from '../../../../api/models/subject-type-summary-dto';
-import { NotificationService } from '../../../../core/services/notification.service';
-import { AuthStateService } from '../../../../core/services/auth-state.service';
-
-interface ApiError {
-  code: string;
-  message: string;
-  details: Record<string, string[]> | null;
-}
-
-function isApiError(err: unknown): err is ApiError {
-  return err !== null && typeof err === 'object' && 'code' in err && 'message' in err;
-}
+import { SubjectTypeService } from '../../../core/services/subject-type.service';
+import { SubjectTypeSummaryDto } from '../../../api/models/subject-type-summary-dto';
+import { NotificationService } from '../../../core/services/notification.service';
+import { AuthStateService } from '../../../core/services/auth-state.service';
+import { isApiError } from '../../../core/utils/api-error';
 
 @Component({
   selector: 'app-subject-type-list',

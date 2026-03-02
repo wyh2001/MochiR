@@ -10,25 +10,22 @@ import { RequestBuilder } from '../../request-builder';
 import { ForgotPasswordRequest } from '../../models/forgot-password-request';
 
 export interface ForgotPasswordPost$Params {
-  body: ForgotPasswordRequest;
+      body: ForgotPasswordRequest
 }
 
-export function forgotPasswordPost(
-  http: HttpClient,
-  rootUrl: string,
-  params: ForgotPasswordPost$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<void>> {
+export function forgotPasswordPost(http: HttpClient, rootUrl: string, params: ForgotPasswordPost$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
   const rb = new RequestBuilder(rootUrl, forgotPasswordPost.PATH, 'post');
   if (params) {
     rb.body(params.body, 'application/json');
   }
 
-  return http.request(rb.build({ responseType: 'text', accept: '*/*', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'text', accept: '*/*', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return (r as HttpResponse<any>).clone({ body: undefined }) as StrictHttpResponse<void>;
-    }),
+    })
   );
 }
 

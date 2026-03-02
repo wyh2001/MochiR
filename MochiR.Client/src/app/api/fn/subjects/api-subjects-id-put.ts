@@ -12,26 +12,23 @@ import { UpdateSubjectDto } from '../../models/update-subject-dto';
 
 export interface ApiSubjectsIdPut$Params {
   id: number;
-  body: UpdateSubjectDto;
+      body: UpdateSubjectDto
 }
 
-export function apiSubjectsIdPut(
-  http: HttpClient,
-  rootUrl: string,
-  params: ApiSubjectsIdPut$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfSubjectSummaryDto>> {
+export function apiSubjectsIdPut(http: HttpClient, rootUrl: string, params: ApiSubjectsIdPut$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfSubjectSummaryDto>> {
   const rb = new RequestBuilder(rootUrl, apiSubjectsIdPut.PATH, 'put');
   if (params) {
     rb.path('id', params.id, {});
     rb.body(params.body, 'application/json');
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfSubjectSummaryDto>;
-    }),
+    })
   );
 }
 

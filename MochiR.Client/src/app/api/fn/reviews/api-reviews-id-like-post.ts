@@ -13,22 +13,19 @@ export interface ApiReviewsIdLikePost$Params {
   id: number;
 }
 
-export function apiReviewsIdLikePost(
-  http: HttpClient,
-  rootUrl: string,
-  params: ApiReviewsIdLikePost$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfReviewLikeResultDto>> {
+export function apiReviewsIdLikePost(http: HttpClient, rootUrl: string, params: ApiReviewsIdLikePost$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfReviewLikeResultDto>> {
   const rb = new RequestBuilder(rootUrl, apiReviewsIdLikePost.PATH, 'post');
   if (params) {
     rb.path('id', params.id, {});
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfReviewLikeResultDto>;
-    }),
+    })
   );
 }
 

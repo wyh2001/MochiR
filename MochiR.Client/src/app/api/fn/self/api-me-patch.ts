@@ -11,25 +11,22 @@ import { ApiResponseOfSelfProfileDto } from '../../models/api-response-of-self-p
 import { SelfProfilePatchRequestDto } from '../../models/self-profile-patch-request-dto';
 
 export interface ApiMePatch$Params {
-  body: SelfProfilePatchRequestDto;
+      body: SelfProfilePatchRequestDto
 }
 
-export function apiMePatch(
-  http: HttpClient,
-  rootUrl: string,
-  params: ApiMePatch$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfSelfProfileDto>> {
+export function apiMePatch(http: HttpClient, rootUrl: string, params: ApiMePatch$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfSelfProfileDto>> {
   const rb = new RequestBuilder(rootUrl, apiMePatch.PATH, 'patch');
   if (params) {
     rb.body(params.body, 'application/json');
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfSelfProfileDto>;
-    }),
+    })
   );
 }
 

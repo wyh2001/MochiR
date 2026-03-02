@@ -9,23 +9,21 @@ import { RequestBuilder } from '../../request-builder';
 
 import { ApiResponseOfLogoutResponseDto } from '../../models/api-response-of-logout-response-dto';
 
-export interface ApiAuthLogoutPost$Params {}
+export interface ApiAuthLogoutPost$Params {
+}
 
-export function apiAuthLogoutPost(
-  http: HttpClient,
-  rootUrl: string,
-  params?: ApiAuthLogoutPost$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfLogoutResponseDto>> {
+export function apiAuthLogoutPost(http: HttpClient, rootUrl: string, params?: ApiAuthLogoutPost$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfLogoutResponseDto>> {
   const rb = new RequestBuilder(rootUrl, apiAuthLogoutPost.PATH, 'post');
   if (params) {
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfLogoutResponseDto>;
-    }),
+    })
   );
 }
 

@@ -1,9 +1,11 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { ReviewService } from '../../core/services/review.service';
 import { FeedService } from '../../core/services/feed.service';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { ReviewSummaryDto } from '../../api/models/review-summary-dto';
 import { FeedItemDto } from '../../api/models/feed-item-dto';
+import { isApiError } from '../../core/utils/api-error';
 
 export interface FeedReviewItem {
   id: number;
@@ -45,6 +47,11 @@ export function mapLatestItem(dto: ReviewSummaryDto): FeedReviewItem {
 }
 
 export function mapFeedItem(dto: FeedItemDto): FeedReviewItem {
+  const maxExcerpt = 200;
+  let excerpt = dto.content;
+  if (excerpt && excerpt.length > maxExcerpt) {
+    excerpt = excerpt.substring(0, maxExcerpt);
+  }
   return {
     id: dto.reviewId,
     subjectId: dto.subjectId,
@@ -54,20 +61,10 @@ export function mapFeedItem(dto: FeedItemDto): FeedReviewItem {
     authorDisplayName: dto.authorDisplayName,
     authorAvatarUrl: dto.authorAvatarUrl,
     title: dto.title,
-    excerpt: dto.content,
+    excerpt,
     overallRating: null,
     createdAt: dto.createdAtUtc,
   };
-}
-
-interface ApiError {
-  code: string;
-  message: string;
-  details: Record<string, string[]> | null;
-}
-
-function isApiError(err: unknown): err is ApiError {
-  return err !== null && typeof err === 'object' && 'code' in err && 'message' in err;
 }
 
 @Component({
@@ -77,6 +74,7 @@ function isApiError(err: unknown): err is ApiError {
   templateUrl: './home.html',
 })
 export class Home implements OnInit {
+  private readonly reviewService = inject(ReviewService);
   private readonly feedService = inject(FeedService);
   readonly authState = inject(AuthStateService);
 
@@ -99,7 +97,7 @@ export class Home implements OnInit {
   loadLatest(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.feedService.getLatest().subscribe({
+    this.reviewService.getLatest().subscribe({
       next: (page) => {
         this.latestItems.set(page.items.map(mapLatestItem));
         this.loading.set(false);

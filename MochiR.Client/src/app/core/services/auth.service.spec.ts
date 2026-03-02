@@ -42,6 +42,7 @@ describe('AuthService', () => {
         createdAtUtc: '2026-01-01T00:00:00Z',
         followersCount: 0,
         followingCount: 0,
+        isAdmin: false,
       });
 
       expect(authState.isAuthenticated()).toBe(true);
@@ -100,13 +101,14 @@ describe('AuthService', () => {
         createdAtUtc: '2026-01-01T00:00:00Z',
         followersCount: 0,
         followingCount: 0,
+        isAdmin: false,
       });
 
       expect(authState.isAuthenticated()).toBe(true);
       expect(authState.user()?.userName).toBe('test');
     });
 
-    it('sets isAdmin true when roles include Admin', () => {
+    it('sets isAdmin true when isAdmin is true', () => {
       service.bootstrap().subscribe();
 
       controller.expectOne('/api/me').flush({
@@ -124,13 +126,13 @@ describe('AuthService', () => {
         createdAtUtc: '2026-01-01T00:00:00Z',
         followersCount: 0,
         followingCount: 0,
-        roles: ['Admin'],
+        isAdmin: true,
       });
 
       expect(authState.isAdmin()).toBe(true);
     });
 
-    it('sets isAdmin false when roles do not include Admin', () => {
+    it('sets isAdmin false when isAdmin is false', () => {
       service.bootstrap().subscribe();
 
       controller.expectOne('/api/me').flush({
@@ -148,13 +150,13 @@ describe('AuthService', () => {
         createdAtUtc: '2026-01-01T00:00:00Z',
         followersCount: 0,
         followingCount: 0,
-        roles: ['User'],
+        isAdmin: false,
       });
 
       expect(authState.isAdmin()).toBe(false);
     });
 
-    it('sets isAdmin false when roles not present in response', () => {
+    it('sets isAdmin false for non-admin user', () => {
       service.bootstrap().subscribe();
 
       controller.expectOne('/api/me').flush({
@@ -172,6 +174,7 @@ describe('AuthService', () => {
         createdAtUtc: '2026-01-01T00:00:00Z',
         followersCount: 0,
         followingCount: 0,
+        isAdmin: false,
       });
 
       expect(authState.isAdmin()).toBe(false);

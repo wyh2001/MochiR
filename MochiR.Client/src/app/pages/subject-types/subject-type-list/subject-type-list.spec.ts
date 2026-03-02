@@ -3,9 +3,9 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 import { SubjectTypeList } from './subject-type-list';
-import { apiResponseInterceptor } from '../../../../core/interceptors/api-response.interceptor';
-import { NotificationService } from '../../../../core/services/notification.service';
-import { AuthStateService } from '../../../../core/services/auth-state.service';
+import { apiResponseInterceptor } from '../../../core/interceptors/api-response.interceptor';
+import { NotificationService } from '../../../core/services/notification.service';
+import { AuthStateService } from '../../../core/services/auth-state.service';
 
 describe('SubjectTypeList', () => {
   let fixture: ComponentFixture<SubjectTypeList>;

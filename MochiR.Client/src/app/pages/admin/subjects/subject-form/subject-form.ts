@@ -6,16 +6,7 @@ import { SubjectTypeService } from '../../../../core/services/subject-type.servi
 import { NotificationService } from '../../../../core/services/notification.service';
 import { SubjectTypeSummaryDto } from '../../../../api/models/subject-type-summary-dto';
 import { AttributesEditor } from '../attributes-editor/attributes-editor';
-
-interface ApiError {
-  code: string;
-  message: string;
-  details: Record<string, string[]> | null;
-}
-
-function isApiError(err: unknown): err is ApiError {
-  return err !== null && typeof err === 'object' && 'code' in err && 'message' in err;
-}
+import { isApiError } from '../../../../core/utils/api-error';
 
 @Component({
   selector: 'app-subject-form',

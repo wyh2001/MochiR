@@ -2,16 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { ProfileService } from '../../../core/services/profile.service';
 import { NotificationService } from '../../../core/services/notification.service';
-
-interface ApiError {
-  code: string;
-  message: string;
-  details: Record<string, string[]> | null;
-}
-
-function isApiError(err: unknown): err is ApiError {
-  return err !== null && typeof err === 'object' && 'code' in err && 'message' in err;
-}
+import { isApiError } from '../../../core/utils/api-error';
 
 @Component({
   selector: 'app-email-confirm',

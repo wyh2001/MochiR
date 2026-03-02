@@ -3,12 +3,13 @@
 
 import { SubjectAttributeDto } from '../models/subject-attribute-dto';
 export type SubjectDetailDto = {
-  id: number;
-  name: string;
-  slug: string;
-  subjectTypeId: number;
-  subjectTypeKey: string | null;
-  subjectTypeDisplayName: string | null;
-  attributes: Array<SubjectAttributeDto>;
-  createdAt: string;
+'id': number;
+'name': string;
+'slug': string;
+'subjectTypeId': number;
+'subjectTypeKey': string | null;
+'subjectTypeDisplayName': string | null;
+'attributes': Array<SubjectAttributeDto>;
+'createdAt': string;
 };
+

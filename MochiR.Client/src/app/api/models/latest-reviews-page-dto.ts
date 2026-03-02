@@ -4,10 +4,11 @@
 import { LatestReviewsCursorDto } from '../models/latest-reviews-cursor-dto';
 import { ReviewSummaryDto } from '../models/review-summary-dto';
 export type LatestReviewsPageDto = {
-  totalCount: number;
-  page: number;
-  pageSize: number;
-  items: Array<ReviewSummaryDto>;
-  nextCursor: LatestReviewsCursorDto | null;
-  hasMore: boolean;
+'totalCount': number;
+'page': number;
+'pageSize': number;
+'items': Array<ReviewSummaryDto>;
+'nextCursor': LatestReviewsCursorDto | null;
+'hasMore': boolean;
 };
+

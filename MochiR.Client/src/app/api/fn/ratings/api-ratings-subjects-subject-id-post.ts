@@ -12,26 +12,23 @@ import { UpsertAggregateDto } from '../../models/upsert-aggregate-dto';
 
 export interface ApiRatingsSubjectsSubjectIdPost$Params {
   subjectId: number;
-  body: UpsertAggregateDto;
+      body: UpsertAggregateDto
 }
 
-export function apiRatingsSubjectsSubjectIdPost(
-  http: HttpClient,
-  rootUrl: string,
-  params: ApiRatingsSubjectsSubjectIdPost$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfSubjectAggregateDto>> {
+export function apiRatingsSubjectsSubjectIdPost(http: HttpClient, rootUrl: string, params: ApiRatingsSubjectsSubjectIdPost$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfSubjectAggregateDto>> {
   const rb = new RequestBuilder(rootUrl, apiRatingsSubjectsSubjectIdPost.PATH, 'post');
   if (params) {
     rb.path('subjectId', params.subjectId, {});
     rb.body(params.body, 'application/json');
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfSubjectAggregateDto>;
-    }),
+    })
   );
 }
 

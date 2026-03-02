@@ -4,25 +4,8 @@ import { DatePipe } from '@angular/common';
 import { UserFollowService } from '../../../core/services/user-follow.service';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { NotificationService } from '../../../core/services/notification.service';
-
-interface PublicProfile {
-  id: string;
-  userName: string | null;
-  displayName: string | null;
-  avatarUrl: string | null;
-  createdAtUtc: string;
-}
-
-function isApiError(err: unknown): err is { code: string; message: string; details: unknown } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'code' in err &&
-    'message' in err &&
-    typeof (err as Record<string, unknown>)['code'] === 'string' &&
-    typeof (err as Record<string, unknown>)['message'] === 'string'
-  );
-}
+import { DirectoryUserDetailDto } from '../../../api/models/directory-user-detail-dto';
+import { isApiError } from '../../../core/utils/api-error';
 
 @Component({
   selector: 'app-user-profile-page',
@@ -37,7 +20,7 @@ export class UserProfilePage implements OnInit {
   private readonly authState = inject(AuthStateService);
   private readonly notification = inject(NotificationService);
 
-  readonly profile = signal<PublicProfile | null>(null);
+  readonly profile = signal<DirectoryUserDetailDto | null>(null);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly isFollowing = signal(false);
@@ -98,8 +81,7 @@ export class UserProfilePage implements OnInit {
     this.error.set(null);
 
     this.userFollowService.getUserProfile(this.userId).subscribe({
-      next: (data: unknown) => {
-        const response = data as { public: PublicProfile };
+      next: (response) => {
         this.profile.set(response.public);
         this.loading.set(false);
         this.loadFollowState();
@@ -119,12 +101,11 @@ export class UserProfilePage implements OnInit {
     this.followLoading.set(true);
 
     this.userFollowService.getFollowing(1, 50).subscribe({
-      next: (data: unknown) => {
-        const page = data as {
-          items: { userId: string }[];
-        };
-        const followedIds = new Set(page.items.map((item) => item.userId));
-        this.isFollowing.set(followedIds.has(this.userId));
+      next: (page) => {
+        if (page) {
+          const followedIds = new Set(page.items.map((item) => item.userId));
+          this.isFollowing.set(followedIds.has(this.userId));
+        }
         this.followLoading.set(false);
       },
       error: () => {

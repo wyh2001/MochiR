@@ -9,23 +9,21 @@ import { RequestBuilder } from '../../request-builder';
 
 import { ApiResponseOfIReadOnlyListOfSubjectTypeSummaryDto } from '../../models/api-response-of-i-read-only-list-of-subject-type-summary-dto';
 
-export interface ApiSubjectTypesGet$Params {}
+export interface ApiSubjectTypesGet$Params {
+}
 
-export function apiSubjectTypesGet(
-  http: HttpClient,
-  rootUrl: string,
-  params?: ApiSubjectTypesGet$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfIReadOnlyListOfSubjectTypeSummaryDto>> {
+export function apiSubjectTypesGet(http: HttpClient, rootUrl: string, params?: ApiSubjectTypesGet$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfIReadOnlyListOfSubjectTypeSummaryDto>> {
   const rb = new RequestBuilder(rootUrl, apiSubjectTypesGet.PATH, 'get');
   if (params) {
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfIReadOnlyListOfSubjectTypeSummaryDto>;
-    }),
+    })
   );
 }
 

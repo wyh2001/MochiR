@@ -37,35 +37,6 @@ describe('FeedService', () => {
     timestampUtc: '',
   });
 
-  const mockLatestPage = {
-    totalCount: 1,
-    page: 1,
-    pageSize: 20,
-    items: [
-      {
-        id: 1,
-        subjectId: 10,
-        subjectName: 'Inception',
-        userId: 'user1',
-        authorUserName: 'john',
-        authorDisplayName: 'John Doe',
-        authorAvatarUrl: null,
-        title: 'Great movie',
-        content: 'Full review content',
-        excerpt: 'Great movie...',
-        excerptIsAuto: true,
-        ratings: [{ key: 'overall', label: 'Overall', score: 9 }],
-        status: 1,
-        tags: ['sci-fi'],
-        likeCount: 5,
-        isLikedByCurrentUser: false,
-        createdAt: '2026-01-15T10:30:00Z',
-      },
-    ],
-    nextCursor: null,
-    hasMore: false,
-  };
-
   const mockFeedPage = {
     totalCount: 1,
     page: 1,
@@ -90,35 +61,23 @@ describe('FeedService', () => {
     hasMore: false,
   };
 
-  describe('getLatest', () => {
-    it('fetches latest reviews', () => {
-      service.getLatest().subscribe((data) => {
-        expect(data).toEqual(mockLatestPage);
-      });
-
-      http.expectOne('/api/reviews/latest').flush(envelope(mockLatestPage));
-    });
-
-    it('throws on server error', () => {
-      service.getLatest().subscribe({
-        error: (err) => {
-          expect(err.code).toBe('INTERNAL_ERROR');
-        },
-      });
-
-      http
-        .expectOne('/api/reviews/latest')
-        .flush(errorEnvelope('INTERNAL_ERROR', 'Something went wrong'));
-    });
-  });
-
   describe('getFollowing', () => {
-    it('fetches following feed', () => {
+    it('fetches following feed without params', () => {
       service.getFollowing().subscribe((data) => {
         expect(data).toEqual(mockFeedPage);
       });
 
       http.expectOne('/api/feed').flush(envelope(mockFeedPage));
+    });
+
+    it('sends pagination params when provided', () => {
+      service.getFollowing({ after: '2026-01-01T00:00:00Z', afterId: 5 }).subscribe();
+
+      const req = http.expectOne(
+        (r) => r.url === '/api/feed' && r.params.get('After') === '2026-01-01T00:00:00Z',
+      );
+      expect(req.request.params.get('AfterId')).toBe('5');
+      req.flush(envelope(mockFeedPage));
     });
 
     it('throws on server error', () => {

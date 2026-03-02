@@ -9,23 +9,23 @@ import { RequestBuilder } from '../../request-builder';
 
 import { ApiResponseOfIReadOnlyListOfSubjectSummaryDto } from '../../models/api-response-of-i-read-only-list-of-subject-summary-dto';
 
-export interface ApiSubjectsGet$Params {}
+export interface ApiSubjectsGet$Params {
+  subjectTypeId?: number;
+}
 
-export function apiSubjectsGet(
-  http: HttpClient,
-  rootUrl: string,
-  params?: ApiSubjectsGet$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfIReadOnlyListOfSubjectSummaryDto>> {
+export function apiSubjectsGet(http: HttpClient, rootUrl: string, params?: ApiSubjectsGet$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfIReadOnlyListOfSubjectSummaryDto>> {
   const rb = new RequestBuilder(rootUrl, apiSubjectsGet.PATH, 'get');
   if (params) {
+    rb.query('subjectTypeId', params.subjectTypeId, {});
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfIReadOnlyListOfSubjectSummaryDto>;
-    }),
+    })
   );
 }
 

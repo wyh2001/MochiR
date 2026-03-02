@@ -11,25 +11,22 @@ import { ApiResponseOfPasswordResetTokenDispatchResponseDto } from '../../models
 import { PasswordResetTokenRequestDto } from '../../models/password-reset-token-request-dto';
 
 export interface ApiAuthPasswordResetRequestPost$Params {
-  body: PasswordResetTokenRequestDto;
+      body: PasswordResetTokenRequestDto
 }
 
-export function apiAuthPasswordResetRequestPost(
-  http: HttpClient,
-  rootUrl: string,
-  params: ApiAuthPasswordResetRequestPost$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfPasswordResetTokenDispatchResponseDto>> {
+export function apiAuthPasswordResetRequestPost(http: HttpClient, rootUrl: string, params: ApiAuthPasswordResetRequestPost$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfPasswordResetTokenDispatchResponseDto>> {
   const rb = new RequestBuilder(rootUrl, apiAuthPasswordResetRequestPost.PATH, 'post');
   if (params) {
     rb.body(params.body, 'application/json');
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfPasswordResetTokenDispatchResponseDto>;
-    }),
+    })
   );
 }
 

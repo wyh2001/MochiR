@@ -11,25 +11,22 @@ import { AccessTokenResponse } from '../../models/access-token-response';
 import { RefreshRequest } from '../../models/refresh-request';
 
 export interface RefreshPost$Params {
-  body: RefreshRequest;
+      body: RefreshRequest
 }
 
-export function refreshPost(
-  http: HttpClient,
-  rootUrl: string,
-  params: RefreshPost$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<AccessTokenResponse>> {
+export function refreshPost(http: HttpClient, rootUrl: string, params: RefreshPost$Params, context?: HttpContext): Observable<StrictHttpResponse<AccessTokenResponse>> {
   const rb = new RequestBuilder(rootUrl, refreshPost.PATH, 'post');
   if (params) {
     rb.body(params.body, 'application/json');
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<AccessTokenResponse>;
-    }),
+    })
   );
 }
 

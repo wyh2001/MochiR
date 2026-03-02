@@ -13,22 +13,19 @@ export interface ApiSubjectsIdGet$Params {
   id: number;
 }
 
-export function apiSubjectsIdGet(
-  http: HttpClient,
-  rootUrl: string,
-  params: ApiSubjectsIdGet$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfSubjectDetailDto>> {
+export function apiSubjectsIdGet(http: HttpClient, rootUrl: string, params: ApiSubjectsIdGet$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfSubjectDetailDto>> {
   const rb = new RequestBuilder(rootUrl, apiSubjectsIdGet.PATH, 'get');
   if (params) {
     rb.path('id', params.id, {});
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfSubjectDetailDto>;
-    }),
+    })
   );
 }
 

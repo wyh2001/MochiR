@@ -11,25 +11,22 @@ import { ApiResponseOfPasswordResetConfirmResponseDto } from '../../models/api-r
 import { PasswordResetConfirmRequestDto } from '../../models/password-reset-confirm-request-dto';
 
 export interface ApiAuthPasswordResetConfirmPost$Params {
-  body: PasswordResetConfirmRequestDto;
+      body: PasswordResetConfirmRequestDto
 }
 
-export function apiAuthPasswordResetConfirmPost(
-  http: HttpClient,
-  rootUrl: string,
-  params: ApiAuthPasswordResetConfirmPost$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfPasswordResetConfirmResponseDto>> {
+export function apiAuthPasswordResetConfirmPost(http: HttpClient, rootUrl: string, params: ApiAuthPasswordResetConfirmPost$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfPasswordResetConfirmResponseDto>> {
   const rb = new RequestBuilder(rootUrl, apiAuthPasswordResetConfirmPost.PATH, 'post');
   if (params) {
     rb.body(params.body, 'application/json');
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfPasswordResetConfirmResponseDto>;
-    }),
+    })
   );
 }
 

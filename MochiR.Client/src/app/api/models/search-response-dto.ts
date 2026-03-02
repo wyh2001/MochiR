@@ -3,8 +3,9 @@
 
 import { SearchResultDto } from '../models/search-result-dto';
 export type SearchResponseDto = {
-  results: Array<SearchResultDto>;
-  sort: string;
-  type: string;
-  nextCursor: string | null;
+'results': Array<SearchResultDto>;
+'sort': string;
+'type': string;
+'nextCursor': string | null;
 };
+

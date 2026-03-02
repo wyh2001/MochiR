@@ -13,22 +13,19 @@ export interface ApiCriteriaTemplatesGet$Params {
   subjectTypeId?: number;
 }
 
-export function apiCriteriaTemplatesGet(
-  http: HttpClient,
-  rootUrl: string,
-  params?: ApiCriteriaTemplatesGet$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfIReadOnlyListOfCriteriaTemplateSummaryDto>> {
+export function apiCriteriaTemplatesGet(http: HttpClient, rootUrl: string, params?: ApiCriteriaTemplatesGet$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfIReadOnlyListOfCriteriaTemplateSummaryDto>> {
   const rb = new RequestBuilder(rootUrl, apiCriteriaTemplatesGet.PATH, 'get');
   if (params) {
     rb.query('subjectTypeId', params.subjectTypeId, {});
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfIReadOnlyListOfCriteriaTemplateSummaryDto>;
-    }),
+    })
   );
 }
 

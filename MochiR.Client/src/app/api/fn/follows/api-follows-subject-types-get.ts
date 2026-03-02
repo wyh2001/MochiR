@@ -14,23 +14,20 @@ export interface ApiFollowsSubjectTypesGet$Params {
   PageSize?: number;
 }
 
-export function apiFollowsSubjectTypesGet(
-  http: HttpClient,
-  rootUrl: string,
-  params?: ApiFollowsSubjectTypesGet$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfFollowSubjectTypePageDto>> {
+export function apiFollowsSubjectTypesGet(http: HttpClient, rootUrl: string, params?: ApiFollowsSubjectTypesGet$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfFollowSubjectTypePageDto>> {
   const rb = new RequestBuilder(rootUrl, apiFollowsSubjectTypesGet.PATH, 'get');
   if (params) {
     rb.query('Page', params.Page, {});
     rb.query('PageSize', params.PageSize, {});
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfFollowSubjectTypePageDto>;
-    }),
+    })
   );
 }
 

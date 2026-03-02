@@ -4,9 +4,9 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideRouter, ActivatedRoute } from '@angular/router';
 import { of } from 'rxjs';
 import { SubjectDetail } from './subject-detail';
-import { apiResponseInterceptor } from '../../../../core/interceptors/api-response.interceptor';
-import { NotificationService } from '../../../../core/services/notification.service';
-import { AuthStateService } from '../../../../core/services/auth-state.service';
+import { apiResponseInterceptor } from '../../../core/interceptors/api-response.interceptor';
+import { NotificationService } from '../../../core/services/notification.service';
+import { AuthStateService } from '../../../core/services/auth-state.service';
 
 describe('SubjectDetail', () => {
   let fixture: ComponentFixture<SubjectDetail>;

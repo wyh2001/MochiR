@@ -14,23 +14,20 @@ export interface ApiReviewsGet$Params {
   userId?: string;
 }
 
-export function apiReviewsGet(
-  http: HttpClient,
-  rootUrl: string,
-  params?: ApiReviewsGet$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfIReadOnlyListOfReviewSummaryDto>> {
+export function apiReviewsGet(http: HttpClient, rootUrl: string, params?: ApiReviewsGet$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfIReadOnlyListOfReviewSummaryDto>> {
   const rb = new RequestBuilder(rootUrl, apiReviewsGet.PATH, 'get');
   if (params) {
     rb.query('subjectId', params.subjectId, {});
     rb.query('userId', params.userId, {});
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfIReadOnlyListOfReviewSummaryDto>;
-    }),
+    })
   );
 }
 

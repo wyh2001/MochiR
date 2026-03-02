@@ -1,17 +1,8 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { CriteriaTemplateService } from '../../../../core/services/criteria-template.service';
-import { CriteriaTemplateDetailDto } from '../../../../api/models/criteria-template-detail-dto';
-
-interface ApiError {
-  code: string;
-  message: string;
-  details: Record<string, string[]> | null;
-}
-
-function isApiError(err: unknown): err is ApiError {
-  return err !== null && typeof err === 'object' && 'code' in err && 'message' in err;
-}
+import { CriteriaTemplateService } from '../../../core/services/criteria-template.service';
+import { CriteriaTemplateDetailDto } from '../../../api/models/criteria-template-detail-dto';
+import { isApiError } from '../../../core/utils/api-error';
 
 @Component({
   selector: 'app-criteria-template-detail',

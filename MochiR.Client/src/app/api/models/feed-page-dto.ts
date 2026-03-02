@@ -4,10 +4,11 @@
 import { FeedCursorDto } from '../models/feed-cursor-dto';
 import { FeedItemDto } from '../models/feed-item-dto';
 export type FeedPageDto = {
-  totalCount: number;
-  page: number;
-  pageSize: number;
-  items: Array<FeedItemDto>;
-  nextCursor: FeedCursorDto | null;
-  hasMore: boolean;
+'totalCount': number;
+'page': number;
+'pageSize': number;
+'items': Array<FeedItemDto>;
+'nextCursor': FeedCursorDto | null;
+'hasMore': boolean;
 };
+

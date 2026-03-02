@@ -14,23 +14,20 @@ export interface ApiMeFollowersGet$Params {
   PageSize?: number;
 }
 
-export function apiMeFollowersGet(
-  http: HttpClient,
-  rootUrl: string,
-  params?: ApiMeFollowersGet$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfSelfFollowPageDto>> {
+export function apiMeFollowersGet(http: HttpClient, rootUrl: string, params?: ApiMeFollowersGet$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfSelfFollowPageDto>> {
   const rb = new RequestBuilder(rootUrl, apiMeFollowersGet.PATH, 'get');
   if (params) {
     rb.query('Page', params.Page, {});
     rb.query('PageSize', params.PageSize, {});
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfSelfFollowPageDto>;
-    }),
+    })
   );
 }
 

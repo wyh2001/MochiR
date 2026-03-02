@@ -11,25 +11,22 @@ import { ApiResponseOfRegisterResponseDto } from '../../models/api-response-of-r
 import { RegisterDto } from '../../models/register-dto';
 
 export interface ApiAuthRegisterPost$Params {
-  body: RegisterDto;
+      body: RegisterDto
 }
 
-export function apiAuthRegisterPost(
-  http: HttpClient,
-  rootUrl: string,
-  params: ApiAuthRegisterPost$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfRegisterResponseDto>> {
+export function apiAuthRegisterPost(http: HttpClient, rootUrl: string, params: ApiAuthRegisterPost$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfRegisterResponseDto>> {
   const rb = new RequestBuilder(rootUrl, apiAuthRegisterPost.PATH, 'post');
   if (params) {
     rb.body(params.body, 'application/json');
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfRegisterResponseDto>;
-    }),
+    })
   );
 }
 

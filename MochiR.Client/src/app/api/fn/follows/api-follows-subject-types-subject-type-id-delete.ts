@@ -13,22 +13,19 @@ export interface ApiFollowsSubjectTypesSubjectTypeIdDelete$Params {
   subjectTypeId: number;
 }
 
-export function apiFollowsSubjectTypesSubjectTypeIdDelete(
-  http: HttpClient,
-  rootUrl: string,
-  params: ApiFollowsSubjectTypesSubjectTypeIdDelete$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfFollowDeletionResultDto>> {
+export function apiFollowsSubjectTypesSubjectTypeIdDelete(http: HttpClient, rootUrl: string, params: ApiFollowsSubjectTypesSubjectTypeIdDelete$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfFollowDeletionResultDto>> {
   const rb = new RequestBuilder(rootUrl, apiFollowsSubjectTypesSubjectTypeIdDelete.PATH, 'delete');
   if (params) {
     rb.path('subjectTypeId', params.subjectTypeId, {});
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfFollowDeletionResultDto>;
-    }),
+    })
   );
 }
 

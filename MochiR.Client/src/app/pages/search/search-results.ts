@@ -5,16 +5,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject, debounceTime, distinctUntilChanged, filter } from 'rxjs';
 import { SearchService } from '../../core/services/search.service';
 import { SearchResultDto } from '../../api/models/search-result-dto';
-
-interface ApiError {
-  code: string;
-  message: string;
-  details: Record<string, string[]> | null;
-}
-
-function isApiError(err: unknown): err is ApiError {
-  return err !== null && typeof err === 'object' && 'code' in err && 'message' in err;
-}
+import { isApiError } from '../../core/utils/api-error';
 
 @Component({
   selector: 'app-search-results',

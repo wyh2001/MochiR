@@ -25,6 +25,7 @@ describe('ProfilePage', () => {
     createdAtUtc: '2026-01-15T12:00:00Z',
     followersCount: 10,
     followingCount: 5,
+    roles: [],
   };
 
   const envelope = (data: unknown) => ({

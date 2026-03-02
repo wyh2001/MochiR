@@ -13,22 +13,19 @@ export interface ApiFollowsUsersFollowedUserIdPost$Params {
   followedUserId: string;
 }
 
-export function apiFollowsUsersFollowedUserIdPost(
-  http: HttpClient,
-  rootUrl: string,
-  params: ApiFollowsUsersFollowedUserIdPost$Params,
-  context?: HttpContext,
-): Observable<StrictHttpResponse<ApiResponseOfFollowUserSummaryDto>> {
+export function apiFollowsUsersFollowedUserIdPost(http: HttpClient, rootUrl: string, params: ApiFollowsUsersFollowedUserIdPost$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfFollowUserSummaryDto>> {
   const rb = new RequestBuilder(rootUrl, apiFollowsUsersFollowedUserIdPost.PATH, 'post');
   if (params) {
     rb.path('followedUserId', params.followedUserId, {});
   }
 
-  return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
+  return http.request(
+    rb.build({ responseType: 'json', accept: 'application/json', context })
+  ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
       return r as StrictHttpResponse<ApiResponseOfFollowUserSummaryDto>;
-    }),
+    })
   );
 }
 
