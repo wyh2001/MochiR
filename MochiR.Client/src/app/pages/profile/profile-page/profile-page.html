@@ -221,7 +221,10 @@
         <ul class="list-group mb-3">
           @for (f of followers(); track f.userId) {
             <li class="list-group-item d-flex align-items-center justify-content-between">
-              <div class="d-flex align-items-center gap-2">
+              <a
+                [routerLink]="['/users', f.userId]"
+                class="d-flex align-items-center gap-2 text-decoration-none text-body"
+              >
                 @if (f.avatarUrl) {
                   <img
                     [src]="f.avatarUrl"
@@ -247,7 +250,7 @@
                   <br />
                   <small class="text-muted">Since {{ f.followedAtUtc | date: 'yyyy-MM-dd' }}</small>
                 </div>
-              </div>
+              </a>
               <div>
                 @if (removingFollowerId() === f.userId) {
                   <span class="me-2">Are you sure?</span>
@@ -305,7 +308,10 @@
         <ul class="list-group mb-3">
           @for (f of following(); track f.userId) {
             <li class="list-group-item d-flex align-items-center">
-              <div class="d-flex align-items-center gap-2">
+              <a
+                [routerLink]="['/users', f.userId]"
+                class="d-flex align-items-center gap-2 text-decoration-none text-body"
+              >
                 @if (f.avatarUrl) {
                   <img
                     [src]="f.avatarUrl"
@@ -331,7 +337,7 @@
                   <br />
                   <small class="text-muted">Since {{ f.followedAtUtc | date: 'yyyy-MM-dd' }}</small>
                 </div>
-              </div>
+              </a>
             </li>
           }
         </ul>

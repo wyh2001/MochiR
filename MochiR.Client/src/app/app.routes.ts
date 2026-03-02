@@ -136,6 +136,12 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/profile/email-confirm/email-confirm').then((m) => m.EmailConfirm),
   },
+  {
+    path: 'users/:id',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/users/user-profile/user-profile').then((m) => m.UserProfilePage),
+  },
   { path: 'access-denied', component: AccessDenied },
   { path: '**', component: NotFound },
 ];
