@@ -357,5 +357,4 @@ describe('Home', () => {
       expect(el.textContent).toContain("You're not following anyone yet");
     });
   });
-
 });
