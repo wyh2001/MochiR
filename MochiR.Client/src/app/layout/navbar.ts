@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthStateService } from '../core/services/auth-state.service';
+import { AuthService } from '../core/services/auth.service';
 
 @Component({
   selector: 'app-navbar',
@@ -10,4 +11,12 @@ import { AuthStateService } from '../core/services/auth-state.service';
 })
 export class Navbar {
   protected readonly auth = inject(AuthStateService);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+
+  logout(): void {
+    this.authService.logout().subscribe(() => {
+      this.router.navigateByUrl('/login');
+    });
+  }
 }

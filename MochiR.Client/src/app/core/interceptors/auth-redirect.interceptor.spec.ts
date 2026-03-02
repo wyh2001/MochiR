@@ -30,13 +30,13 @@ describe('authRedirectInterceptor', () => {
   afterEach(() => controller.verify());
 
   it('redirects to /login on 401', () => {
-    http.get('/api/me').subscribe({
+    http.get('/api/reviews').subscribe({
       error: () => {
         /* expected error */
       },
     });
 
-    controller.expectOne('/api/me').flush('', { status: 401, statusText: 'Unauthorized' });
+    controller.expectOne('/api/reviews').flush('', { status: 401, statusText: 'Unauthorized' });
 
     expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
   });
@@ -49,13 +49,13 @@ describe('authRedirectInterceptor', () => {
       isAdmin: false,
     });
 
-    http.get('/api/me').subscribe({
+    http.get('/api/reviews').subscribe({
       error: () => {
         /* expected error */
       },
     });
 
-    controller.expectOne('/api/me').flush('', { status: 401, statusText: 'Unauthorized' });
+    controller.expectOne('/api/reviews').flush('', { status: 401, statusText: 'Unauthorized' });
 
     expect(authState.isAuthenticated()).toBe(false);
   });
@@ -68,6 +68,18 @@ describe('authRedirectInterceptor', () => {
     });
 
     controller.expectOne('/api/auth/login').flush('', { status: 401, statusText: 'Unauthorized' });
+
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+
+  it('does NOT redirect on 401 for /api/me (bootstrap check)', () => {
+    http.get('/api/me').subscribe({
+      error: () => {
+        /* expected error */
+      },
+    });
+
+    controller.expectOne('/api/me').flush('', { status: 401, statusText: 'Unauthorized' });
 
     expect(router.navigateByUrl).not.toHaveBeenCalled();
   });

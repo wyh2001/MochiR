@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { AuthStateService } from '../services/auth-state.service';
 
-const LOGIN_ENDPOINTS = ['/api/auth/login'];
+const SKIP_REDIRECT_ENDPOINTS = ['/api/auth/login', '/api/me'];
 
 export const authRedirectInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
@@ -12,9 +12,9 @@ export const authRedirectInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error) => {
-      const isLoginRequest = LOGIN_ENDPOINTS.some((ep) => req.url.includes(ep));
+      const isSkipped = SKIP_REDIRECT_ENDPOINTS.some((ep) => req.url.includes(ep));
 
-      if (error?.status === 401 && !isLoginRequest) {
+      if (error?.status === 401 && !isSkipped) {
         authState.clear();
         router.navigateByUrl('/login');
       }
