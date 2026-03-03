@@ -8,6 +8,7 @@
           type="text"
           class="form-control form-control-sm"
           placeholder="Key"
+          aria-label="Rating key"
           [formControl]="ctrl(group, 'key')"
         />
       </div>
@@ -16,6 +17,7 @@
           type="text"
           class="form-control form-control-sm"
           placeholder="Label"
+          aria-label="Rating label"
           [formControl]="ctrl(group, 'label')"
         />
       </div>
@@ -26,6 +28,7 @@
           placeholder="Score (0-5)"
           min="0"
           max="5"
+          aria-label="Rating score"
           [formControl]="ctrl(group, 'score')"
         />
       </div>

@@ -4,9 +4,11 @@
       type="search"
       class="form-control search-input"
       placeholder="Search subjects and reviews..."
+      aria-label="Search subjects and reviews"
       [value]="query()"
       (input)="onInputChange($any($event.target).value)"
     />
+    <button type="submit" class="visually-hidden">Search</button>
   </form>
 
   @if (query().trim()) {
@@ -41,7 +43,7 @@
   } @else if (error()) {
     <div class="alert alert-danger">
       <p class="mb-2">{{ error() }}</p>
-      <button class="btn btn-sm btn-outline-danger btn-retry" (click)="retry()">Retry</button>
+      <button class="btn btn-sm btn-danger btn-retry" (click)="retry()">Retry</button>
     </div>
   } @else if (results().length === 0) {
     <p class="text-muted text-center py-4">No results found for "{{ query() }}"</p>

@@ -104,9 +104,11 @@
           type="search"
           class="form-control form-control-sm navbar-search-input"
           placeholder="Search..."
+          aria-label="Search"
           [value]="searchQuery"
           (input)="searchQuery = $any($event.target).value"
         />
+        <button type="submit" class="visually-hidden">Search</button>
       </form>
       <ul class="navbar-nav">
         @if (auth.isAuthenticated()) {
