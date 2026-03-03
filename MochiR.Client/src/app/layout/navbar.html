@@ -1,25 +1,103 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark" aria-label="Main navigation">
   <div class="container">
     <a class="navbar-brand" routerLink="/">MochiR</a>
     <button
       class="navbar-toggler"
       type="button"
-      data-bs-toggle="collapse"
-      data-bs-target="#navbarNav"
+      (click)="toggleNav()"
+      aria-label="Toggle navigation"
+      [attr.aria-expanded]="!navCollapsed()"
+      aria-controls="navbarNav"
     >
       <span class="navbar-toggler-icon"></span>
     </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
+    <div
+      id="navbarNav"
+      [class.collapse]="navCollapsed()"
+      class="navbar-collapse"
+      [class.show]="!navCollapsed()"
+    >
       <ul class="navbar-nav me-auto">
         <li class="nav-item">
           <a
             class="nav-link"
             routerLink="/"
             routerLinkActive="active"
+            #rlaHome="routerLinkActive"
             [routerLinkActiveOptions]="{ exact: true }"
+            [attr.aria-current]="rlaHome.isActive ? 'page' : null"
             >Home</a
           >
         </li>
+        <li class="nav-item">
+          <a
+            class="nav-link"
+            routerLink="/subjects"
+            routerLinkActive="active"
+            #rlaSubjects="routerLinkActive"
+            [attr.aria-current]="rlaSubjects.isActive ? 'page' : null"
+            >Subjects</a
+          >
+        </li>
+        @if (auth.isAuthenticated()) {
+          <li class="nav-item">
+            <a
+              class="nav-link"
+              routerLink="/follows"
+              routerLinkActive="active"
+              #rlaFollows="routerLinkActive"
+              [attr.aria-current]="rlaFollows.isActive ? 'page' : null"
+              >My Follows</a
+            >
+          </li>
+          <li class="nav-item">
+            <a
+              class="nav-link"
+              routerLink="/reviews/new"
+              routerLinkActive="active"
+              #rlaNewReview="routerLinkActive"
+              [attr.aria-current]="rlaNewReview.isActive ? 'page' : null"
+              >Write Review</a
+            >
+          </li>
+        }
+        @if (auth.isAdmin()) {
+          <li class="nav-item dropdown">
+            <a
+              class="nav-link dropdown-toggle"
+              role="button"
+              tabindex="0"
+              (click)="toggleAdminDropdown($event)"
+              (keydown.escape)="onDropdownKeydown()"
+              [class.show]="adminDropdownOpen()"
+              [attr.aria-expanded]="adminDropdownOpen()"
+              aria-controls="adminDropdownMenu"
+              >Admin</a
+            >
+            <ul
+              id="adminDropdownMenu"
+              class="dropdown-menu"
+              [class.show]="adminDropdownOpen()"
+              (keydown.escape)="onDropdownKeydown()"
+              tabindex="-1"
+            >
+              <li>
+                <a class="dropdown-item" routerLink="/admin/users">Manage Users</a>
+              </li>
+              <li>
+                <a class="dropdown-item" routerLink="/admin/subjects/new">New Subject</a>
+              </li>
+              <li>
+                <a class="dropdown-item" routerLink="/admin/subject-types/new">New Subject Type</a>
+              </li>
+              <li>
+                <a class="dropdown-item" routerLink="/admin/criteria-templates/new"
+                  >New Criteria Template</a
+                >
+              </li>
+            </ul>
+          </li>
+        }
       </ul>
       <form class="navbar-search-form d-flex mx-2" (submit)="onSearch($event)">
         <input
@@ -33,7 +111,9 @@
       <ul class="navbar-nav">
         @if (auth.isAuthenticated()) {
           <li class="nav-item">
-            <span class="nav-link">{{ auth.user()?.userName }}</span>
+            <a class="nav-link" routerLink="/profile" routerLinkActive="active">{{
+              auth.user()?.userName
+            }}</a>
           </li>
           <li class="nav-item">
             <button class="btn btn-outline-light btn-sm my-1" (click)="logout()">Logout</button>
