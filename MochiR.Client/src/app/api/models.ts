@@ -4,6 +4,7 @@
 export type { AccessTokenResponse } from './models/access-token-response';
 export type { AggregateMetricDto } from './models/aggregate-metric-dto';
 export type { ApiError } from './models/api-error';
+export type { ApiErrorResponse } from './models/api-error-response';
 export type { ApiResponseOfCriteriaTemplateDetailDto } from './models/api-response-of-criteria-template-detail-dto';
 export type { ApiResponseOfCriteriaTemplateSummaryDto } from './models/api-response-of-criteria-template-summary-dto';
 export type { ApiResponseOfDirectoryPageDto } from './models/api-response-of-directory-page-dto';
@@ -22,7 +23,6 @@ export type { ApiResponseOfIReadOnlyListOfSubjectTypeSummaryDto } from './models
 export type { ApiResponseOfLatestReviewsPageDto } from './models/api-response-of-latest-reviews-page-dto';
 export type { ApiResponseOfLoginResponseDto } from './models/api-response-of-login-response-dto';
 export type { ApiResponseOfLogoutResponseDto } from './models/api-response-of-logout-response-dto';
-export type { ApiResponseOfObject } from './models/api-response-of-object';
 export type { ApiResponseOfPasswordResetConfirmResponseDto } from './models/api-response-of-password-reset-confirm-response-dto';
 export type { ApiResponseOfPasswordResetTokenDispatchResponseDto } from './models/api-response-of-password-reset-token-dispatch-response-dto';
 export type { ApiResponseOfRegisterResponseDto } from './models/api-response-of-register-response-dto';
