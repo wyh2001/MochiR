@@ -70,6 +70,7 @@ app.MapGet("/", (HttpContext httpContext) =>
     .RequireAuthorization();
 
 app.MapAuthEndpoints();
+app.MapSetupEndpoints();
 app.MapUsersEndpoints();
 app.MapFollowsEndpoints();
 app.MapFeedEndpoints();
