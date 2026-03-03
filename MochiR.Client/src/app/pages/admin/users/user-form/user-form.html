@@ -11,30 +11,15 @@
         <form [formGroup]="createForm" (ngSubmit)="onSubmit()">
           <div class="mb-3">
             <label for="userName" class="form-label">Username</label>
-            <input
-              type="text"
-              class="form-control"
-              id="userName"
-              formControlName="userName"
-            />
+            <input type="text" class="form-control" id="userName" formControlName="userName" />
           </div>
           <div class="mb-3">
             <label for="email" class="form-label">Email</label>
-            <input
-              type="email"
-              class="form-control"
-              id="email"
-              formControlName="email"
-            />
+            <input type="email" class="form-control" id="email" formControlName="email" />
           </div>
           <div class="mb-3">
             <label for="password" class="form-label">Password</label>
-            <input
-              type="password"
-              class="form-control"
-              id="password"
-              formControlName="password"
-            />
+            <input type="password" class="form-control" id="password" formControlName="password" />
           </div>
           <div class="mb-3">
             <label for="displayName" class="form-label">Display Name</label>
@@ -47,12 +32,7 @@
           </div>
           <div class="mb-3">
             <label for="avatarUrl" class="form-label">Avatar URL</label>
-            <input
-              type="text"
-              class="form-control"
-              id="avatarUrl"
-              formControlName="avatarUrl"
-            />
+            <input type="text" class="form-control" id="avatarUrl" formControlName="avatarUrl" />
           </div>
           <div class="mb-3 form-check">
             <input
@@ -96,12 +76,7 @@
           </div>
           <div class="mb-3">
             <label for="editEmail" class="form-label">Email</label>
-            <input
-              type="email"
-              class="form-control"
-              id="editEmail"
-              formControlName="email"
-            />
+            <input type="email" class="form-control" id="editEmail" formControlName="email" />
           </div>
           <div class="mb-3 form-check">
             <input
@@ -142,11 +117,7 @@
             <label class="form-check-label" for="editTwoFactorEnabled">2FA Enabled</label>
           </div>
           <div class="d-flex gap-2">
-            <button
-              type="submit"
-              class="btn btn-primary btn-submit"
-              [disabled]="submitting()"
-            >
+            <button type="submit" class="btn btn-primary btn-submit" [disabled]="submitting()">
               Save
             </button>
             <a routerLink="/admin/users" class="btn btn-secondary">Cancel</a>

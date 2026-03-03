@@ -50,7 +50,9 @@
           <tbody>
             @for (s of subjects(); track s.followId) {
               <tr>
-                <td><a [routerLink]="['/subjects', s.subjectId]">{{ s.subjectName }}</a></td>
+                <td>
+                  <a [routerLink]="['/subjects', s.subjectId]">{{ s.subjectName }}</a>
+                </td>
                 <td>{{ s.subjectSlug }}</td>
                 <td>{{ s.followedAtUtc }}</td>
                 <td>
@@ -120,7 +122,9 @@
           <tbody>
             @for (u of users(); track u.followId) {
               <tr>
-                <td><a [routerLink]="['/users', u.userId]">{{ u.userName }}</a></td>
+                <td>
+                  <a [routerLink]="['/users', u.userId]">{{ u.userName }}</a>
+                </td>
                 <td>{{ u.displayName }}</td>
                 <td>{{ u.followedAtUtc }}</td>
                 <td>

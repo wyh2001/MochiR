@@ -204,8 +204,7 @@ describe('AdminUserDetail', () => {
     deleteBtn.click();
     fixture.detectChanges();
 
-    const cancelBtn: HTMLButtonElement =
-      fixture.nativeElement.querySelector('.btn-cancel-delete');
+    const cancelBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-cancel-delete');
     cancelBtn.click();
     fixture.detectChanges();
 

@@ -59,9 +59,7 @@ export class FollowsPage implements OnInit {
     this.unfollowingId.set(`type-${subjectTypeId}`);
     this.subjectTypeFollowService.unfollowSubjectType(subjectTypeId).subscribe({
       next: () => {
-        this.subjectTypes.update((items) =>
-          items.filter((t) => t.subjectTypeId !== subjectTypeId),
-        );
+        this.subjectTypes.update((items) => items.filter((t) => t.subjectTypeId !== subjectTypeId));
         this.unfollowingId.set(null);
         this.notification.show('success', 'Unfollowed subject type');
       },

@@ -175,9 +175,7 @@ describe('AdminUserForm', () => {
 
       fixture.componentInstance.onSubmit();
 
-      http
-        .expectOne('/api/users/user-1')
-        .flush(errorEnvelope('UPDATE_FAILED', 'Cannot update'));
+      http.expectOne('/api/users/user-1').flush(errorEnvelope('UPDATE_FAILED', 'Cannot update'));
       fixture.detectChanges();
 
       expect(fixture.nativeElement.textContent).toContain('Cannot update');
@@ -187,9 +185,7 @@ describe('AdminUserForm', () => {
       createComponent('user-1');
       fixture.detectChanges();
 
-      http
-        .expectOne('/api/users/user-1')
-        .flush(errorEnvelope('USER_NOT_FOUND', 'User not found'));
+      http.expectOne('/api/users/user-1').flush(errorEnvelope('USER_NOT_FOUND', 'User not found'));
       fixture.detectChanges();
 
       expect(fixture.nativeElement.textContent).toContain('User not found');

@@ -17,15 +17,10 @@ export class SubjectTypeFollowService {
   }
 
   unfollowSubjectType(subjectTypeId: number): Observable<FollowDeletionResultDto> {
-    return this.http.delete<FollowDeletionResultDto>(
-      `/api/follows/subject-types/${subjectTypeId}`,
-    );
+    return this.http.delete<FollowDeletionResultDto>(`/api/follows/subject-types/${subjectTypeId}`);
   }
 
-  getFollowedSubjectTypes(
-    page?: number,
-    pageSize?: number,
-  ): Observable<FollowSubjectTypePageDto> {
+  getFollowedSubjectTypes(page?: number, pageSize?: number): Observable<FollowSubjectTypePageDto> {
     const params: Record<string, string> = {};
     if (page != null) params['Page'] = page.toString();
     if (pageSize != null) params['PageSize'] = pageSize.toString();

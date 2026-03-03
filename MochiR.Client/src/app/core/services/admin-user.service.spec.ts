@@ -143,9 +143,7 @@ describe('AdminUserService', () => {
         .create({ userName: 'bob', email: 'bob@test.com', password: 'pass' })
         .subscribe({ error: (e) => (error = e) });
 
-      http
-        .expectOne('/api/users')
-        .flush(errorEnvelope('VALIDATION_ERROR', 'Invalid data'));
+      http.expectOne('/api/users').flush(errorEnvelope('VALIDATION_ERROR', 'Invalid data'));
 
       expect(error).toEqual({
         code: 'VALIDATION_ERROR',

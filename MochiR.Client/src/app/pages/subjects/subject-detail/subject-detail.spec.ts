@@ -130,9 +130,7 @@ describe('SubjectDetail', () => {
   }
 
   function flushAggregateError() {
-    http
-      .expectOne('/api/ratings/subjects/1')
-      .flush(errorEnvelope('NOT_FOUND', 'No aggregate'));
+    http.expectOne('/api/ratings/subjects/1').flush(errorEnvelope('NOT_FOUND', 'No aggregate'));
     fixture.detectChanges();
   }
 

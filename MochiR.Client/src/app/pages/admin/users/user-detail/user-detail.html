@@ -85,11 +85,7 @@
           </div>
         } @else {
           <div class="d-flex gap-2">
-            <a
-              [routerLink]="['/admin/users', u.public.id, 'edit']"
-              class="btn btn-primary"
-              >Edit</a
-            >
+            <a [routerLink]="['/admin/users', u.public.id, 'edit']" class="btn btn-primary">Edit</a>
             @if (isLocked) {
               <button
                 class="btn btn-warning btn-unlock"
