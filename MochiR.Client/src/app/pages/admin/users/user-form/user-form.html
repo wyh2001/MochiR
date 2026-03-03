@@ -1,0 +1,129 @@
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <h2>{{ isEditMode() ? 'Edit User' : 'Create User' }}</h2>
+
+      @if (serverError()) {
+        <div class="alert alert-danger">{{ serverError() }}</div>
+      }
+
+      @if (!isEditMode()) {
+        <form [formGroup]="createForm" (ngSubmit)="onSubmit()">
+          <div class="mb-3">
+            <label for="userName" class="form-label">Username</label>
+            <input type="text" class="form-control" id="userName" formControlName="userName" />
+          </div>
+          <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" formControlName="email" />
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" class="form-control" id="password" formControlName="password" />
+          </div>
+          <div class="mb-3">
+            <label for="displayName" class="form-label">Display Name</label>
+            <input
+              type="text"
+              class="form-control"
+              id="displayName"
+              formControlName="displayName"
+            />
+          </div>
+          <div class="mb-3">
+            <label for="avatarUrl" class="form-label">Avatar URL</label>
+            <input type="text" class="form-control" id="avatarUrl" formControlName="avatarUrl" />
+          </div>
+          <div class="mb-3 form-check">
+            <input
+              type="checkbox"
+              class="form-check-input"
+              id="emailConfirmed"
+              formControlName="emailConfirmed"
+            />
+            <label class="form-check-label" for="emailConfirmed">Email Confirmed</label>
+          </div>
+          <div class="d-flex gap-2">
+            <button
+              type="submit"
+              class="btn btn-primary btn-submit"
+              [disabled]="submitting() || createForm.invalid"
+            >
+              Create
+            </button>
+            <a routerLink="/admin/users" class="btn btn-secondary">Cancel</a>
+          </div>
+        </form>
+      } @else {
+        <form [formGroup]="editForm" (ngSubmit)="onSubmit()">
+          <div class="mb-3">
+            <label for="editDisplayName" class="form-label">Display Name</label>
+            <input
+              type="text"
+              class="form-control"
+              id="editDisplayName"
+              formControlName="displayName"
+            />
+          </div>
+          <div class="mb-3">
+            <label for="editAvatarUrl" class="form-label">Avatar URL</label>
+            <input
+              type="text"
+              class="form-control"
+              id="editAvatarUrl"
+              formControlName="avatarUrl"
+            />
+          </div>
+          <div class="mb-3">
+            <label for="editEmail" class="form-label">Email</label>
+            <input type="email" class="form-control" id="editEmail" formControlName="email" />
+          </div>
+          <div class="mb-3 form-check">
+            <input
+              type="checkbox"
+              class="form-check-input"
+              id="editEmailConfirmed"
+              formControlName="emailConfirmed"
+            />
+            <label class="form-check-label" for="editEmailConfirmed">Email Confirmed</label>
+          </div>
+          <div class="mb-3">
+            <label for="editPhoneNumber" class="form-label">Phone Number</label>
+            <input
+              type="text"
+              class="form-control"
+              id="editPhoneNumber"
+              formControlName="phoneNumber"
+            />
+          </div>
+          <div class="mb-3 form-check">
+            <input
+              type="checkbox"
+              class="form-check-input"
+              id="editPhoneNumberConfirmed"
+              formControlName="phoneNumberConfirmed"
+            />
+            <label class="form-check-label" for="editPhoneNumberConfirmed"
+              >Phone Number Confirmed</label
+            >
+          </div>
+          <div class="mb-3 form-check">
+            <input
+              type="checkbox"
+              class="form-check-input"
+              id="editTwoFactorEnabled"
+              formControlName="twoFactorEnabled"
+            />
+            <label class="form-check-label" for="editTwoFactorEnabled">2FA Enabled</label>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-submit" [disabled]="submitting()">
+              Save
+            </button>
+            <a routerLink="/admin/users" class="btn btn-secondary">Cancel</a>
+          </div>
+        </form>
+      }
+    </div>
+  </div>
+</div>

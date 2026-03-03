@@ -1,0 +1,71 @@
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Subject Types</h2>
+    @if (isAdmin()) {
+      <a routerLink="/admin/subject-types/new" class="btn btn-primary">Create Subject Type</a>
+    }
+  </div>
+
+  @if (loading()) {
+    <p>Loading...</p>
+  } @else if (subjectTypes().length === 0) {
+    <div class="alert alert-info">No subject types found.</div>
+  } @else {
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Key</th>
+          <th>Display Name</th>
+          @if (isAuthenticated()) {
+            <th>Follow</th>
+          }
+          @if (isAdmin()) {
+            <th>Actions</th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (type of subjectTypes(); track type.id) {
+          <tr>
+            <td>{{ type.key }}</td>
+            <td>{{ type.displayName }}</td>
+            @if (isAuthenticated()) {
+              <td>
+                <button
+                  class="btn btn-sm btn-follow"
+                  [class.btn-primary]="!followedTypeIds().has(type.id)"
+                  [class.btn-outline-secondary]="followedTypeIds().has(type.id)"
+                  [disabled]="followStateLoading() || followLoadingIds().has(type.id)"
+                  (click)="onFollowToggle(type.id)"
+                >
+                  {{ followedTypeIds().has(type.id) ? 'Unfollow' : 'Follow' }}
+                </button>
+              </td>
+            }
+            @if (isAdmin()) {
+              <td>
+                @if (deletingId() === type.id) {
+                  <span class="text-danger me-2">Are you sure?</span>
+                  <button class="btn btn-sm btn-danger me-1" (click)="confirmDelete(type.id)">
+                    Confirm
+                  </button>
+                  <button class="btn btn-sm btn-secondary" (click)="cancelDelete()">Cancel</button>
+                } @else {
+                  <a
+                    [routerLink]="['/admin/subject-types', type.id, 'edit']"
+                    [state]="{ key: type.key, displayName: type.displayName }"
+                    class="btn btn-sm btn-outline-primary me-1"
+                    >Edit</a
+                  >
+                  <button class="btn btn-sm btn-outline-danger" (click)="deletingId.set(type.id)">
+                    Delete
+                  </button>
+                }
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

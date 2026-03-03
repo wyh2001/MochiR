@@ -1,0 +1,130 @@
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <h2 class="mb-3">Initial Admin Setup</h2>
+      <p class="text-muted">
+        Create the first administrator account. This can only be done once and requires the setup
+        key.
+      </p>
+
+      @if (loading()) {
+        <div class="alert alert-info">Checking setup status...</div>
+      } @else {
+        @if (success()) {
+          <div class="alert alert-success">
+            Admin account created successfully.
+            <div class="mt-2"><a routerLink="/login">Go to login</a></div>
+          </div>
+        }
+
+        @if (serverErrors().length > 0) {
+          <div class="alert alert-danger">
+            <ul class="mb-0">
+              @for (err of serverErrors(); track err) {
+                <li>{{ err }}</li>
+              }
+            </ul>
+          </div>
+        } @else if (serverError()) {
+          <div class="alert alert-danger">{{ serverError() }}</div>
+        }
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()">
+          <div class="mb-3">
+            <label for="setupKey" class="form-label">Setup Key</label>
+            <input
+              id="setupKey"
+              type="password"
+              class="form-control"
+              formControlName="setupKey"
+              [class.is-invalid]="form.controls.setupKey.touched && form.controls.setupKey.invalid"
+              autocomplete="off"
+            />
+            @if (form.controls.setupKey.touched && form.controls.setupKey.hasError('required')) {
+              <div class="invalid-feedback">Setup key is required.</div>
+            }
+          </div>
+
+          <div class="mb-3">
+            <label for="userName" class="form-label">Username</label>
+            <input
+              id="userName"
+              type="text"
+              class="form-control"
+              formControlName="userName"
+              [class.is-invalid]="form.controls.userName.touched && form.controls.userName.invalid"
+              autocomplete="username"
+            />
+            @if (form.controls.userName.touched && form.controls.userName.hasError('required')) {
+              <div class="invalid-feedback">Username is required.</div>
+            }
+          </div>
+
+          <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input
+              id="email"
+              type="email"
+              class="form-control"
+              formControlName="email"
+              [class.is-invalid]="form.controls.email.touched && form.controls.email.invalid"
+              autocomplete="email"
+            />
+            @if (form.controls.email.touched && form.controls.email.hasError('required')) {
+              <div class="invalid-feedback">Email is required.</div>
+            } @else if (form.controls.email.touched && form.controls.email.hasError('email')) {
+              <div class="invalid-feedback">Please enter a valid email address.</div>
+            }
+          </div>
+
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input
+              id="password"
+              type="password"
+              class="form-control"
+              formControlName="password"
+              [class.is-invalid]="form.controls.password.touched && form.controls.password.invalid"
+              autocomplete="new-password"
+            />
+            @if (form.controls.password.touched && form.controls.password.hasError('required')) {
+              <div class="invalid-feedback">Password is required.</div>
+            }
+          </div>
+
+          <div class="mb-3">
+            <label for="confirmPassword" class="form-label">Confirm Password</label>
+            <input
+              id="confirmPassword"
+              type="password"
+              class="form-control"
+              formControlName="confirmPassword"
+              [class.is-invalid]="
+                form.controls.confirmPassword.touched && form.controls.confirmPassword.invalid
+              "
+              autocomplete="new-password"
+            />
+            @if (
+              form.controls.confirmPassword.touched &&
+              form.controls.confirmPassword.hasError('required')
+            ) {
+              <div class="invalid-feedback">Confirmation is required.</div>
+            }
+          </div>
+
+          <button
+            type="submit"
+            class="btn btn-primary w-100"
+            [disabled]="form.invalid || submitting() || success()"
+          >
+            @if (submitting()) {
+              Creating admin...
+            } @else {
+              Create Admin
+            }
+          </button>
+        </form>
+      }
+    </div>
+  </div>
+</div>

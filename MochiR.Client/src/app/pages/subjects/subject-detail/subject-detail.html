@@ -1,0 +1,136 @@
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      @if (loading()) {
+        <p>Loading...</p>
+      } @else if (error()) {
+        <div class="alert alert-danger">{{ error() }}</div>
+        <a routerLink="/subjects" class="btn btn-secondary">Back to list</a>
+      } @else if (subject()) {
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <h2 class="mb-0">{{ subject()!.name }}</h2>
+          @if (isAuthenticated()) {
+            <button
+              class="btn btn-sm btn-follow"
+              [class.btn-primary]="!isFollowing()"
+              [class.btn-outline-secondary]="isFollowing()"
+              [disabled]="followLoading() || followActionLoading()"
+              (click)="onFollowToggle()"
+            >
+              {{ isFollowing() ? 'Unfollow' : 'Follow' }}
+            </button>
+          }
+        </div>
+
+        <table class="table">
+          <tbody>
+            <tr>
+              <th>Name</th>
+              <td>{{ subject()!.name }}</td>
+            </tr>
+            <tr>
+              <th>Slug</th>
+              <td>{{ subject()!.slug }}</td>
+            </tr>
+            <tr>
+              <th>Subject Type Key</th>
+              <td>{{ subject()!.subjectTypeKey }}</td>
+            </tr>
+            <tr>
+              <th>Subject Type</th>
+              <td>{{ subject()!.subjectTypeDisplayName }}</td>
+            </tr>
+            <tr>
+              <th>Created At</th>
+              <td>{{ subject()!.createdAt }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h4>Attributes</h4>
+        @if (subject()!.attributes.length === 0) {
+          <p>No attributes.</p>
+        } @else {
+          <table class="table table-striped attributes-table">
+            <thead>
+              <tr>
+                <th>Key</th>
+                <th>Value</th>
+                <th>Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (attr of subject()!.attributes; track attr.key) {
+                <tr>
+                  <td>{{ attr.key }}</td>
+                  <td>{{ attr.value }}</td>
+                  <td>{{ attr.note }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+
+        <h4>Ratings</h4>
+        @if (aggregateLoading()) {
+          <p>Loading ratings...</p>
+        } @else if (aggregate(); as agg) {
+          <div class="ratings-section mb-3">
+            <p>
+              <strong>Average Overall:</strong>
+              <span class="avg-overall">{{ agg.avgOverall | number: '1.1-1' }}</span>
+              <span class="text-muted ms-2">({{ agg.countReviews }} reviews)</span>
+            </p>
+            @if (agg.metrics.length > 0) {
+              <table class="table table-sm metrics-table">
+                <thead>
+                  <tr>
+                    <th>Metric</th>
+                    <th>Average</th>
+                    <th>Count</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (m of agg.metrics; track m.key) {
+                    <tr>
+                      <td>{{ m.key }}</td>
+                      <td>{{ m.value | number: '1.1-1' }}</td>
+                      <td>{{ m.count }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          </div>
+        } @else {
+          <p class="text-muted">No ratings yet.</p>
+        }
+
+        @if (isAdmin()) {
+          @if (confirmingDelete()) {
+            <div class="alert alert-warning">
+              <strong>Warning:</strong> Deleting this subject will also remove all associated
+              reviews. This action cannot be undone.
+              <div class="mt-2">
+                <button class="btn btn-danger btn-confirm-delete me-2" (click)="onConfirmDelete()">
+                  Confirm Delete
+                </button>
+                <button class="btn btn-secondary btn-cancel-delete" (click)="onCancelDelete()">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          } @else {
+            <div class="d-flex gap-2">
+              <a [routerLink]="['/admin/subjects', subject()!.id, 'edit']" class="btn btn-primary"
+                >Edit</a
+              >
+              <button class="btn btn-danger btn-delete" (click)="onDelete()">Delete</button>
+              <a routerLink="/subjects" class="btn btn-secondary">Back to list</a>
+            </div>
+          }
+        }
+      }
+    </div>
+  </div>
+</div>

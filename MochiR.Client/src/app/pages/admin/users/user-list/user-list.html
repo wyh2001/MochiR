@@ -1,0 +1,73 @@
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Users</h2>
+    <a routerLink="/admin/users/new" class="btn btn-primary">Create User</a>
+  </div>
+
+  <div class="mb-3">
+    <div class="input-group">
+      <input
+        type="text"
+        class="form-control search-input"
+        placeholder="Search users..."
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
+        (keyup.enter)="onSearch()"
+      />
+      <button class="btn btn-outline-secondary btn-search" (click)="onSearch()">Search</button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <p>Loading...</p>
+  } @else if (users().length === 0) {
+    <div class="alert alert-info">No users found.</div>
+  } @else {
+    <p class="text-muted">{{ totalCount() }} users total</p>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Display Name</th>
+          <th>Created At</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (user of users(); track user.id) {
+          <tr>
+            <td>{{ user.userName }}</td>
+            <td>{{ user.displayName }}</td>
+            <td>{{ user.createdAtUtc }}</td>
+            <td>
+              @if (deletingId() === user.id) {
+                <span class="text-danger me-2">Are you sure?</span>
+                <button
+                  class="btn btn-sm btn-danger btn-confirm-delete me-1"
+                  (click)="confirmDelete(user.id)"
+                >
+                  Confirm
+                </button>
+                <button class="btn btn-sm btn-secondary" (click)="cancelDelete()">Cancel</button>
+              } @else {
+                <a
+                  [routerLink]="['/admin/users', user.id]"
+                  class="btn btn-sm btn-outline-primary me-1"
+                  >View</a
+                >
+                <a
+                  [routerLink]="['/admin/users', user.id, 'edit']"
+                  class="btn btn-sm btn-outline-primary me-1"
+                  >Edit</a
+                >
+                <button class="btn btn-sm btn-outline-danger" (click)="deletingId.set(user.id)">
+                  Delete
+                </button>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

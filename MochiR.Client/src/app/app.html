@@ -1,0 +1,23 @@
+<app-navbar />
+
+<div class="container mt-2">
+  @for (n of notifications.notifications(); track n.id) {
+    <div
+      class="alert alert-dismissible fade show"
+      [class]="'alert alert-' + n.type + ' alert-dismissible fade show'"
+      role="alert"
+    >
+      {{ n.message }}
+      <button
+        type="button"
+        class="btn-close"
+        aria-label="Dismiss"
+        (click)="notifications.remove(n.id)"
+      ></button>
+    </div>
+  }
+</div>
+
+<router-outlet />
+
+<app-footer />

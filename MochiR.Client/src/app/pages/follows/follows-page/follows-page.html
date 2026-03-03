@@ -1,0 +1,146 @@
+<div class="container mt-4">
+  <h2>My Follows</h2>
+
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+      <button
+        class="nav-link tab-subjects"
+        [class.active]="activeTab() === 'subjects'"
+        (click)="switchTab('subjects')"
+      >
+        Subjects
+      </button>
+    </li>
+    <li class="nav-item">
+      <button
+        class="nav-link tab-subject-types"
+        [class.active]="activeTab() === 'subject-types'"
+        (click)="switchTab('subject-types')"
+      >
+        Subject Types
+      </button>
+    </li>
+    <li class="nav-item">
+      <button
+        class="nav-link tab-users"
+        [class.active]="activeTab() === 'users'"
+        (click)="switchTab('users')"
+      >
+        Users
+      </button>
+    </li>
+  </ul>
+
+  @if (loading()) {
+    <p>Loading...</p>
+  } @else {
+    @if (activeTab() === 'subjects') {
+      @if (subjects().length === 0) {
+        <p class="text-muted">You are not following any subjects.</p>
+      } @else {
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Slug</th>
+              <th>Followed At</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of subjects(); track s.followId) {
+              <tr>
+                <td>
+                  <a [routerLink]="['/subjects', s.subjectId]">{{ s.subjectName }}</a>
+                </td>
+                <td>{{ s.subjectSlug }}</td>
+                <td>{{ s.followedAtUtc }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-outline-danger btn-unfollow"
+                    [disabled]="unfollowingId() === 'subject-' + s.subjectId"
+                    (click)="onUnfollowSubject(s.subjectId)"
+                  >
+                    Unfollow
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    }
+
+    @if (activeTab() === 'subject-types') {
+      @if (subjectTypes().length === 0) {
+        <p class="text-muted">You are not following any subject types.</p>
+      } @else {
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Key</th>
+              <th>Display Name</th>
+              <th>Followed At</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of subjectTypes(); track t.followId) {
+              <tr>
+                <td>{{ t.subjectTypeKey }}</td>
+                <td>{{ t.subjectTypeDisplayName }}</td>
+                <td>{{ t.followedAtUtc }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-outline-danger btn-unfollow"
+                    [disabled]="unfollowingId() === 'type-' + t.subjectTypeId"
+                    (click)="onUnfollowSubjectType(t.subjectTypeId)"
+                  >
+                    Unfollow
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    }
+
+    @if (activeTab() === 'users') {
+      @if (users().length === 0) {
+        <p class="text-muted">You are not following any users.</p>
+      } @else {
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Display Name</th>
+              <th>Followed At</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (u of users(); track u.followId) {
+              <tr>
+                <td>
+                  <a [routerLink]="['/users', u.userId]">{{ u.userName }}</a>
+                </td>
+                <td>{{ u.displayName }}</td>
+                <td>{{ u.followedAtUtc }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-outline-danger btn-unfollow"
+                    [disabled]="unfollowingId() === 'user-' + u.userId"
+                    (click)="onUnfollowUser(u.userId)"
+                  >
+                    Unfollow
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    }
+  }
+</div>

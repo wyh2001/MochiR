@@ -1,0 +1,37 @@
+<div class="card mb-3 review-card">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start">
+      <div>
+        <h5 class="card-title mb-1">
+          <a [routerLink]="['/reviews', review().id]">{{ review().title || 'Untitled' }}</a>
+        </h5>
+        <p class="text-muted small mb-1">
+          by {{ review().authorDisplayName || review().authorUserName || 'Unknown' }} &middot;
+          {{ review().subjectName || 'Unknown Subject' }} &middot;
+          {{ review().createdAt | date: 'yyyy-MM-dd' }}
+        </p>
+      </div>
+      <span class="badge bg-secondary">{{ review().likeCount }} likes</span>
+    </div>
+
+    @if (review().excerpt) {
+      <p class="card-text mt-2">{{ review().excerpt }}</p>
+    }
+
+    @if (review().ratings.length > 0) {
+      <div class="mt-2">
+        @for (r of review().ratings; track r.key) {
+          <span class="badge bg-info me-1">{{ r.label || r.key }}: {{ r.score }}</span>
+        }
+      </div>
+    }
+
+    @if (review().tags.length > 0) {
+      <div class="mt-2">
+        @for (tag of review().tags; track tag) {
+          <span class="badge bg-light text-dark me-1">{{ tag }}</span>
+        }
+      </div>
+    }
+  </div>
+</div>
