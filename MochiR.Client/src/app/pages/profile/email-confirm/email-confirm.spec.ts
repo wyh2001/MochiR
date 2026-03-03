@@ -3,7 +3,6 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter, Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
-import { of } from 'rxjs';
 import { EmailConfirm } from './email-confirm';
 import { apiResponseInterceptor } from '../../../core/interceptors/api-response.interceptor';
 
@@ -56,7 +55,7 @@ describe('EmailConfirm', () => {
           { path: 'profile', component: EmailConfirm },
           { path: 'profile/email/confirm', component: EmailConfirm },
         ]),
-        { provide: ActivatedRoute, useValue: { queryParams: of(queryParams) } },
+        { provide: ActivatedRoute, useValue: { snapshot: { queryParams } } },
       ],
     });
 

@@ -1,9 +1,11 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { UserFollowService } from '../../../core/services/user-follow.service';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { withSkipErrorToast } from '../../../core/interceptors/error.interceptor';
 import { DirectoryUserDetailDto } from '../../../api/models/directory-user-detail-dto';
 import { isApiError } from '../../../core/utils/api-error';
 
@@ -19,6 +21,7 @@ export class UserProfilePage implements OnInit {
   private readonly userFollowService = inject(UserFollowService);
   private readonly authState = inject(AuthStateService);
   private readonly notification = inject(NotificationService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly profile = signal<DirectoryUserDetailDto | null>(null);
   readonly loading = signal(true);
@@ -30,7 +33,7 @@ export class UserProfilePage implements OnInit {
   private userId = '';
 
   ngOnInit(): void {
-    this.route.params.subscribe((params) => {
+    this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       this.userId = params['id'];
 
       if (this.userId === this.authState.user()?.id) {
@@ -48,7 +51,7 @@ export class UserProfilePage implements OnInit {
     this.actionLoading.set(true);
 
     if (this.isFollowing()) {
-      this.userFollowService.unfollowUser(this.userId).subscribe({
+      this.userFollowService.unfollowUser(this.userId, withSkipErrorToast()).subscribe({
         next: () => {
           this.isFollowing.set(false);
           this.actionLoading.set(false);
@@ -61,7 +64,7 @@ export class UserProfilePage implements OnInit {
         },
       });
     } else {
-      this.userFollowService.followUser(this.userId).subscribe({
+      this.userFollowService.followUser(this.userId, withSkipErrorToast()).subscribe({
         next: () => {
           this.isFollowing.set(true);
           this.actionLoading.set(false);

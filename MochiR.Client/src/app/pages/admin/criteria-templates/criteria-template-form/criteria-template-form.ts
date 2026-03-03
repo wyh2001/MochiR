@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { CriteriaTemplateService } from '../../../../core/services/criteria-template.service';
 import { SubjectTypeService } from '../../../../core/services/subject-type.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { withSkipErrorToast } from '../../../../core/interceptors/error.interceptor';
 import { SubjectTypeSummaryDto } from '../../../../api/models/subject-type-summary-dto';
 import { isApiError } from '../../../../core/utils/api-error';
 
@@ -50,7 +51,7 @@ export class CriteriaTemplateForm implements OnInit {
       isRequired: this.form.getRawValue().isRequired,
     };
 
-    this.criteriaTemplateService.create(payload).subscribe({
+    this.criteriaTemplateService.create(payload, withSkipErrorToast()).subscribe({
       next: () => {
         this.submitting.set(false);
         this.notification.show('success', 'Criteria template created successfully.');
@@ -60,6 +61,8 @@ export class CriteriaTemplateForm implements OnInit {
         this.submitting.set(false);
         if (isApiError(err)) {
           this.serverError.set(err.message);
+        } else {
+          this.serverError.set('Something went wrong. Please try again.');
         }
       },
     });

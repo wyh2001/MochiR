@@ -5,6 +5,7 @@ import { DatePipe, UpperCasePipe } from '@angular/common';
 import { ProfileService } from '../../../core/services/profile.service';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { withSkipErrorToast } from '../../../core/interceptors/error.interceptor';
 import { SelfProfileDto } from '../../../api/models/self-profile-dto';
 import { SelfFollowSummaryDto } from '../../../api/models/self-follow-summary-dto';
 import { isApiError } from '../../../core/utils/api-error';
@@ -128,7 +129,7 @@ export class ProfilePage implements OnInit {
     dto['displayName'] = raw.displayName || null;
     dto['avatarUrl'] = raw.avatarUrl || null;
 
-    this.profileService.updateProfile(dto).subscribe({
+    this.profileService.updateProfile(dto, withSkipErrorToast()).subscribe({
       next: (updated) => {
         this.submitting.set(false);
         this.profile.set(updated);
@@ -148,6 +149,8 @@ export class ProfilePage implements OnInit {
         this.submitting.set(false);
         if (isApiError(err)) {
           this.serverError.set(err.message);
+        } else {
+          this.serverError.set('Something went wrong. Please try again.');
         }
       },
     });
@@ -173,7 +176,7 @@ export class ProfilePage implements OnInit {
     this.submitting.set(true);
 
     const raw = this.passwordForm.getRawValue();
-    this.profileService.changePassword(raw).subscribe({
+    this.profileService.changePassword(raw, withSkipErrorToast()).subscribe({
       next: () => {
         this.submitting.set(false);
         this.showChangePassword.set(false);
@@ -184,6 +187,8 @@ export class ProfilePage implements OnInit {
         this.submitting.set(false);
         if (isApiError(err)) {
           this.serverError.set(err.message);
+        } else {
+          this.serverError.set('Something went wrong. Please try again.');
         }
       },
     });
@@ -210,7 +215,10 @@ export class ProfilePage implements OnInit {
 
     const raw = this.emailForm.getRawValue();
     this.profileService
-      .requestEmailChange({ currentPassword: raw.currentPassword, email: raw.newEmail })
+      .requestEmailChange(
+        { currentPassword: raw.currentPassword, email: raw.newEmail },
+        withSkipErrorToast(),
+      )
       .subscribe({
         next: () => {
           this.submitting.set(false);
@@ -222,6 +230,8 @@ export class ProfilePage implements OnInit {
           this.submitting.set(false);
           if (isApiError(err)) {
             this.serverError.set(err.message);
+          } else {
+            this.serverError.set('Something went wrong. Please try again.');
           }
         },
       });
@@ -259,7 +269,7 @@ export class ProfilePage implements OnInit {
     if (!userId) return;
 
     this.serverError.set(null);
-    this.profileService.removeFollower(userId).subscribe({
+    this.profileService.removeFollower(userId, withSkipErrorToast()).subscribe({
       next: () => {
         this.removingFollowerId.set(null);
         this.notifications.show('success', 'Follower removed.');
@@ -269,6 +279,8 @@ export class ProfilePage implements OnInit {
         this.removingFollowerId.set(null);
         if (isApiError(err)) {
           this.serverError.set(err.message);
+        } else {
+          this.serverError.set('Something went wrong. Please try again.');
         }
       },
     });

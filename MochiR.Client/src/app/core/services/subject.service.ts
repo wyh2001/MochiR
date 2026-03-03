@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { SubjectSummaryDto } from '../../api/models/subject-summary-dto';
 import { SubjectDetailDto } from '../../api/models/subject-detail-dto';
@@ -23,12 +23,12 @@ export class SubjectService {
     return this.http.get<SubjectDetailDto>(`/api/subjects/${id}`);
   }
 
-  create(dto: CreateSubjectDto): Observable<SubjectSummaryDto> {
-    return this.http.post<SubjectSummaryDto>('/api/subjects', dto);
+  create(dto: CreateSubjectDto, context?: HttpContext): Observable<SubjectSummaryDto> {
+    return this.http.post<SubjectSummaryDto>('/api/subjects', dto, { context });
   }
 
-  update(id: number, dto: UpdateSubjectDto): Observable<SubjectSummaryDto> {
-    return this.http.put<SubjectSummaryDto>(`/api/subjects/${id}`, dto);
+  update(id: number, dto: UpdateSubjectDto, context?: HttpContext): Observable<SubjectSummaryDto> {
+    return this.http.put<SubjectSummaryDto>(`/api/subjects/${id}`, dto, { context });
   }
 
   delete(id: number): Observable<SubjectDeleteResultDto> {

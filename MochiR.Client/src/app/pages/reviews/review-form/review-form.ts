@@ -1,10 +1,12 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, FormArray, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { ReviewService } from '../../../core/services/review.service';
 import { SubjectService } from '../../../core/services/subject.service';
 import { CriteriaTemplateService } from '../../../core/services/criteria-template.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { withSkipErrorToast } from '../../../core/interceptors/error.interceptor';
 import { SubjectSummaryDto } from '../../../api/models/subject-summary-dto';
 import { RatingsEditor } from '../ratings-editor/ratings-editor';
 import { isApiError } from '../../../core/utils/api-error';
@@ -23,6 +25,7 @@ export class ReviewForm implements OnInit {
   private readonly subjectService = inject(SubjectService);
   private readonly criteriaTemplateService = inject(CriteriaTemplateService);
   private readonly notification = inject(NotificationService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly form = this.fb.nonNullable.group({
     subjectId: [0, Validators.min(1)],
@@ -49,9 +52,12 @@ export class ReviewForm implements OnInit {
 
     const idParam = this.route.snapshot.params['id'];
     if (!idParam) {
-      this.form.get('subjectId')!.valueChanges.subscribe((subjectId) => {
-        this.loadCriteriaTemplates(Number(subjectId));
-      });
+      this.form
+        .get('subjectId')!
+        .valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((subjectId) => {
+          this.loadCriteriaTemplates(Number(subjectId));
+        });
     }
 
     if (idParam) {
@@ -133,7 +139,7 @@ export class ReviewForm implements OnInit {
         tags: tags.length > 0 ? tags : null,
       };
 
-      this.reviewService.update(this.editId!, payload).subscribe({
+      this.reviewService.update(this.editId!, payload, withSkipErrorToast()).subscribe({
         next: () => {
           this.submitting.set(false);
           this.notification.show('success', 'Review updated successfully.');
@@ -143,6 +149,8 @@ export class ReviewForm implements OnInit {
           this.submitting.set(false);
           if (isApiError(err)) {
             this.serverError.set(err.message);
+          } else {
+            this.serverError.set('Something went wrong. Please try again.');
           }
         },
       });
@@ -156,7 +164,7 @@ export class ReviewForm implements OnInit {
         tags: tags.length > 0 ? tags : null,
       };
 
-      this.reviewService.create(payload).subscribe({
+      this.reviewService.create(payload, withSkipErrorToast()).subscribe({
         next: (result) => {
           this.submitting.set(false);
           this.notification.show('success', 'Review created successfully.');
@@ -166,6 +174,8 @@ export class ReviewForm implements OnInit {
           this.submitting.set(false);
           if (isApiError(err)) {
             this.serverError.set(err.message);
+          } else {
+            this.serverError.set('Something went wrong. Please try again.');
           }
         },
       });

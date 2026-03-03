@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { DirectoryPageDto } from '../../api/models/directory-page-dto';
 import { UserDirectoryResponseDto } from '../../api/models/user-directory-response-dto';
@@ -31,12 +31,16 @@ export class AdminUserService {
     return this.http.get<UserDirectoryResponseDto>(`/api/users/${id}`);
   }
 
-  create(dto: CreateUserDto): Observable<UserDirectoryResponseDto> {
-    return this.http.post<UserDirectoryResponseDto>('/api/users', dto);
+  create(dto: CreateUserDto, context?: HttpContext): Observable<UserDirectoryResponseDto> {
+    return this.http.post<UserDirectoryResponseDto>('/api/users', dto, { context });
   }
 
-  update(id: string, dto: DirectoryAdminPatchRequestDto): Observable<UserDirectoryResponseDto> {
-    return this.http.patch<UserDirectoryResponseDto>(`/api/users/${id}`, dto);
+  update(
+    id: string,
+    dto: DirectoryAdminPatchRequestDto,
+    context?: HttpContext,
+  ): Observable<UserDirectoryResponseDto> {
+    return this.http.patch<UserDirectoryResponseDto>(`/api/users/${id}`, dto, { context });
   }
 
   lock(id: string, dto: LockUserRequestDto): Observable<UserLockResponseDto> {

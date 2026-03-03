@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { SubjectTypeSummaryDto } from '../../api/models/subject-type-summary-dto';
 import { CreateSubjectTypeDto } from '../../api/models/create-subject-type-dto';
@@ -14,12 +14,16 @@ export class SubjectTypeService {
     return this.http.get<SubjectTypeSummaryDto[]>('/api/subject-types');
   }
 
-  create(dto: CreateSubjectTypeDto): Observable<SubjectTypeSummaryDto> {
-    return this.http.post<SubjectTypeSummaryDto>('/api/subject-types', dto);
+  create(dto: CreateSubjectTypeDto, context?: HttpContext): Observable<SubjectTypeSummaryDto> {
+    return this.http.post<SubjectTypeSummaryDto>('/api/subject-types', dto, { context });
   }
 
-  update(id: number, dto: UpdateSubjectTypeDto): Observable<SubjectTypeSummaryDto> {
-    return this.http.put<SubjectTypeSummaryDto>(`/api/subject-types/${id}`, dto);
+  update(
+    id: number,
+    dto: UpdateSubjectTypeDto,
+    context?: HttpContext,
+  ): Observable<SubjectTypeSummaryDto> {
+    return this.http.put<SubjectTypeSummaryDto>(`/api/subject-types/${id}`, dto, { context });
   }
 
   delete(id: number): Observable<SubjectTypeDeleteResultDto> {

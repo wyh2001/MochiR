@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient, withInterceptors, HttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors, HttpClient, HttpContext } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { errorInterceptor } from './error.interceptor';
+import { errorInterceptor, SKIP_ERROR_TOAST, withSkipErrorToast } from './error.interceptor';
 import { NotificationService } from '../services/notification.service';
 
 describe('errorInterceptor', () => {
@@ -73,5 +73,36 @@ describe('errorInterceptor', () => {
     controller.expectOne('/api/test').flush('', { status: 400, statusText: 'Bad Request' });
 
     expect(caughtError).toBeTruthy();
+  });
+
+  it('does NOT show notification when SKIP_ERROR_TOAST is set', () => {
+    const context = withSkipErrorToast();
+    http.get('/api/test', { context }).subscribe({
+      error: () => {
+        /* expected error */
+      },
+    });
+
+    controller
+      .expectOne('/api/test')
+      .flush('Bad Request', { status: 400, statusText: 'Bad Request' });
+
+    expect(notifications.notifications().length).toBe(0);
+  });
+
+  it('still re-throws error when SKIP_ERROR_TOAST is set', () => {
+    let caughtError: unknown;
+    const context = withSkipErrorToast();
+    http.get('/api/test', { context }).subscribe({ error: (e: unknown) => (caughtError = e) });
+
+    controller.expectOne('/api/test').flush('', { status: 400, statusText: 'Bad Request' });
+
+    expect(caughtError).toBeTruthy();
+  });
+
+  it('withSkipErrorToast returns an HttpContext with SKIP_ERROR_TOAST=true', () => {
+    const context = withSkipErrorToast();
+    expect(context).toBeInstanceOf(HttpContext);
+    expect(context.get(SKIP_ERROR_TOAST)).toBe(true);
   });
 });

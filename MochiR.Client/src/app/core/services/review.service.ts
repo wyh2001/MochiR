@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ReviewSummaryDto } from '../../api/models/review-summary-dto';
 import { ReviewDetailDto } from '../../api/models/review-detail-dto';
@@ -38,12 +38,12 @@ export class ReviewService {
     return this.http.get<ReviewDetailDto>(`/api/reviews/${id}`);
   }
 
-  create(dto: CreateReviewDto): Observable<ReviewSummaryDto> {
-    return this.http.post<ReviewSummaryDto>('/api/reviews', dto);
+  create(dto: CreateReviewDto, context?: HttpContext): Observable<ReviewSummaryDto> {
+    return this.http.post<ReviewSummaryDto>('/api/reviews', dto, { context });
   }
 
-  update(id: number, dto: UpdateReviewDto): Observable<ReviewSummaryDto> {
-    return this.http.put<ReviewSummaryDto>(`/api/reviews/${id}`, dto);
+  update(id: number, dto: UpdateReviewDto, context?: HttpContext): Observable<ReviewSummaryDto> {
+    return this.http.put<ReviewSummaryDto>(`/api/reviews/${id}`, dto, { context });
   }
 
   delete(id: number): Observable<ReviewDeleteResultDto> {

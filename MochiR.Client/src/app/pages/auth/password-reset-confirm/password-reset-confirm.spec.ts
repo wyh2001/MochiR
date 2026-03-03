@@ -3,7 +3,6 @@ import { provideRouter, Router } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { ActivatedRoute } from '@angular/router';
-import { of } from 'rxjs';
 import { PasswordResetConfirm } from './password-reset-confirm';
 import { apiResponseInterceptor } from '../../../core/interceptors/api-response.interceptor';
 
@@ -23,7 +22,7 @@ describe('PasswordResetConfirm', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            queryParams: of({ email: 'test@test.com', token: 'abc123' }),
+            snapshot: { queryParams: { email: 'test@test.com', token: 'abc123' } },
           },
         },
       ],

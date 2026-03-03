@@ -3,6 +3,7 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { AdminUserService } from '../../../../core/services/admin-user.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { withSkipErrorToast } from '../../../../core/interceptors/error.interceptor';
 import { isApiError } from '../../../../core/utils/api-error';
 
 @Component({
@@ -88,14 +89,17 @@ export class AdminUserForm implements OnInit {
 
     const raw = this.createForm.getRawValue();
     this.adminUserService
-      .create({
-        userName: raw.userName,
-        email: raw.email,
-        password: raw.password,
-        displayName: raw.displayName || undefined,
-        avatarUrl: raw.avatarUrl || undefined,
-        emailConfirmed: raw.emailConfirmed || undefined,
-      })
+      .create(
+        {
+          userName: raw.userName,
+          email: raw.email,
+          password: raw.password,
+          displayName: raw.displayName || undefined,
+          avatarUrl: raw.avatarUrl || undefined,
+          emailConfirmed: raw.emailConfirmed || undefined,
+        },
+        withSkipErrorToast(),
+      )
       .subscribe({
         next: (response) => {
           this.submitting.set(false);
@@ -106,6 +110,8 @@ export class AdminUserForm implements OnInit {
           this.submitting.set(false);
           if (isApiError(err)) {
             this.serverError.set(err.message);
+          } else {
+            this.serverError.set('Something went wrong. Please try again.');
           }
         },
       });
@@ -114,15 +120,19 @@ export class AdminUserForm implements OnInit {
   private submitEdit(): void {
     const raw = this.editForm.getRawValue();
     this.adminUserService
-      .update(this.editId!, {
-        displayName: { value: raw.displayName || null, hasValue: true },
-        avatarUrl: { value: raw.avatarUrl || null, hasValue: true },
-        email: { value: raw.email || null, hasValue: true },
-        emailConfirmed: { value: raw.emailConfirmed, hasValue: true },
-        phoneNumber: { value: raw.phoneNumber || null, hasValue: true },
-        phoneNumberConfirmed: { value: raw.phoneNumberConfirmed, hasValue: true },
-        twoFactorEnabled: { value: raw.twoFactorEnabled, hasValue: true },
-      })
+      .update(
+        this.editId!,
+        {
+          displayName: { value: raw.displayName || null, hasValue: true },
+          avatarUrl: { value: raw.avatarUrl || null, hasValue: true },
+          email: { value: raw.email || null, hasValue: true },
+          emailConfirmed: { value: raw.emailConfirmed, hasValue: true },
+          phoneNumber: { value: raw.phoneNumber || null, hasValue: true },
+          phoneNumberConfirmed: { value: raw.phoneNumberConfirmed, hasValue: true },
+          twoFactorEnabled: { value: raw.twoFactorEnabled, hasValue: true },
+        },
+        withSkipErrorToast(),
+      )
       .subscribe({
         next: () => {
           this.submitting.set(false);
@@ -133,6 +143,8 @@ export class AdminUserForm implements OnInit {
           this.submitting.set(false);
           if (isApiError(err)) {
             this.serverError.set(err.message);
+          } else {
+            this.serverError.set('Something went wrong. Please try again.');
           }
         },
       });

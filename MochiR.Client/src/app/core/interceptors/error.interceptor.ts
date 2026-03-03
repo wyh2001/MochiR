@@ -1,7 +1,18 @@
-import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
+import {
+  HttpContext,
+  HttpContextToken,
+  HttpErrorResponse,
+  HttpInterceptorFn,
+} from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
 import { NotificationService } from '../services/notification.service';
+
+export const SKIP_ERROR_TOAST = new HttpContextToken<boolean>(() => false);
+
+export function withSkipErrorToast(): HttpContext {
+  return new HttpContext().set(SKIP_ERROR_TOAST, true);
+}
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const notifications = inject(NotificationService);
@@ -10,8 +21,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error) => {
       const status = error instanceof HttpErrorResponse ? error.status : (error?.status ?? 0);
 
-      // 401 is handled by authRedirectInterceptor
-      if (status !== 401) {
+      if (status !== 401 && !req.context.get(SKIP_ERROR_TOAST)) {
         const message = extractMessage(error);
         notifications.show('danger', message);
       }

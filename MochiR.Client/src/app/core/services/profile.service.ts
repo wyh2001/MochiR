@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { SelfProfileDto } from '../../api/models/self-profile-dto';
 import { SelfProfilePatchRequestDto } from '../../api/models/self-profile-patch-request-dto';
@@ -18,20 +18,34 @@ export class ProfileService {
     return this.http.get<SelfProfileDto>('/api/me');
   }
 
-  updateProfile(dto: SelfProfilePatchRequestDto): Observable<SelfProfileDto> {
-    return this.http.patch<SelfProfileDto>('/api/me', dto);
+  updateProfile(
+    dto: SelfProfilePatchRequestDto,
+    context?: HttpContext,
+  ): Observable<SelfProfileDto> {
+    return this.http.patch<SelfProfileDto>('/api/me', dto, { context });
   }
 
-  changePassword(dto: SelfPasswordChangeRequestDto): Observable<SelfProfileDto> {
-    return this.http.post<SelfProfileDto>('/api/me/password/change', dto);
+  changePassword(
+    dto: SelfPasswordChangeRequestDto,
+    context?: HttpContext,
+  ): Observable<SelfProfileDto> {
+    return this.http.post<SelfProfileDto>('/api/me/password/change', dto, { context });
   }
 
-  requestEmailChange(dto: SelfEmailTokenRequestDto): Observable<SelfEmailTokenDispatchResponseDto> {
-    return this.http.post<SelfEmailTokenDispatchResponseDto>('/api/me/email/token', dto);
+  requestEmailChange(
+    dto: SelfEmailTokenRequestDto,
+    context?: HttpContext,
+  ): Observable<SelfEmailTokenDispatchResponseDto> {
+    return this.http.post<SelfEmailTokenDispatchResponseDto>('/api/me/email/token', dto, {
+      context,
+    });
   }
 
-  confirmEmailChange(dto: SelfEmailConfirmRequestDto): Observable<SelfProfileDto> {
-    return this.http.post<SelfProfileDto>('/api/me/email/confirm', dto);
+  confirmEmailChange(
+    dto: SelfEmailConfirmRequestDto,
+    context?: HttpContext,
+  ): Observable<SelfProfileDto> {
+    return this.http.post<SelfProfileDto>('/api/me/email/confirm', dto, { context });
   }
 
   getFollowers(page?: number, pageSize?: number): Observable<SelfFollowPageDto> {
@@ -41,8 +55,10 @@ export class ProfileService {
     return this.http.get<SelfFollowPageDto>('/api/me/followers', { params });
   }
 
-  removeFollower(userId: string): Observable<SelfFollowerRemovalResultDto> {
-    return this.http.delete<SelfFollowerRemovalResultDto>(`/api/me/followers/${userId}`);
+  removeFollower(userId: string, context?: HttpContext): Observable<SelfFollowerRemovalResultDto> {
+    return this.http.delete<SelfFollowerRemovalResultDto>(`/api/me/followers/${userId}`, {
+      context,
+    });
   }
 
   getFollowing(page?: number, pageSize?: number): Observable<SelfFollowPageDto> {

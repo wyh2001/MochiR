@@ -4,6 +4,7 @@ import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { SubjectService } from '../../../../core/services/subject.service';
 import { SubjectTypeService } from '../../../../core/services/subject-type.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { withSkipErrorToast } from '../../../../core/interceptors/error.interceptor';
 import { SubjectTypeSummaryDto } from '../../../../api/models/subject-type-summary-dto';
 import { AttributesEditor } from '../attributes-editor/attributes-editor';
 import { isApiError } from '../../../../core/utils/api-error';
@@ -101,9 +102,10 @@ export class SubjectForm implements OnInit {
       attributes: attributesValue.length > 0 ? attributesValue : null,
     };
 
+    const ctx = withSkipErrorToast();
     const request$ = this.isEditMode()
-      ? this.subjectService.update(this.editId!, payload)
-      : this.subjectService.create(payload);
+      ? this.subjectService.update(this.editId!, payload, ctx)
+      : this.subjectService.create(payload, ctx);
 
     request$.subscribe({
       next: () => {
@@ -120,6 +122,8 @@ export class SubjectForm implements OnInit {
         this.submitting.set(false);
         if (isApiError(err)) {
           this.serverError.set(err.message);
+        } else {
+          this.serverError.set('Something went wrong. Please try again.');
         }
       },
     });

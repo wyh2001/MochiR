@@ -3,6 +3,7 @@ import { ReactiveFormsModule, FormBuilder, FormArray, FormGroup, Validators } fr
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { SubjectTypeService } from '../../../../core/services/subject-type.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { withSkipErrorToast } from '../../../../core/interceptors/error.interceptor';
 import { SettingsEditor } from '../settings-editor/settings-editor';
 import { isApiError } from '../../../../core/utils/api-error';
 
@@ -76,9 +77,10 @@ export class SubjectTypeForm implements OnInit {
       settings: settingsValue,
     };
 
+    const ctx = withSkipErrorToast();
     const request$ = this.isEditMode()
-      ? this.subjectTypeService.update(this.editId!, payload)
-      : this.subjectTypeService.create(payload);
+      ? this.subjectTypeService.update(this.editId!, payload, ctx)
+      : this.subjectTypeService.create(payload, ctx);
 
     request$.subscribe({
       next: () => {
@@ -91,6 +93,8 @@ export class SubjectTypeForm implements OnInit {
         this.submitting.set(false);
         if (isApiError(err)) {
           this.serverError.set(err.message);
+        } else {
+          this.serverError.set('Something went wrong. Please try again.');
         }
       },
     });

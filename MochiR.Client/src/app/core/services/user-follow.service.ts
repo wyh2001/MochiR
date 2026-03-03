@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { UserDirectoryResponseDto } from '../../api/models/user-directory-response-dto';
 import { FollowUserSummaryDto } from '../../api/models/follow-user-summary-dto';
@@ -14,12 +14,12 @@ export class UserFollowService {
     return this.http.get<UserDirectoryResponseDto>(`/api/users/${userId}`);
   }
 
-  followUser(userId: string): Observable<FollowUserSummaryDto> {
-    return this.http.post<FollowUserSummaryDto>(`/api/follows/users/${userId}`, {});
+  followUser(userId: string, context?: HttpContext): Observable<FollowUserSummaryDto> {
+    return this.http.post<FollowUserSummaryDto>(`/api/follows/users/${userId}`, {}, { context });
   }
 
-  unfollowUser(userId: string): Observable<FollowDeletionResultDto> {
-    return this.http.delete<FollowDeletionResultDto>(`/api/follows/users/${userId}`);
+  unfollowUser(userId: string, context?: HttpContext): Observable<FollowDeletionResultDto> {
+    return this.http.delete<FollowDeletionResultDto>(`/api/follows/users/${userId}`, { context });
   }
 
   getFollowing(page?: number, pageSize?: number): Observable<FollowUserPageDto> {

@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient, withInterceptors, HttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors, HttpClient, HttpContext } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter, Router } from '@angular/router';
-import { authRedirectInterceptor } from './auth-redirect.interceptor';
+import { authRedirectInterceptor, SKIP_AUTH_REDIRECT } from './auth-redirect.interceptor';
 import { AuthStateService } from '../services/auth-state.service';
 
 describe('authRedirectInterceptor', () => {
@@ -61,8 +61,9 @@ describe('authRedirectInterceptor', () => {
     expect(authState.isAuthenticated()).toBe(false);
   });
 
-  it('does NOT redirect on 401 for login endpoint', () => {
-    http.post('/api/auth/login', {}).subscribe({
+  it('does NOT redirect on 401 when SKIP_AUTH_REDIRECT is set', () => {
+    const context = new HttpContext().set(SKIP_AUTH_REDIRECT, true);
+    http.post('/api/auth/login', {}, { context }).subscribe({
       error: () => {
         /* expected error */
       },
@@ -73,7 +74,29 @@ describe('authRedirectInterceptor', () => {
     expect(router.navigateByUrl).not.toHaveBeenCalled();
   });
 
-  it('does NOT redirect on 401 for /api/me (bootstrap check)', () => {
+  it('does NOT clear auth state on 401 when SKIP_AUTH_REDIRECT is set', () => {
+    authState.setUser({
+      id: 'user-1',
+      userName: 'test',
+      displayName: 'Test',
+      email: 'test@test.com',
+      isAdmin: false,
+    });
+
+    const context = new HttpContext().set(SKIP_AUTH_REDIRECT, true);
+    http.get('/api/me', { context }).subscribe({
+      error: () => {
+        /* expected error */
+      },
+    });
+
+    controller.expectOne('/api/me').flush('', { status: 401, statusText: 'Unauthorized' });
+
+    expect(authState.isAuthenticated()).toBe(true);
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+
+  it('still redirects on 401 for any URL without SKIP_AUTH_REDIRECT', () => {
     http.get('/api/me').subscribe({
       error: () => {
         /* expected error */
@@ -82,6 +105,6 @@ describe('authRedirectInterceptor', () => {
 
     controller.expectOne('/api/me').flush('', { status: 401, statusText: 'Unauthorized' });
 
-    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
   });
 });
