@@ -38,3 +38,24 @@ jobs:
       run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
+
+  client-test:
+    name: Client (npm test)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: MochiR.Client
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.12.x
+        cache: npm
+        cache-dependency-path: MochiR.Client/package-lock.json
+    - name: Install dependencies
+      run: npm ci
+    - name: Test
+      run: npm test -- --watch=false
