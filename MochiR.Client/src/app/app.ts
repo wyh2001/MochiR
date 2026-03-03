@@ -10,6 +10,7 @@ import { NotificationService } from './core/services/notification.service';
   imports: [RouterOutlet, Navbar, Footer],
   templateUrl: './app.html',
   styleUrl: './app.scss',
+  host: { class: 'd-flex flex-column min-vh-100' },
 })
 export class App {
   protected readonly notifications = inject(NotificationService);
