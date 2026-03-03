@@ -31,7 +31,7 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(response, httpContext);
             })
             .Produces<ApiResponse<PasswordResetTokenDispatchResponseDto>>(StatusCodes.Status200OK)
-            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
             .WithSummary("Request a password reset email.")
             .WithDescription("POST /api/auth/password/reset/request. Accepts an email address and always returns 200 with dispatched=true. When the address matches a confirmed account a reset token is generated and emailed; unknown addresses receive the same response to avoid disclosure.")
             .AddValidation<PasswordResetTokenRequestDto>(
@@ -83,7 +83,7 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(new PasswordResetConfirmResponseDto(true), httpContext);
             })
             .Produces<ApiResponse<PasswordResetConfirmResponseDto>>(StatusCodes.Status200OK)
-            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
             .WithSummary("Reset the password with a token.")
             .WithDescription("POST /api/auth/password/reset/confirm. Accepts email, token, and newPassword. Returns 200 with succeeded=true when the token is valid, or 400 with error codes when the reset fails.")
             .AddValidation<PasswordResetConfirmRequestDto>(

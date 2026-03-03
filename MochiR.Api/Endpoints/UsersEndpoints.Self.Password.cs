@@ -48,8 +48,8 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(ToSelfProfile(refreshed, isAdmin), httpContext);
             })
             .Produces<ApiResponse<SelfProfileDto>>(StatusCodes.Status200OK)
-            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
-            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ApiErrorResponse>(StatusCodes.Status401Unauthorized)
             .WithSummary("Change the current user's password.")
             .WithDescription("POST /api/me/password/change. Requires authentication. Accepts currentPassword and newPassword in the body, returning 200 with the updated profile or 400 when validation fails.")
             .AddValidation<SelfPasswordChangeRequestDto>(

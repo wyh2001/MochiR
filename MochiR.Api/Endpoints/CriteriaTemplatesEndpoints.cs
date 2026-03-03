@@ -83,8 +83,8 @@ namespace MochiR.Api.Endpoints
                     httpContext);
             })
             .Produces<ApiResponse<CriteriaTemplateSummaryDto>>(StatusCodes.Status201Created)
-            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
-            .Produces<ApiResponse<object>>(StatusCodes.Status409Conflict)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ApiErrorResponse>(StatusCodes.Status409Conflict)
             .WithSummary("Create a criteria template.")
             .WithDescription("POST /api/criteria-templates. Requires admin authorization. Accepts subjectTypeId, key, displayName, and isRequired. Returns 201 with the created template summary, or 400/409 when validation fails.")
             .AddValidation<CreateCriteriaTemplateDto>(
@@ -120,7 +120,7 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(payload, httpContext);
             })
             .Produces<ApiResponse<CriteriaTemplateDetailDto>>(StatusCodes.Status200OK)
-            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound)
             .WithSummary("Get criteria template details.")
             .WithDescription("GET /api/criteria-templates/{id}. Returns 200 with template metadata and its subject type information, or 404 when the template is not found.")
             .WithOpenApi();

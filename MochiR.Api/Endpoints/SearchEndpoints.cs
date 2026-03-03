@@ -57,7 +57,7 @@ namespace MochiR.Api.Endpoints
                 }
             })
             .Produces<ApiResponse<SearchResponseDto>>(StatusCodes.Status200OK)
-            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
             .WithSummary("Execute a search query.")
             .WithDescription("GET /api/search. Supports optional type, sort, limit, and cursor parameters.")
             .WithOpenApi();

@@ -63,8 +63,8 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Created($"/api/subject-types/{subjectType.Id}", payload, httpContext);
             })
             .Produces<ApiResponse<SubjectTypeSummaryDto>>(StatusCodes.Status201Created)
-            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
-            .Produces<ApiResponse<object>>(StatusCodes.Status409Conflict)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ApiErrorResponse>(StatusCodes.Status409Conflict)
             .WithSummary("Create a subject type.")
             .WithDescription("POST /api/subject-types. Requires admin authorization. Accepts key, displayName, and optional settings. Returns 201 with the created subject type summary, or 400/409 when validation fails.")
             .AddValidation<CreateSubjectTypeDto>(
@@ -117,9 +117,9 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(payload, httpContext);
             })
             .Produces<ApiResponse<SubjectTypeSummaryDto>>(StatusCodes.Status200OK)
-            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
-            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
-            .Produces<ApiResponse<object>>(StatusCodes.Status409Conflict)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound)
+            .Produces<ApiErrorResponse>(StatusCodes.Status409Conflict)
             .WithSummary("Update a subject type.")
             .WithDescription("PUT /api/subject-types/{id}. Requires admin authorization. Accepts key, displayName, and optional settings. Returns 200 with the updated subject type summary, or 400/404/409 when validation fails.")
             .AddValidation<UpdateSubjectTypeDto>(
@@ -157,8 +157,8 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(new SubjectTypeDeleteResultDto(id, true), httpContext);
             })
             .Produces<ApiResponse<SubjectTypeDeleteResultDto>>(StatusCodes.Status200OK)
-            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
-            .Produces<ApiResponse<object>>(StatusCodes.Status409Conflict)
+            .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound)
+            .Produces<ApiErrorResponse>(StatusCodes.Status409Conflict)
             .WithSummary("Delete a subject type.")
             .WithDescription("DELETE /api/subject-types/{id}. Requires admin authorization. Removes the subject type when it is not referenced by subjects, returning 200 with deletion status or 404/409 on failure.")
             .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();

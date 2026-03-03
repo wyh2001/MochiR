@@ -42,7 +42,7 @@ namespace MochiR.Api.Endpoints
                     details);
             })
             .Produces<ApiResponse<RegisterResponseDto>>(StatusCodes.Status200OK)
-            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
             .WithSummary("Register a local account.")
             .WithDescription("POST /api/auth/register. Accepts a JSON body with userName, email, and password. Returns 200 with the created user identifiers or 400 with grouped Identity errors when validation fails.")
             .AddValidation<RegisterDto>(
@@ -96,9 +96,9 @@ namespace MochiR.Api.Endpoints
                     StatusCodes.Status400BadRequest);
             })
             .Produces<ApiResponse<LoginResponseDto>>(StatusCodes.Status200OK)
-            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
-            .Produces<ApiResponse<object>>(StatusCodes.Status403Forbidden)
-            .Produces<ApiResponse<object>>(StatusCodes.Status423Locked)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ApiErrorResponse>(StatusCodes.Status403Forbidden)
+            .Produces<ApiErrorResponse>(StatusCodes.Status423Locked)
             .WithSummary("Sign in with user name or email.")
             .WithDescription("POST /api/auth/login. Accepts userNameOrEmail and password. Returns 200 with a simple success flag on valid credentials, or 400/403/423 when Identity rejects the login for validation, policy, or lockout reasons.")
             .AddValidation<LoginDto>(

@@ -41,7 +41,7 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(payload, httpContext);
             })
             .Produces<ApiResponse<SubjectAggregateDto>>(StatusCodes.Status200OK)
-            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound)
             .WithSummary("Get aggregate ratings for a subject.")
             .WithDescription("GET /api/ratings/subjects/{subjectId}. Returns 200 with the aggregate metrics when available, or 404 if the subject has no aggregate snapshot.")
             .WithOpenApi();
@@ -110,8 +110,8 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(payload, httpContext);
             })
             .Produces<ApiResponse<SubjectAggregateDto>>(StatusCodes.Status200OK)
-            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
-            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound)
             .WithSummary("Upsert aggregate ratings for a subject.")
             .WithDescription("POST /api/ratings/subjects/{subjectId}. Requires admin authorization. Accepts aggregate counts and metrics to create or update the snapshot. Returns 200 with the persisted aggregate, or 400/404 when validation fails.")
             .AddValidation<UpsertAggregateDto>(

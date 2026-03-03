@@ -117,9 +117,9 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(changeResponse, httpContext);
             })
             .Produces<ApiResponse<SelfEmailTokenDispatchResponseDto>>(StatusCodes.Status200OK)
-            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
-            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
-            .Produces<ApiResponse<object>>(StatusCodes.Status409Conflict)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ApiErrorResponse>(StatusCodes.Status401Unauthorized)
+            .Produces<ApiErrorResponse>(StatusCodes.Status409Conflict)
             .WithSummary("Request an email verification or change token.")
             .WithDescription("POST /api/me/email/token. Requires authentication. Accepts optional email and currentPassword values. Returns 200 with dispatch details, or 400/401/409 when validation fails.")
             .WithOpenApi();
@@ -204,9 +204,9 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(ToSelfProfile(refreshed, isAdmin), httpContext);
             })
             .Produces<ApiResponse<SelfProfileDto>>(StatusCodes.Status200OK)
-            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
-            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
-            .Produces<ApiResponse<object>>(StatusCodes.Status409Conflict)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ApiErrorResponse>(StatusCodes.Status401Unauthorized)
+            .Produces<ApiErrorResponse>(StatusCodes.Status409Conflict)
             .WithSummary("Confirm the user's email or email change.")
             .WithDescription("POST /api/me/email/confirm. Requires authentication. Accepts token and optional email. Returns 200 with the refreshed profile when confirmation succeeds, or 400/401/409 when validation fails.")
             .AddValidation<SelfEmailConfirmRequestDto>(

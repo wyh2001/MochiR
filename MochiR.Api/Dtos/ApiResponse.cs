@@ -54,4 +54,17 @@ namespace MochiR.Api.Dtos
             return ApiResponse<T>.FailureResult(error, traceId, timestampUtc);
         }
     }
+
+    /// <summary>
+    /// OpenAPI-only error response schema.
+    /// Runtime still serializes <see cref="ApiResponse{T}"/> (with data: null);
+    /// this type is used solely in .Produces() metadata to avoid an untyped data field.
+    /// </summary>
+    public sealed class ApiErrorResponse
+    {
+        public bool Success { get; init; }
+        public ApiError? Error { get; init; }
+        public string TraceId { get; init; } = string.Empty;
+        public DateTime TimestampUtc { get; init; }
+    }
 }

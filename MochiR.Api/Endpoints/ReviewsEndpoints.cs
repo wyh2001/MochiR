@@ -92,7 +92,7 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(payload, httpContext);
             })
             .Produces<ApiResponse<LatestReviewsPageDto>>(StatusCodes.Status200OK)
-            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
             .WithSummary("List the latest approved reviews.")
             .WithDescription("GET /api/reviews/latest. Supports page, pageSize, after, and afterId query parameters for cursor-friendly paging. Returns 200 with review summaries, or 400 when pagination values are invalid.")
             .AddValidation<LatestReviewsQueryDto>(
@@ -202,9 +202,9 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Created($"/api/reviews/{review.Id}", summary, httpContext);
             })
             .Produces<ApiResponse<ReviewSummaryDto>>(StatusCodes.Status201Created)
-            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
-            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
-            .Produces<ApiResponse<object>>(StatusCodes.Status409Conflict)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ApiErrorResponse>(StatusCodes.Status401Unauthorized)
+            .Produces<ApiErrorResponse>(StatusCodes.Status409Conflict)
             .WithSummary("Create a review.")
             .WithDescription("POST /api/reviews. Requires authentication. Accepts subjectId, optional title/content, and optional ratings. Returns 201 with the created review summary, or 400/401/409 when validation fails.")
             .AddValidation<CreateReviewDto>(
@@ -280,10 +280,10 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(summary, httpContext);
             })
             .Produces<ApiResponse<ReviewSummaryDto>>(StatusCodes.Status200OK)
-            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
-            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
-            .Produces<ApiResponse<object>>(StatusCodes.Status403Forbidden)
-            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ApiErrorResponse>(StatusCodes.Status401Unauthorized)
+            .Produces<ApiErrorResponse>(StatusCodes.Status403Forbidden)
+            .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound)
             .WithSummary("Update a review.")
             .WithDescription("PUT /api/reviews/{id}. Requires authentication. Only the author may update the review. Accepts title, content, and ratings, returning 200 with the updated review summary or 400/401/403/404 when validation fails.")
             .AddValidation<UpdateReviewDto>(
@@ -338,9 +338,9 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(new ReviewDeleteResultDto(id, true), httpContext);
             })
             .Produces<ApiResponse<ReviewDeleteResultDto>>(StatusCodes.Status200OK)
-            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
-            .Produces<ApiResponse<object>>(StatusCodes.Status403Forbidden)
-            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .Produces<ApiErrorResponse>(StatusCodes.Status401Unauthorized)
+            .Produces<ApiErrorResponse>(StatusCodes.Status403Forbidden)
+            .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound)
             .WithSummary("Delete a review.")
             .WithDescription("DELETE /api/reviews/{id}. Requires authentication. Only the author may delete their review. Returns 200 with deletion status or 401/403/404 when the operation is not permitted.")
             .RequireAuthorization()
@@ -399,9 +399,9 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(payload, httpContext);
             })
             .Produces<ApiResponse<ReviewLikeResultDto>>(StatusCodes.Status200OK)
-            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
-            .Produces<ApiResponse<object>>(StatusCodes.Status403Forbidden)
-            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .Produces<ApiErrorResponse>(StatusCodes.Status401Unauthorized)
+            .Produces<ApiErrorResponse>(StatusCodes.Status403Forbidden)
+            .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound)
             .WithSummary("Like a review.")
             .WithDescription("POST /api/reviews/{id}/like. Requires authentication. Adds a like for the specified review unless already liked. Returns 200 with the updated like state.")
             .RequireAuthorization()
@@ -447,8 +447,8 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(payload, httpContext);
             })
             .Produces<ApiResponse<ReviewLikeResultDto>>(StatusCodes.Status200OK)
-            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
-            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .Produces<ApiErrorResponse>(StatusCodes.Status401Unauthorized)
+            .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound)
             .WithSummary("Unlike a review.")
             .WithDescription("DELETE /api/reviews/{id}/like. Requires authentication. Removes the current user's like if it exists. Returns 200 with the updated like state.")
             .RequireAuthorization()
@@ -519,7 +519,7 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(payload, httpContext);
             })
             .Produces<ApiResponse<ReviewDetailDto>>(StatusCodes.Status200OK)
-            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound)
             .WithSummary("Get review details.")
             .WithDescription("GET /api/reviews/{id}. Returns 200 with the full review, including subject data, author info, ratings, and media. Responds with 404 if the review does not exist or has been deleted.")
             .WithOpenApi();

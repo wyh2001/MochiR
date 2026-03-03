@@ -155,8 +155,8 @@ namespace MochiR.Api.Endpoints
                 return ApiResults.Ok(payload, httpContext);
             })
             .Produces<ApiResponse<FeedPageDto>>(StatusCodes.Status200OK)
-            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
-            .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ApiErrorResponse>(StatusCodes.Status401Unauthorized)
             .WithSummary("Get the authenticated user's feed.")
             .WithDescription("GET /api/feed. Requires authentication. Supports page, pageSize, after, and afterId query parameters for cursor-friendly pagination. Returns 200 with a feed page payload filtered to followed users, subjects, and subject types, or 400 when query values are invalid.")
             .AddValidation<FeedQueryDto>(
