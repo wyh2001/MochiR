@@ -20,10 +20,12 @@ namespace MochiR.Api.Endpoints
 
             usersGroup.MapGet("/{id}", async (
                 string id,
+                ApplicationDbContext db,
                 UserManager<ApplicationUser> userManager,
                 HttpContext httpContext,
                 CancellationToken ct) =>
             {
+                var currentUserId = userManager.GetUserId(httpContext.User);
                 var user = await userManager.Users
                     .AsNoTracking()
                     .Where(u => u.Id == id && !u.IsDeleted)
@@ -32,7 +34,8 @@ namespace MochiR.Api.Endpoints
                         u.UserName,
                         u.DisplayName,
                         u.AvatarUrl,
-                        u.CreatedAtUtc))
+                        u.CreatedAtUtc,
+                        null))
                     .FirstOrDefaultAsync(ct);
 
                 if (user is null)
@@ -43,6 +46,14 @@ namespace MochiR.Api.Endpoints
                         httpContext,
                         StatusCodes.Status404NotFound);
                 }
+
+                var viewerRelationship = await BuildViewerRelationshipAsync(
+                    currentUserId: currentUserId,
+                    targetUserId: id,
+                    db: db,
+                    ct: ct);
+
+                user = user with { ViewerRelationship = viewerRelationship };
 
                 SensitiveUserInfoDto? sensitive = null;
                 if (httpContext.User.IsInRole(AppRoles.Admin))
@@ -444,7 +455,8 @@ namespace MochiR.Api.Endpoints
                 user.UserName,
                 user.DisplayName,
                 user.AvatarUrl,
-                user.CreatedAtUtc);
+                user.CreatedAtUtc,
+                null);
 
             var roles = await userManager.GetRolesAsync(user);
             var sensitive = new SensitiveUserInfoDto(
@@ -459,11 +471,38 @@ namespace MochiR.Api.Endpoints
 
             return new UserDirectoryResponseDto(publicDto, sensitive);
         }
+
         private record DirectoryUserDto(string Id, string? UserName, string? DisplayName, string? AvatarUrl, DateTime CreatedAtUtc);
 
         private record DirectoryPageDto(int TotalCount, int Page, int PageSize, IReadOnlyCollection<DirectoryUserDto> Items);
 
-        private record DirectoryUserDetailDto(string Id, string? UserName, string? DisplayName, string? AvatarUrl, DateTime CreatedAtUtc);
+        private static async Task<FollowUserRelationshipDto?> BuildViewerRelationshipAsync(
+            string? currentUserId,
+            string targetUserId,
+            ApplicationDbContext db,
+            CancellationToken ct)
+        {
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                return null;
+            }
+
+            return await db.Follows
+                .AsNoTracking()
+                .Where(f =>
+                    f.FollowerId == currentUserId &&
+                    f.TargetType == FollowTargetType.User &&
+                    f.FollowedUserId == targetUserId)
+                .Select(f => new FollowUserRelationshipDto(
+                    targetUserId,
+                    true,
+                    f.Id,
+                    f.CreatedAtUtc))
+                .FirstOrDefaultAsync(ct)
+                ?? new FollowUserRelationshipDto(targetUserId, false, null, null);
+        }
+
+        private record DirectoryUserDetailDto(string Id, string? UserName, string? DisplayName, string? AvatarUrl, DateTime CreatedAtUtc, FollowUserRelationshipDto? ViewerRelationship);
 
         private record SensitiveUserInfoDto(
             string? Email,

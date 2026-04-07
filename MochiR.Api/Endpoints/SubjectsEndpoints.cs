@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using MochiR.Api.Dtos;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
@@ -93,7 +94,12 @@ namespace MochiR.Api.Endpoints
                 "Name and Slug are required.")
             .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin)).WithOpenApi();
 
-            group.MapGet("/{id:int}", async (int id, ApplicationDbContext db, HttpContext httpContext, CancellationToken cancellationToken) =>
+            group.MapGet("/{id:int}", async (
+                int id,
+                ApplicationDbContext db,
+                UserManager<ApplicationUser> userManager,
+                HttpContext httpContext,
+                CancellationToken cancellationToken) =>
             {
                 var subject = await db.Subjects
                     .AsNoTracking()
@@ -109,6 +115,25 @@ namespace MochiR.Api.Endpoints
                         StatusCodes.Status404NotFound);
                 }
 
+                FollowSubjectRelationshipDto? viewerRelationship = null;
+                var userId = userManager.GetUserId(httpContext.User);
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    viewerRelationship = await db.Follows
+                        .AsNoTracking()
+                        .Where(f =>
+                            f.FollowerId == userId &&
+                            f.TargetType == FollowTargetType.Subject &&
+                            f.SubjectId == id)
+                        .Select(f => new FollowSubjectRelationshipDto(
+                            id,
+                            true,
+                            f.Id,
+                            f.CreatedAtUtc))
+                        .FirstOrDefaultAsync(cancellationToken)
+                        ?? new FollowSubjectRelationshipDto(id, false, null, null);
+                }
+
                 var payload = new SubjectDetailDto(
                     subject.Id,
                     subject.Name,
@@ -117,7 +142,8 @@ namespace MochiR.Api.Endpoints
                     subject.SubjectType?.Key,
                     subject.SubjectType?.DisplayName,
                     subject.Attributes.Select(a => new SubjectAttributeDto(a.Key, a.Value, a.Note)).ToList(),
-                    subject.CreatedAt);
+                    subject.CreatedAt,
+                    viewerRelationship);
 
                 return ApiResults.Ok(payload, httpContext);
             })
@@ -239,7 +265,7 @@ namespace MochiR.Api.Endpoints
         internal record CreateSubjectDto(string Name, string Slug, int SubjectTypeId, IReadOnlyList<SubjectAttributeDto>? Attributes);
         internal record UpdateSubjectDto(string Name, string Slug, int SubjectTypeId, IReadOnlyList<SubjectAttributeDto>? Attributes);
         private record SubjectSummaryDto(int Id, string Name, string Slug, int SubjectTypeId);
-        private record SubjectDetailDto(int Id, string Name, string Slug, int SubjectTypeId, string? SubjectTypeKey, string? SubjectTypeDisplayName, IReadOnlyList<SubjectAttributeDto> Attributes, DateTime CreatedAt);
+        private record SubjectDetailDto(int Id, string Name, string Slug, int SubjectTypeId, string? SubjectTypeKey, string? SubjectTypeDisplayName, IReadOnlyList<SubjectAttributeDto> Attributes, DateTime CreatedAt, FollowSubjectRelationshipDto? ViewerRelationship);
         private record SubjectDeleteResultDto(int Id, bool Deleted);
     }
 }

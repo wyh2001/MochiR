@@ -32,6 +32,7 @@ public sealed class FollowsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.True(json.GetProperty("success").GetBoolean());
         var data = json.GetProperty("data");
         Assert.Equal(subject.Id, data.GetProperty("subjectId").GetInt32());
+        Assert.True(data.GetProperty("following").GetBoolean());
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -123,7 +124,9 @@ public sealed class FollowsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
         Assert.True(json.GetProperty("success").GetBoolean());
-        Assert.True(json.GetProperty("data").GetProperty("removed").GetBoolean());
+        var data = json.GetProperty("data");
+        Assert.Equal(subject.Id, data.GetProperty("subjectId").GetInt32());
+        Assert.False(data.GetProperty("following").GetBoolean());
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -164,6 +167,27 @@ public sealed class FollowsEndpointsTests : IClassFixture<CustomWebApplicationFa
     }
 
     [Fact]
+    public async Task GetSubjectRelationships_ReturnsRequestedStates()
+    {
+        var subjectType = await CreateSubjectTypeAsync();
+        var followed = await CreateSubjectAsync(subjectType);
+        var unfollowed = await CreateSubjectAsync(subjectType);
+
+        using var client = factory.CreateClientWithCookies();
+        await client.SignInAsUserAsync(factory);
+        await client.PostAsync($"/api/follows/subjects/{followed.Id}", null);
+
+        var response = await client.GetAsync($"/api/follows/subjects/relationships?subjectIds={followed.Id}&subjectIds={unfollowed.Id}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var items = json.GetProperty("data").EnumerateArray().ToList();
+        Assert.Equal(2, items.Count);
+        Assert.True(items.Single(item => item.GetProperty("subjectId").GetInt32() == followed.Id).GetProperty("following").GetBoolean());
+        Assert.False(items.Single(item => item.GetProperty("subjectId").GetInt32() == unfollowed.Id).GetProperty("following").GetBoolean());
+    }
+
+    [Fact]
     public async Task FollowSubjectType_Succeeds()
     {
         var subjectType = await CreateSubjectTypeAsync();
@@ -178,6 +202,7 @@ public sealed class FollowsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.True(json.GetProperty("success").GetBoolean());
         var data = json.GetProperty("data");
         Assert.Equal(subjectType.Id, data.GetProperty("subjectTypeId").GetInt32());
+        Assert.True(data.GetProperty("following").GetBoolean());
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -265,7 +290,9 @@ public sealed class FollowsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
         Assert.True(json.GetProperty("success").GetBoolean());
-        Assert.True(json.GetProperty("data").GetProperty("removed").GetBoolean());
+        var data = json.GetProperty("data");
+        Assert.Equal(subjectType.Id, data.GetProperty("subjectTypeId").GetInt32());
+        Assert.False(data.GetProperty("following").GetBoolean());
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -302,6 +329,26 @@ public sealed class FollowsEndpointsTests : IClassFixture<CustomWebApplicationFa
         var subjectTypeIds = items.Select(item => item.GetProperty("subjectTypeId").GetInt32()).ToList();
         Assert.Contains(firstType.Id, subjectTypeIds);
         Assert.Contains(secondType.Id, subjectTypeIds);
+    }
+
+    [Fact]
+    public async Task GetSubjectTypeRelationships_ReturnsRequestedStates()
+    {
+        var followedType = await CreateSubjectTypeAsync();
+        var unfollowedType = await CreateSubjectTypeAsync();
+
+        using var client = factory.CreateClientWithCookies();
+        await client.SignInAsUserAsync(factory);
+        await client.PostAsync($"/api/follows/subject-types/{followedType.Id}", null);
+
+        var response = await client.GetAsync($"/api/follows/subject-types/relationships?subjectTypeIds={followedType.Id}&subjectTypeIds={unfollowedType.Id}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var items = json.GetProperty("data").EnumerateArray().ToList();
+        Assert.Equal(2, items.Count);
+        Assert.True(items.Single(item => item.GetProperty("subjectTypeId").GetInt32() == followedType.Id).GetProperty("following").GetBoolean());
+        Assert.False(items.Single(item => item.GetProperty("subjectTypeId").GetInt32() == unfollowedType.Id).GetProperty("following").GetBoolean());
     }
 
     [Fact]
@@ -354,6 +401,7 @@ public sealed class FollowsEndpointsTests : IClassFixture<CustomWebApplicationFa
         Assert.True(json.GetProperty("success").GetBoolean());
         var data = json.GetProperty("data");
         Assert.Equal(target.Id, data.GetProperty("userId").GetString());
+        Assert.True(data.GetProperty("following").GetBoolean());
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -408,6 +456,26 @@ public sealed class FollowsEndpointsTests : IClassFixture<CustomWebApplicationFa
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
         Assert.False(json.GetProperty("success").GetBoolean());
         Assert.Equal("FOLLOW_TARGET_NOT_FOUND", json.GetProperty("error").GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task GetUserRelationships_ReturnsRequestedStates()
+    {
+        using var client = factory.CreateClientWithCookies();
+        await client.SignInAsUserAsync(factory);
+        var followed = await CreateUserAsync();
+        var unfollowed = await CreateUserAsync();
+
+        await client.PostAsync($"/api/follows/users/{followed.Id}", null);
+
+        var response = await client.GetAsync($"/api/follows/users/relationships?userIds={followed.Id}&userIds={unfollowed.Id}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var items = json.GetProperty("data").EnumerateArray().ToList();
+        Assert.Equal(2, items.Count);
+        Assert.True(items.Single(item => item.GetProperty("userId").GetString() == followed.Id).GetProperty("following").GetBoolean());
+        Assert.False(items.Single(item => item.GetProperty("userId").GetString() == unfollowed.Id).GetProperty("following").GetBoolean());
     }
 
     private async Task<SubjectType> CreateSubjectTypeAsync()

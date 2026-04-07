@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using MochiR.Api.Dtos;
 using MochiR.Api.Entities;
 using MochiR.Api.Infrastructure;
@@ -27,7 +28,12 @@ namespace MochiR.Api.Endpoints
             .WithDescription("GET /api/subject-types. Returns 200 with all subject types ordered by id.")
             .WithOpenApi();
 
-            group.MapGet("/{id:int}", async (int id, ApplicationDbContext db, HttpContext httpContext, CancellationToken ct) =>
+            group.MapGet("/{id:int}", async (
+                int id,
+                ApplicationDbContext db,
+                UserManager<ApplicationUser> userManager,
+                HttpContext httpContext,
+                CancellationToken ct) =>
             {
                 var subjectType = await db.SubjectTypes
                     .AsNoTracking()
@@ -39,7 +45,8 @@ namespace MochiR.Api.Endpoints
                         st.Settings
                             .OrderBy(setting => setting.Key)
                             .Select(setting => new SubjectTypeSettingDto(setting.Key, setting.Value, setting.Note))
-                            .ToList()))
+                            .ToList(),
+                        null))
                     .FirstOrDefaultAsync(ct);
 
                 if (subjectType is null)
@@ -49,6 +56,27 @@ namespace MochiR.Api.Endpoints
                         "Subject type not found.",
                         httpContext,
                         StatusCodes.Status404NotFound);
+                }
+
+                FollowSubjectTypeRelationshipDto? viewerRelationship = null;
+                var userId = userManager.GetUserId(httpContext.User);
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    viewerRelationship = await db.Follows
+                        .AsNoTracking()
+                        .Where(f =>
+                            f.FollowerId == userId &&
+                            f.TargetType == FollowTargetType.SubjectType &&
+                            f.SubjectTypeId == id)
+                        .Select(f => new FollowSubjectTypeRelationshipDto(
+                            id,
+                            true,
+                            f.Id,
+                            f.CreatedAtUtc))
+                        .FirstOrDefaultAsync(ct)
+                        ?? new FollowSubjectTypeRelationshipDto(id, false, null, null);
+
+                    subjectType = subjectType with { ViewerRelationship = viewerRelationship };
                 }
 
                 return ApiResults.Ok(subjectType, httpContext);
@@ -199,7 +227,7 @@ namespace MochiR.Api.Endpoints
         internal record SubjectTypeSettingDto(string Key, string? Value, string? Note);
         internal record CreateSubjectTypeDto(string Key, string DisplayName, IReadOnlyList<SubjectTypeSettingDto>? Settings);
         internal record UpdateSubjectTypeDto(string Key, string DisplayName, IReadOnlyList<SubjectTypeSettingDto>? Settings);
-        internal record SubjectTypeDetailDto(int Id, string Key, string DisplayName, IReadOnlyList<SubjectTypeSettingDto> Settings);
+        internal record SubjectTypeDetailDto(int Id, string Key, string DisplayName, IReadOnlyList<SubjectTypeSettingDto> Settings, FollowSubjectTypeRelationshipDto? ViewerRelationship = null);
         private record SubjectTypeSummaryDto(int Id, string Key, string DisplayName);
         private record SubjectTypeDeleteResultDto(int Id, bool Deleted);
     }

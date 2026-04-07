@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MochiR.Api.Dtos;
 using MochiR.Api.Entities;
@@ -11,6 +12,7 @@ namespace MochiR.Api.Endpoints
     {
         private const int DefaultPageSize = 20;
         private const int MaxPageSize = 100;
+        private const int MaxRelationshipQuerySize = 100;
 
         public static void MapFollowsEndpoints(this IEndpointRouteBuilder routes)
         {
@@ -96,22 +98,21 @@ namespace MochiR.Api.Endpoints
                 db.Follows.Add(follow);
                 await db.SaveChangesAsync(cancellationToken);
 
-                var payload = new FollowSubjectSummaryDto(
-                    follow.Id,
+                var payload = new FollowSubjectRelationshipDto(
                     subject.Id,
-                    subject.Name,
-                    subject.Slug,
+                    true,
+                    follow.Id,
                     follow.CreatedAtUtc);
 
                 return ApiResults.Created($"/api/follows/subjects/{subject.Id}", payload, httpContext);
             })
-            .Produces<ApiResponse<FollowSubjectSummaryDto>>(StatusCodes.Status201Created)
+            .Produces<ApiResponse<FollowSubjectRelationshipDto>>(StatusCodes.Status201Created)
             .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
             .Produces<ApiErrorResponse>(StatusCodes.Status401Unauthorized)
             .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound)
             .Produces<ApiErrorResponse>(StatusCodes.Status409Conflict)
             .WithSummary("Follow a subject.")
-            .WithDescription("POST /api/follows/subjects/{subjectId}. Requires authentication. Path parameter subjectId must reference an existing subject. Returns 201 with follow details, or 400/401/404/409 when validation fails.")
+            .WithDescription("POST /api/follows/subjects/{subjectId}. Requires authentication. Path parameter subjectId must reference an existing subject. Returns 201 with the updated viewer relationship, or 400/401/404/409 when validation fails.")
             .RequireAuthorization()
             .WithOpenApi();
 
@@ -160,14 +161,16 @@ namespace MochiR.Api.Endpoints
                 db.Follows.Remove(follow);
                 await db.SaveChangesAsync(cancellationToken);
 
-                return ApiResults.Ok(new FollowDeletionResultDto(follow.Id, true), httpContext);
+                return ApiResults.Ok(
+                    new FollowSubjectRelationshipDto(subjectId, false, null, null),
+                    httpContext);
             })
-            .Produces<ApiResponse<FollowDeletionResultDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<FollowSubjectRelationshipDto>>(StatusCodes.Status200OK)
             .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
             .Produces<ApiErrorResponse>(StatusCodes.Status401Unauthorized)
             .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound)
             .WithSummary("Unfollow a subject.")
-            .WithDescription("DELETE /api/follows/subjects/{subjectId}. Requires authentication. Removes the follow relationship and returns 200 with a removal flag, or 400/401/404 when the request cannot be completed.")
+            .WithDescription("DELETE /api/follows/subjects/{subjectId}. Requires authentication. Removes the follow relationship and returns 200 with the updated viewer relationship, or 400/401/404 when the request cannot be completed.")
             .RequireAuthorization()
             .WithOpenApi();
 
@@ -224,6 +227,73 @@ namespace MochiR.Api.Endpoints
             .AddValidation<FollowListQueryDto>(
                 "FOLLOW_INVALID_QUERY",
                 "Page and PageSize must be positive.")
+            .RequireAuthorization()
+            .WithOpenApi();
+
+            group.MapGet("/subjects/relationships", async (
+                [FromQuery(Name = "subjectIds")] int[]? subjectIds,
+                ApplicationDbContext db,
+                UserManager<ApplicationUser> userManager,
+                HttpContext httpContext,
+                CancellationToken cancellationToken) =>
+            {
+                var userId = userManager.GetUserId(httpContext.User);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return ApiResults.Failure(
+                        "AUTH_UNAUTHORIZED",
+                        "User is not authenticated.",
+                        httpContext,
+                        StatusCodes.Status401Unauthorized);
+                }
+
+                var ids = subjectIds?
+                    .Where(id => id > 0)
+                    .Distinct()
+                    .ToArray() ?? Array.Empty<int>();
+
+                if (ids.Length > MaxRelationshipQuerySize)
+                {
+                    return ApiResults.Failure(
+                        "FOLLOW_INVALID_QUERY",
+                        $"At most {MaxRelationshipQuerySize} subjectIds are allowed.",
+                        httpContext,
+                        StatusCodes.Status400BadRequest);
+                }
+
+                if (ids.Length == 0)
+                {
+                    return ApiResults.Ok(Array.Empty<FollowSubjectRelationshipDto>(), httpContext);
+                }
+
+                var existing = await db.Follows
+                    .AsNoTracking()
+                    .Where(f =>
+                        f.FollowerId == userId &&
+                        f.TargetType == FollowTargetType.Subject &&
+                        f.SubjectId != null &&
+                        ids.Contains(f.SubjectId.Value))
+                    .Select(f => new FollowSubjectRelationshipDto(
+                        f.SubjectId!.Value,
+                        true,
+                        f.Id,
+                        f.CreatedAtUtc))
+                    .ToListAsync(cancellationToken);
+
+                var lookup = existing.ToDictionary(item => item.SubjectId);
+                var payload = ids
+                    .Select(id => lookup.TryGetValue(id, out var relationship)
+                        ? relationship
+                        : new FollowSubjectRelationshipDto(id, false, null, null))
+                    .ToList();
+
+                return ApiResults.Ok(payload, httpContext);
+            })
+            .Produces<ApiResponse<IReadOnlyList<FollowSubjectRelationshipDto>>>(StatusCodes.Status200OK)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ApiErrorResponse>(StatusCodes.Status401Unauthorized)
+            .WithSummary("Get subject follow relationships.")
+            .WithDescription("GET /api/follows/subjects/relationships. Requires authentication. Accepts repeated subjectIds query parameters and returns the caller's follow relationship for each requested subject id.")
             .RequireAuthorization()
             .WithOpenApi();
         }
@@ -301,22 +371,21 @@ namespace MochiR.Api.Endpoints
                 db.Follows.Add(follow);
                 await db.SaveChangesAsync(cancellationToken);
 
-                var payload = new FollowSubjectTypeSummaryDto(
-                    follow.Id,
+                var payload = new FollowSubjectTypeRelationshipDto(
                     subjectType.Id,
-                    subjectType.Key,
-                    subjectType.DisplayName,
+                    true,
+                    follow.Id,
                     follow.CreatedAtUtc);
 
                 return ApiResults.Created($"/api/follows/subject-types/{subjectType.Id}", payload, httpContext);
             })
-            .Produces<ApiResponse<FollowSubjectTypeSummaryDto>>(StatusCodes.Status201Created)
+            .Produces<ApiResponse<FollowSubjectTypeRelationshipDto>>(StatusCodes.Status201Created)
             .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
             .Produces<ApiErrorResponse>(StatusCodes.Status401Unauthorized)
             .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound)
             .Produces<ApiErrorResponse>(StatusCodes.Status409Conflict)
             .WithSummary("Follow a subject type.")
-            .WithDescription("POST /api/follows/subject-types/{subjectTypeId}. Requires authentication. Path parameter subjectTypeId must reference an existing type. Returns 201 with follow details, or 400/401/404/409 when validation fails.")
+            .WithDescription("POST /api/follows/subject-types/{subjectTypeId}. Requires authentication. Path parameter subjectTypeId must reference an existing type. Returns 201 with the updated viewer relationship, or 400/401/404/409 when validation fails.")
             .RequireAuthorization()
             .WithOpenApi();
 
@@ -365,14 +434,16 @@ namespace MochiR.Api.Endpoints
                 db.Follows.Remove(follow);
                 await db.SaveChangesAsync(cancellationToken);
 
-                return ApiResults.Ok(new FollowDeletionResultDto(follow.Id, true), httpContext);
+                return ApiResults.Ok(
+                    new FollowSubjectTypeRelationshipDto(subjectTypeId, false, null, null),
+                    httpContext);
             })
-            .Produces<ApiResponse<FollowDeletionResultDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<FollowSubjectTypeRelationshipDto>>(StatusCodes.Status200OK)
             .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
             .Produces<ApiErrorResponse>(StatusCodes.Status401Unauthorized)
             .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound)
             .WithSummary("Unfollow a subject type.")
-            .WithDescription("DELETE /api/follows/subject-types/{subjectTypeId}. Requires authentication. Removes the follow relationship and returns 200 with a removal flag, or 400/401/404 when the request cannot be completed.")
+            .WithDescription("DELETE /api/follows/subject-types/{subjectTypeId}. Requires authentication. Removes the follow relationship and returns 200 with the updated viewer relationship, or 400/401/404 when the request cannot be completed.")
             .RequireAuthorization()
             .WithOpenApi();
 
@@ -428,6 +499,73 @@ namespace MochiR.Api.Endpoints
             .AddValidation<FollowListQueryDto>(
                 "FOLLOW_INVALID_QUERY",
                 "Page and PageSize must be positive.")
+            .RequireAuthorization()
+            .WithOpenApi();
+
+            group.MapGet("/subject-types/relationships", async (
+                [FromQuery(Name = "subjectTypeIds")] int[]? subjectTypeIds,
+                ApplicationDbContext db,
+                UserManager<ApplicationUser> userManager,
+                HttpContext httpContext,
+                CancellationToken cancellationToken) =>
+            {
+                var userId = userManager.GetUserId(httpContext.User);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return ApiResults.Failure(
+                        "AUTH_UNAUTHORIZED",
+                        "User is not authenticated.",
+                        httpContext,
+                        StatusCodes.Status401Unauthorized);
+                }
+
+                var ids = subjectTypeIds?
+                    .Where(id => id > 0)
+                    .Distinct()
+                    .ToArray() ?? Array.Empty<int>();
+
+                if (ids.Length > MaxRelationshipQuerySize)
+                {
+                    return ApiResults.Failure(
+                        "FOLLOW_INVALID_QUERY",
+                        $"At most {MaxRelationshipQuerySize} subjectTypeIds are allowed.",
+                        httpContext,
+                        StatusCodes.Status400BadRequest);
+                }
+
+                if (ids.Length == 0)
+                {
+                    return ApiResults.Ok(Array.Empty<FollowSubjectTypeRelationshipDto>(), httpContext);
+                }
+
+                var existing = await db.Follows
+                    .AsNoTracking()
+                    .Where(f =>
+                        f.FollowerId == userId &&
+                        f.TargetType == FollowTargetType.SubjectType &&
+                        f.SubjectTypeId != null &&
+                        ids.Contains(f.SubjectTypeId.Value))
+                    .Select(f => new FollowSubjectTypeRelationshipDto(
+                        f.SubjectTypeId!.Value,
+                        true,
+                        f.Id,
+                        f.CreatedAtUtc))
+                    .ToListAsync(cancellationToken);
+
+                var lookup = existing.ToDictionary(item => item.SubjectTypeId);
+                var payload = ids
+                    .Select(id => lookup.TryGetValue(id, out var relationship)
+                        ? relationship
+                        : new FollowSubjectTypeRelationshipDto(id, false, null, null))
+                    .ToList();
+
+                return ApiResults.Ok(payload, httpContext);
+            })
+            .Produces<ApiResponse<IReadOnlyList<FollowSubjectTypeRelationshipDto>>>(StatusCodes.Status200OK)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ApiErrorResponse>(StatusCodes.Status401Unauthorized)
+            .WithSummary("Get subject type follow relationships.")
+            .WithDescription("GET /api/follows/subject-types/relationships. Requires authentication. Accepts repeated subjectTypeIds query parameters and returns the caller's follow relationship for each requested subject type id.")
             .RequireAuthorization()
             .WithOpenApi();
         }
@@ -527,23 +665,21 @@ namespace MochiR.Api.Endpoints
 
                 await db.SaveChangesAsync(cancellationToken);
 
-                var payload = new FollowUserSummaryDto(
-                    follow.Id,
+                var payload = new FollowUserRelationshipDto(
                     targetUser.Id,
-                    targetUser.UserName,
-                    targetUser.DisplayName,
-                    targetUser.AvatarUrl,
+                    true,
+                    follow.Id,
                     follow.CreatedAtUtc);
 
                 return ApiResults.Created($"/api/follows/users/{targetUser.Id}", payload, httpContext);
             })
-            .Produces<ApiResponse<FollowUserSummaryDto>>(StatusCodes.Status201Created)
+            .Produces<ApiResponse<FollowUserRelationshipDto>>(StatusCodes.Status201Created)
             .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
             .Produces<ApiErrorResponse>(StatusCodes.Status401Unauthorized)
             .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound)
             .Produces<ApiErrorResponse>(StatusCodes.Status409Conflict)
             .WithSummary("Follow a user.")
-            .WithDescription("POST /api/follows/users/{followedUserId}. Requires authentication. Path parameter followedUserId must reference another existing user. Returns 201 with follow details, or 400/401/404/409 when validation fails (including self-follow attempts).")
+            .WithDescription("POST /api/follows/users/{followedUserId}. Requires authentication. Path parameter followedUserId must reference another existing user. Returns 201 with the updated viewer relationship, or 400/401/404/409 when validation fails (including self-follow attempts).")
             .RequireAuthorization()
             .WithOpenApi();
 
@@ -605,14 +741,16 @@ namespace MochiR.Api.Endpoints
 
                 await db.SaveChangesAsync(cancellationToken);
 
-                return ApiResults.Ok(new FollowDeletionResultDto(follow.Id, true), httpContext);
+                return ApiResults.Ok(
+                    new FollowUserRelationshipDto(followedUserId, false, null, null),
+                    httpContext);
             })
-            .Produces<ApiResponse<FollowDeletionResultDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<FollowUserRelationshipDto>>(StatusCodes.Status200OK)
             .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
             .Produces<ApiErrorResponse>(StatusCodes.Status401Unauthorized)
             .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound)
             .WithSummary("Unfollow a user.")
-            .WithDescription("DELETE /api/follows/users/{followedUserId}. Requires authentication. Removes the follow relationship and returns 200 with a removal flag, or 400/401/404 when the request cannot be completed.")
+            .WithDescription("DELETE /api/follows/users/{followedUserId}. Requires authentication. Removes the follow relationship and returns 200 with the updated viewer relationship, or 400/401/404 when the request cannot be completed.")
             .RequireAuthorization()
             .WithOpenApi();
 
@@ -672,6 +810,74 @@ namespace MochiR.Api.Endpoints
                 "Page and PageSize must be positive.")
             .RequireAuthorization()
             .WithOpenApi();
+
+            group.MapGet("/users/relationships", async (
+                [FromQuery(Name = "userIds")] string[]? userIds,
+                ApplicationDbContext db,
+                UserManager<ApplicationUser> userManager,
+                HttpContext httpContext,
+                CancellationToken cancellationToken) =>
+            {
+                var userId = userManager.GetUserId(httpContext.User);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return ApiResults.Failure(
+                        "AUTH_UNAUTHORIZED",
+                        "User is not authenticated.",
+                        httpContext,
+                        StatusCodes.Status401Unauthorized);
+                }
+
+                var ids = userIds?
+                    .Where(id => !string.IsNullOrWhiteSpace(id))
+                    .Select(id => id.Trim())
+                    .Distinct(StringComparer.Ordinal)
+                    .ToArray() ?? Array.Empty<string>();
+
+                if (ids.Length > MaxRelationshipQuerySize)
+                {
+                    return ApiResults.Failure(
+                        "FOLLOW_INVALID_QUERY",
+                        $"At most {MaxRelationshipQuerySize} userIds are allowed.",
+                        httpContext,
+                        StatusCodes.Status400BadRequest);
+                }
+
+                if (ids.Length == 0)
+                {
+                    return ApiResults.Ok(Array.Empty<FollowUserRelationshipDto>(), httpContext);
+                }
+
+                var existing = await db.Follows
+                    .AsNoTracking()
+                    .Where(f =>
+                        f.FollowerId == userId &&
+                        f.TargetType == FollowTargetType.User &&
+                        f.FollowedUserId != null &&
+                        ids.Contains(f.FollowedUserId))
+                    .Select(f => new FollowUserRelationshipDto(
+                        f.FollowedUserId!,
+                        true,
+                        f.Id,
+                        f.CreatedAtUtc))
+                    .ToListAsync(cancellationToken);
+
+                var lookup = existing.ToDictionary(item => item.UserId, StringComparer.Ordinal);
+                var payload = ids
+                    .Select(id => lookup.TryGetValue(id, out var relationship)
+                        ? relationship
+                        : new FollowUserRelationshipDto(id, false, null, null))
+                    .ToList();
+
+                return ApiResults.Ok(payload, httpContext);
+            })
+            .Produces<ApiResponse<IReadOnlyList<FollowUserRelationshipDto>>>(StatusCodes.Status200OK)
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ApiErrorResponse>(StatusCodes.Status401Unauthorized)
+            .WithSummary("Get user follow relationships.")
+            .WithDescription("GET /api/follows/users/relationships. Requires authentication. Accepts repeated userIds query parameters and returns the caller's follow relationship for each requested user id.")
+            .RequireAuthorization()
+            .WithOpenApi();
         }
 
         private static (int Page, int Size) NormalizePagination(int? page, int? pageSize)
@@ -687,7 +893,6 @@ namespace MochiR.Api.Endpoints
         private record FollowSubjectTypePageDto(int TotalCount, int Page, int PageSize, IReadOnlyCollection<FollowSubjectTypeSummaryDto> Items);
         private record FollowUserSummaryDto(long FollowId, string UserId, string? UserName, string? DisplayName, string? AvatarUrl, DateTime FollowedAtUtc);
         private record FollowUserPageDto(int TotalCount, int Page, int PageSize, IReadOnlyCollection<FollowUserSummaryDto> Items);
-        private record FollowDeletionResultDto(long FollowId, bool Removed);
     }
 
     internal sealed record FollowListQueryDto

@@ -70,7 +70,9 @@ public sealed class UsersSelfEndpointsTests : IClassFixture<CustomWebApplication
         Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
         var deleteJson = await deleteResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.True(deleteJson.GetProperty("success").GetBoolean());
-        Assert.True(deleteJson.GetProperty("data").GetProperty("removed").GetBoolean());
+        var deleteData = deleteJson.GetProperty("data");
+        Assert.Equal(target.Id, deleteData.GetProperty("userId").GetString());
+        Assert.False(deleteData.GetProperty("following").GetBoolean());
 
         var followerData = await GetSelfProfileDataAsync(followerClient);
         Assert.Equal(0, followerData.GetProperty("followingCount").GetInt32());
@@ -129,7 +131,9 @@ public sealed class UsersSelfEndpointsTests : IClassFixture<CustomWebApplication
         Assert.Equal(HttpStatusCode.OK, unfollowResponse.StatusCode);
         var unfollowJson = await unfollowResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.True(unfollowJson.GetProperty("success").GetBoolean());
-        Assert.True(unfollowJson.GetProperty("data").GetProperty("removed").GetBoolean());
+        var unfollowData = unfollowJson.GetProperty("data");
+        Assert.Equal(target.Id, unfollowData.GetProperty("userId").GetString());
+        Assert.False(unfollowData.GetProperty("following").GetBoolean());
 
         var followerAfterUnfollow = await GetSelfProfileDataAsync(followerClient);
         Assert.Equal(0, followerAfterUnfollow.GetProperty("followingCount").GetInt32());

@@ -72,6 +72,23 @@ public sealed class UsersDirectoryAdminEndpointsTests : IClassFixture<CustomWebA
     }
 
     [Fact]
+    public async Task GetUserDetail_ReturnsViewerRelationship()
+    {
+        using var client = factory.CreateClientWithCookies();
+        await client.SignInAsUserAsync(factory);
+        var target = await CreateUserAsync("follow-target");
+        await client.PostAsync($"/api/follows/users/{target.Id}", null);
+
+        var response = await client.GetAsync($"/api/users/{target.Id}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var viewerRelationship = json.GetProperty("data").GetProperty("public").GetProperty("viewerRelationship");
+        Assert.Equal(target.Id, viewerRelationship.GetProperty("userId").GetString());
+        Assert.True(viewerRelationship.GetProperty("following").GetBoolean());
+    }
+
+    [Fact]
     public async Task PostUser_Unauthorized_ReturnsUnauthorized()
     {
         using var client = factory.CreateClientWithCookies();

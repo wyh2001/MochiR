@@ -67,6 +67,24 @@ public sealed class SubjectTypesEndpointsTests : IClassFixture<CustomWebApplicat
     }
 
     [Fact]
+    public async Task GetSubjectTypeById_AsAuthenticatedUser_ReturnsViewerRelationship()
+    {
+        var subjectType = await CreateSubjectTypeAsync("followed-type");
+
+        using var client = factory.CreateClientWithCookies();
+        await client.SignInAsUserAsync(factory);
+        await client.PostAsync($"/api/follows/subject-types/{subjectType.Id}", null);
+
+        var response = await client.GetAsync($"/api/subject-types/{subjectType.Id}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var viewerRelationship = json.GetProperty("data").GetProperty("viewerRelationship");
+        Assert.Equal(subjectType.Id, viewerRelationship.GetProperty("subjectTypeId").GetInt32());
+        Assert.True(viewerRelationship.GetProperty("following").GetBoolean());
+    }
+
+    [Fact]
     public async Task PostSubjectType_WithoutAuthentication_ReturnsUnauthorized()
     {
         using var client = factory.CreateClientWithCookies();
