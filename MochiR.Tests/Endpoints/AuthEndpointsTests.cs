@@ -64,6 +64,44 @@ public sealed class AuthEndpointsTests : IClassFixture<CustomWebApplicationFacto
 
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
         Assert.True(json.GetProperty("success").GetBoolean());
+        var data = json.GetProperty("data");
+        Assert.Equal(createdUser.Id, data.GetProperty("id").GetString());
+        Assert.Equal(userName, data.GetProperty("userName").GetString());
+        Assert.Equal(email, data.GetProperty("email").GetString());
+        Assert.False(data.GetProperty("isAdmin").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Login_WithValidEmailCredentials_ReturnsOk()
+    {
+        var userName = $"carol_{Guid.NewGuid():N}";
+        var email = $"{userName}@example.com";
+        var password = "P@ssw0rd!";
+
+        var registerPayload = new AuthDtos.RegisterDto(userName, email, password);
+        var registerResponse = await client.PostAsJsonAsync("/api/auth/register", registerPayload);
+        Assert.Equal(HttpStatusCode.OK, registerResponse.StatusCode);
+
+        using var scope = factory.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<MochiR.Api.Entities.ApplicationUser>>();
+        var createdUser = await userManager.FindByNameAsync(userName);
+        Assert.NotNull(createdUser);
+        createdUser.EmailConfirmed = true;
+        createdUser.LockoutEnabled = false;
+        createdUser.LockoutEnd = null;
+        await userManager.UpdateAsync(createdUser);
+
+        var loginPayload = new AuthDtos.LoginDto(email, password);
+        var response = await client.PostAsJsonAsync("/api/auth/login", loginPayload);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(json.GetProperty("success").GetBoolean());
+        var data = json.GetProperty("data");
+        Assert.Equal(createdUser.Id, data.GetProperty("id").GetString());
+        Assert.Equal(userName, data.GetProperty("userName").GetString());
+        Assert.Equal(email, data.GetProperty("email").GetString());
     }
 
     [Fact]

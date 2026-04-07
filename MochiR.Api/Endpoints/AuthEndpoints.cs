@@ -58,18 +58,37 @@ namespace MochiR.Api.Endpoints
             {
                 var userNameOrEmail = loginDto.UserNameOrEmail.Trim();
                 var password = loginDto.Password;
-                ApplicationUser? user = await userManager.FindByNameAsync(userNameOrEmail) ?? await userManager.FindByEmailAsync(userNameOrEmail);
-                var userNameForSignIn = user?.UserName ?? userNameOrEmail;
+                ApplicationUser? user = await userManager.FindByNameAsync(userNameOrEmail)
+                    ?? await userManager.FindByEmailAsync(userNameOrEmail);
 
-                // No matter the user exists or not, proceed to avoid account enumeration
+                if (user is null)
+                {
+                    _ = userManager.PasswordHasher.HashPassword(new ApplicationUser(), password);
+                    return ApiResults.Failure(
+                        "AUTH_INVALID_CREDENTIALS",
+                        "Invalid username or password.",
+                        httpContext,
+                        StatusCodes.Status400BadRequest);
+                }
+
                 var result = await signInManager.PasswordSignInAsync(
-                    userNameForSignIn,
+                    user,
                     password,
                     isPersistent: false,
                     lockoutOnFailure: true);
 
                 if (result.Succeeded)
-                    return ApiResults.Ok(new LoginResponseDto(true), httpContext);
+                {
+                    var isAdmin = await userManager.IsInRoleAsync(user, AppRoles.Admin);
+                    return ApiResults.Ok(
+                        new LoginResponseDto(
+                            user.Id,
+                            user.UserName,
+                            user.DisplayName,
+                            user.Email,
+                            isAdmin),
+                        httpContext);
+                }
                 if (result.IsLockedOut)
                     return ApiResults.Failure(
                         "AUTH_ACCOUNT_LOCKED",
@@ -100,7 +119,7 @@ namespace MochiR.Api.Endpoints
             .Produces<ApiErrorResponse>(StatusCodes.Status403Forbidden)
             .Produces<ApiErrorResponse>(StatusCodes.Status423Locked)
             .WithSummary("Sign in with user name or email.")
-            .WithDescription("POST /api/auth/login. Accepts userNameOrEmail and password. Returns 200 with a simple success flag on valid credentials, or 400/403/423 when Identity rejects the login for validation, policy, or lockout reasons.")
+            .WithDescription("POST /api/auth/login. Accepts userNameOrEmail and password. Returns 200 with the authenticated user's session context on valid credentials, or 400/403/423 when Identity rejects the login for validation, policy, or lockout reasons.")
             .AddValidation<LoginDto>(
                 "AUTH_LOGIN_INVALID",
                 "User name or email and password are required.")
@@ -124,6 +143,11 @@ namespace MochiR.Api.Endpoints
     }
 
     internal sealed record RegisterResponseDto(string? UserId, string? UserName, string? Email);
-    internal sealed record LoginResponseDto(bool SignedIn);
+    internal sealed record LoginResponseDto(
+        string Id,
+        string? UserName,
+        string? DisplayName,
+        string? Email,
+        bool IsAdmin);
     internal sealed record LogoutResponseDto(bool SignedOut);
 }
