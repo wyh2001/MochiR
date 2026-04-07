@@ -52,8 +52,11 @@ export class UserProfilePage implements OnInit {
 
     if (this.isFollowing()) {
       this.userFollowService.unfollowUser(this.userId, withSkipErrorToast()).subscribe({
-        next: () => {
-          this.isFollowing.set(false);
+        next: (relationship) => {
+          this.isFollowing.set(relationship.following);
+          this.profile.update((profile) =>
+            profile ? { ...profile, viewerRelationship: relationship } : profile,
+          );
           this.actionLoading.set(false);
           this.notification.show('success', 'Unfollowed successfully');
         },
@@ -65,8 +68,11 @@ export class UserProfilePage implements OnInit {
       });
     } else {
       this.userFollowService.followUser(this.userId, withSkipErrorToast()).subscribe({
-        next: () => {
-          this.isFollowing.set(true);
+        next: (relationship) => {
+          this.isFollowing.set(relationship.following);
+          this.profile.update((profile) =>
+            profile ? { ...profile, viewerRelationship: relationship } : profile,
+          );
           this.actionLoading.set(false);
           this.notification.show('success', 'Followed successfully');
         },
@@ -86,33 +92,18 @@ export class UserProfilePage implements OnInit {
     this.userFollowService.getUserProfile(this.userId).subscribe({
       next: (response) => {
         this.profile.set(response.public);
+        this.isFollowing.set(response.public.viewerRelationship?.following ?? false);
         this.loading.set(false);
-        this.loadFollowState();
+        this.followLoading.set(false);
       },
       error: (err) => {
         this.loading.set(false);
+        this.followLoading.set(false);
         if (isApiError(err)) {
           this.error.set(err.message);
         } else {
           this.error.set('An error occurred while loading the profile');
         }
-      },
-    });
-  }
-
-  private loadFollowState(): void {
-    this.followLoading.set(true);
-
-    this.userFollowService.getFollowing(1, 50).subscribe({
-      next: (page) => {
-        if (page) {
-          const followedIds = new Set(page.items.map((item) => item.userId));
-          this.isFollowing.set(followedIds.has(this.userId));
-        }
-        this.followLoading.set(false);
-      },
-      error: () => {
-        this.followLoading.set(false);
       },
     });
   }

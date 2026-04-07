@@ -45,6 +45,12 @@ describe('UserFollowService', () => {
         displayName: 'Bob Smith',
         avatarUrl: null,
         createdAtUtc: '2026-01-15T12:00:00Z',
+        viewerRelationship: {
+          userId: 'user-b-id',
+          following: false,
+          followId: null,
+          followedAtUtc: null,
+        },
       },
       sensitive: null,
     };
@@ -75,15 +81,13 @@ describe('UserFollowService', () => {
 
   describe('followUser', () => {
     const mockFollow = {
-      followId: 1,
       userId: 'user-b-id',
-      userName: 'bob',
-      displayName: 'Bob Smith',
-      avatarUrl: null,
+      following: true,
+      followId: 1,
       followedAtUtc: '2026-03-01T10:00:00Z',
     };
 
-    it('sends POST /api/follows/users/{id} and returns follow summary', () => {
+    it('sends POST /api/follows/users/{id} and returns relationship state', () => {
       service.followUser('user-b-id').subscribe((data) => {
         expect(data).toEqual(mockFollow);
       });
@@ -113,11 +117,13 @@ describe('UserFollowService', () => {
 
   describe('unfollowUser', () => {
     const mockUnfollow = {
-      followId: 1,
-      removed: true,
+      userId: 'user-b-id',
+      following: false,
+      followId: null,
+      followedAtUtc: null,
     };
 
-    it('sends DELETE /api/follows/users/{id} and returns deletion result', () => {
+    it('sends DELETE /api/follows/users/{id} and returns relationship state', () => {
       service.unfollowUser('user-b-id').subscribe((data) => {
         expect(data).toEqual(mockUnfollow);
       });
@@ -191,6 +197,52 @@ describe('UserFollowService', () => {
         .flush(errorEnvelope('UNAUTHORIZED', 'Not authenticated'));
 
       expect(error).toEqual({ code: 'UNAUTHORIZED', message: 'Not authenticated', details: null });
+    });
+  });
+
+  describe('getRelationships', () => {
+    it('fetches follow relationships for the requested users', () => {
+      let result: unknown;
+      service.getRelationships(['user-b-id', 'user-c-id']).subscribe((data) => (result = data));
+
+      const req = http.expectOne((request) => {
+        return (
+          request.url === '/api/follows/users/relationships' &&
+          request.params.getAll('userIds')?.join(',') === 'user-b-id,user-c-id'
+        );
+      });
+      expect(req.request.method).toBe('GET');
+      req.flush(
+        envelope([
+          {
+            userId: 'user-b-id',
+            following: true,
+            followId: 1,
+            followedAtUtc: '2026-02-01T00:00:00Z',
+          },
+          {
+            userId: 'user-c-id',
+            following: false,
+            followId: null,
+            followedAtUtc: null,
+          },
+        ]),
+      );
+
+      expect(result).toEqual([
+        {
+          userId: 'user-b-id',
+          following: true,
+          followId: 1,
+          followedAtUtc: '2026-02-01T00:00:00Z',
+        },
+        {
+          userId: 'user-c-id',
+          following: false,
+          followId: null,
+          followedAtUtc: null,
+        },
+      ]);
     });
   });
 });

@@ -39,14 +39,13 @@ describe('SubjectFollowService', () => {
 
   describe('followSubject', () => {
     const mockFollow = {
-      followId: 1,
       subjectId: 42,
-      subjectName: 'Inception',
-      subjectSlug: 'inception',
+      following: true,
+      followId: 1,
       followedAtUtc: '2026-03-01T10:00:00Z',
     };
 
-    it('sends POST /api/follows/subjects/{id} and returns follow summary', () => {
+    it('sends POST /api/follows/subjects/{id} and returns relationship state', () => {
       service.followSubject(42).subscribe((data) => {
         expect(data).toEqual(mockFollow);
       });
@@ -76,11 +75,13 @@ describe('SubjectFollowService', () => {
 
   describe('unfollowSubject', () => {
     const mockUnfollow = {
-      followId: 1,
-      removed: true,
+      subjectId: 42,
+      following: false,
+      followId: null,
+      followedAtUtc: null,
     };
 
-    it('sends DELETE /api/follows/subjects/{id} and returns deletion result', () => {
+    it('sends DELETE /api/follows/subjects/{id} and returns relationship state', () => {
       service.unfollowSubject(42).subscribe((data) => {
         expect(data).toEqual(mockUnfollow);
       });
@@ -160,6 +161,52 @@ describe('SubjectFollowService', () => {
         .flush(errorEnvelope('UNAUTHORIZED', 'Not authenticated'));
 
       expect(error).toEqual({ code: 'UNAUTHORIZED', message: 'Not authenticated', details: null });
+    });
+  });
+
+  describe('getRelationships', () => {
+    it('fetches follow relationships for the requested subjects', () => {
+      let result: unknown;
+      service.getRelationships([42, 43]).subscribe((data) => (result = data));
+
+      const req = http.expectOne((request) => {
+        return (
+          request.url === '/api/follows/subjects/relationships' &&
+          request.params.getAll('subjectIds')?.join(',') === '42,43'
+        );
+      });
+      expect(req.request.method).toBe('GET');
+      req.flush(
+        envelope([
+          {
+            subjectId: 42,
+            following: true,
+            followId: 1,
+            followedAtUtc: '2026-02-01T00:00:00Z',
+          },
+          {
+            subjectId: 43,
+            following: false,
+            followId: null,
+            followedAtUtc: null,
+          },
+        ]),
+      );
+
+      expect(result).toEqual([
+        {
+          subjectId: 42,
+          following: true,
+          followId: 1,
+          followedAtUtc: '2026-02-01T00:00:00Z',
+        },
+        {
+          subjectId: 43,
+          following: false,
+          followId: null,
+          followedAtUtc: null,
+        },
+      ]);
     });
   });
 });

@@ -30,11 +30,6 @@ export class SubjectTypeList implements OnInit {
 
   ngOnInit(): void {
     this.loadList();
-    if (this.isAuthenticated()) {
-      this.loadFollowState();
-    } else {
-      this.followStateLoading.set(false);
-    }
   }
 
   confirmDelete(id: number): void {
@@ -64,10 +59,14 @@ export class SubjectTypeList implements OnInit {
 
     if (this.followedTypeIds().has(typeId)) {
       this.subjectTypeFollowService.unfollowSubjectType(typeId).subscribe({
-        next: () => {
+        next: (relationship) => {
           this.followedTypeIds.update((ids) => {
             const next = new Set(ids);
-            next.delete(typeId);
+            if (relationship.following) {
+              next.add(typeId);
+            } else {
+              next.delete(typeId);
+            }
             return next;
           });
           this.followLoadingIds.update((ids) => {
@@ -89,8 +88,16 @@ export class SubjectTypeList implements OnInit {
       });
     } else {
       this.subjectTypeFollowService.followSubjectType(typeId).subscribe({
-        next: () => {
-          this.followedTypeIds.update((ids) => new Set([...ids, typeId]));
+        next: (relationship) => {
+          this.followedTypeIds.update((ids) => {
+            const next = new Set(ids);
+            if (relationship.following) {
+              next.add(typeId);
+            } else {
+              next.delete(typeId);
+            }
+            return next;
+          });
           this.followLoadingIds.update((ids) => {
             const next = new Set(ids);
             next.delete(typeId);
@@ -116,21 +123,34 @@ export class SubjectTypeList implements OnInit {
     this.subjectTypeService.getAll().subscribe({
       next: (data) => {
         this.subjectTypes.set(data);
+        if (this.isAuthenticated()) {
+          this.loadFollowState(data.map((type) => type.id));
+        } else {
+          this.followedTypeIds.set(new Set());
+          this.followStateLoading.set(false);
+        }
         this.loading.set(false);
       },
       error: () => {
         this.loading.set(false);
+        this.followStateLoading.set(false);
       },
     });
   }
 
-  private loadFollowState(): void {
+  private loadFollowState(subjectTypeIds: number[]): void {
     this.followStateLoading.set(true);
-    this.subjectTypeFollowService.getFollowedSubjectTypes(1, 50).subscribe({
-      next: (page) => {
-        if (page) {
-          this.followedTypeIds.set(new Set(page.items.map((item) => item.subjectTypeId)));
-        }
+    if (subjectTypeIds.length === 0) {
+      this.followedTypeIds.set(new Set());
+      this.followStateLoading.set(false);
+      return;
+    }
+
+    this.subjectTypeFollowService.getRelationships(subjectTypeIds).subscribe({
+      next: (items) => {
+        this.followedTypeIds.set(
+          new Set(items.filter((item) => item.following).map((item) => item.subjectTypeId)),
+        );
         this.followStateLoading.set(false);
       },
       error: () => {

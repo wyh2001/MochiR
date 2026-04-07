@@ -47,7 +47,8 @@ export class SubjectDetail implements OnInit {
         this.loading.set(false);
         this.loadAggregate();
         if (this.isAuthenticated()) {
-          this.loadFollowState();
+          this.isFollowing.set(data.viewerRelationship?.following ?? false);
+          this.followLoading.set(false);
         } else {
           this.followLoading.set(false);
         }
@@ -93,8 +94,11 @@ export class SubjectDetail implements OnInit {
 
     if (this.isFollowing()) {
       this.subjectFollowService.unfollowSubject(this.subjectId).subscribe({
-        next: () => {
-          this.isFollowing.set(false);
+        next: (relationship) => {
+          this.isFollowing.set(relationship.following);
+          this.subject.update((subject) =>
+            subject ? { ...subject, viewerRelationship: relationship } : subject,
+          );
           this.followActionLoading.set(false);
           this.notification.show('success', 'Unfollowed subject');
         },
@@ -106,8 +110,11 @@ export class SubjectDetail implements OnInit {
       });
     } else {
       this.subjectFollowService.followSubject(this.subjectId).subscribe({
-        next: () => {
-          this.isFollowing.set(true);
+        next: (relationship) => {
+          this.isFollowing.set(relationship.following);
+          this.subject.update((subject) =>
+            subject ? { ...subject, viewerRelationship: relationship } : subject,
+          );
           this.followActionLoading.set(false);
           this.notification.show('success', 'Followed subject');
         },
@@ -118,22 +125,6 @@ export class SubjectDetail implements OnInit {
         },
       });
     }
-  }
-
-  private loadFollowState(): void {
-    this.followLoading.set(true);
-    this.subjectFollowService.getFollowedSubjects(1, 50).subscribe({
-      next: (page) => {
-        if (page) {
-          const followedIds = new Set(page.items.map((item) => item.subjectId));
-          this.isFollowing.set(followedIds.has(this.subjectId));
-        }
-        this.followLoading.set(false);
-      },
-      error: () => {
-        this.followLoading.set(false);
-      },
-    });
   }
 
   private loadAggregate(): void {

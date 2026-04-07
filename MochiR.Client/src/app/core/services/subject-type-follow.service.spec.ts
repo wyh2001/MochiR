@@ -39,14 +39,13 @@ describe('SubjectTypeFollowService', () => {
 
   describe('followSubjectType', () => {
     const mockFollow = {
-      followId: 1,
       subjectTypeId: 5,
-      subjectTypeKey: 'movie',
-      subjectTypeDisplayName: 'Movie',
+      following: true,
+      followId: 1,
       followedAtUtc: '2026-03-01T10:00:00Z',
     };
 
-    it('sends POST /api/follows/subject-types/{id} and returns follow summary', () => {
+    it('sends POST /api/follows/subject-types/{id} and returns relationship state', () => {
       service.followSubjectType(5).subscribe((data) => {
         expect(data).toEqual(mockFollow);
       });
@@ -76,11 +75,13 @@ describe('SubjectTypeFollowService', () => {
 
   describe('unfollowSubjectType', () => {
     const mockUnfollow = {
-      followId: 1,
-      removed: true,
+      subjectTypeId: 5,
+      following: false,
+      followId: null,
+      followedAtUtc: null,
     };
 
-    it('sends DELETE /api/follows/subject-types/{id} and returns deletion result', () => {
+    it('sends DELETE /api/follows/subject-types/{id} and returns relationship state', () => {
       service.unfollowSubjectType(5).subscribe((data) => {
         expect(data).toEqual(mockUnfollow);
       });
@@ -164,6 +165,52 @@ describe('SubjectTypeFollowService', () => {
         message: 'Not authenticated',
         details: null,
       });
+    });
+  });
+
+  describe('getRelationships', () => {
+    it('fetches follow relationships for the requested subject types', () => {
+      let result: unknown;
+      service.getRelationships([5, 6]).subscribe((data) => (result = data));
+
+      const req = http.expectOne((request) => {
+        return (
+          request.url === '/api/follows/subject-types/relationships' &&
+          request.params.getAll('subjectTypeIds')?.join(',') === '5,6'
+        );
+      });
+      expect(req.request.method).toBe('GET');
+      req.flush(
+        envelope([
+          {
+            subjectTypeId: 5,
+            following: true,
+            followId: 1,
+            followedAtUtc: '2026-02-01T00:00:00Z',
+          },
+          {
+            subjectTypeId: 6,
+            following: false,
+            followId: null,
+            followedAtUtc: null,
+          },
+        ]),
+      );
+
+      expect(result).toEqual([
+        {
+          subjectTypeId: 5,
+          following: true,
+          followId: 1,
+          followedAtUtc: '2026-02-01T00:00:00Z',
+        },
+        {
+          subjectTypeId: 6,
+          following: false,
+          followId: null,
+          followedAtUtc: null,
+        },
+      ]);
     });
   });
 });

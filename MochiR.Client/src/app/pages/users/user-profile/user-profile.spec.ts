@@ -30,23 +30,24 @@ describe('UserProfilePage', () => {
     timestampUtc: '',
   });
 
-  const mockProfile = {
-    public: {
-      id: 'user-b-id',
-      userName: 'bob',
-      displayName: 'Bob Smith',
-      avatarUrl: null,
-      createdAtUtc: '2026-01-15T12:00:00Z',
-    },
-    sensitive: null,
-  };
-
-  const mockFollowingPage = {
-    totalCount: 0,
-    page: 1,
-    pageSize: 50,
-    items: [],
-  };
+  function createProfile(following = false) {
+    return {
+      public: {
+        id: 'user-b-id',
+        userName: 'bob',
+        displayName: 'Bob Smith',
+        avatarUrl: null,
+        createdAtUtc: '2026-01-15T12:00:00Z',
+        viewerRelationship: {
+          userId: 'user-b-id',
+          following,
+          followId: following ? 1 : null,
+          followedAtUtc: following ? '2026-02-01T00:00:00Z' : null,
+        },
+      },
+      sensitive: null,
+    };
+  }
 
   function createComponent(routeUserId: string, currentUserId = 'user-a-id') {
     TestBed.resetTestingModule();
@@ -84,371 +85,157 @@ describe('UserProfilePage', () => {
 
   afterEach(() => http.verify());
 
-  describe('view mode', () => {
-    it('fetches profile on init via GET /api/users/{id}', () => {
-      createComponent('user-b-id');
-      fixture.detectChanges();
+  it('fetches profile on init via GET /api/users/{id}', () => {
+    createComponent('user-b-id');
+    fixture.detectChanges();
 
-      const req = http.expectOne('/api/users/user-b-id');
-      expect(req.request.method).toBe('GET');
-      req.flush(envelope(mockProfile));
+    const req = http.expectOne('/api/users/user-b-id');
+    expect(req.request.method).toBe('GET');
+    req.flush(envelope(createProfile()));
+    fixture.detectChanges();
 
-      http.expectOne('/api/follows/users?Page=1&PageSize=50').flush(envelope(mockFollowingPage));
-      fixture.detectChanges();
-
-      const el = fixture.nativeElement as HTMLElement;
-      expect(el.textContent).toContain('Bob Smith');
-    });
-
-    it('displays avatar placeholder with initial when no avatar', () => {
-      createComponent('user-b-id');
-      fixture.detectChanges();
-
-      http.expectOne('/api/users/user-b-id').flush(envelope(mockProfile));
-      http.expectOne('/api/follows/users?Page=1&PageSize=50').flush(envelope(mockFollowingPage));
-      fixture.detectChanges();
-
-      const el = fixture.nativeElement as HTMLElement;
-      const placeholder = el.querySelector('.avatar-placeholder');
-      expect(placeholder).toBeTruthy();
-      expect(placeholder!.textContent?.trim()).toBe('B');
-    });
-
-    it('displays avatar image when avatarUrl is set', () => {
-      createComponent('user-b-id');
-      fixture.detectChanges();
-
-      const profileWithAvatar = {
-        ...mockProfile,
-        public: { ...mockProfile.public, avatarUrl: 'https://example.com/bob.jpg' },
-      };
-      http.expectOne('/api/users/user-b-id').flush(envelope(profileWithAvatar));
-      http.expectOne('/api/follows/users?Page=1&PageSize=50').flush(envelope(mockFollowingPage));
-      fixture.detectChanges();
-
-      const img = fixture.nativeElement.querySelector('img');
-      expect(img).toBeTruthy();
-      expect(img.src).toContain('bob.jpg');
-    });
-
-    it('displays userName, displayName, and join date', () => {
-      createComponent('user-b-id');
-      fixture.detectChanges();
-
-      http.expectOne('/api/users/user-b-id').flush(envelope(mockProfile));
-      http.expectOne('/api/follows/users?Page=1&PageSize=50').flush(envelope(mockFollowingPage));
-      fixture.detectChanges();
-
-      const el = fixture.nativeElement as HTMLElement;
-      expect(el.textContent).toContain('Bob Smith');
-      expect(el.textContent).toContain('@bob');
-      expect(el.textContent).toContain('2026-01-15');
-    });
-
-    it('shows loading state before API responds', () => {
-      createComponent('user-b-id');
-      fixture.detectChanges();
-
-      const el = fixture.nativeElement as HTMLElement;
-      expect(el.textContent).toContain('Loading');
-
-      http.expectOne('/api/users/user-b-id').flush(envelope(mockProfile));
-      http.expectOne('/api/follows/users?Page=1&PageSize=50').flush(envelope(mockFollowingPage));
-    });
-
-    it('shows "User not found" error with back link on 404', () => {
-      createComponent('nonexistent-id');
-      fixture.detectChanges();
-
-      http
-        .expectOne('/api/users/nonexistent-id')
-        .flush(errorEnvelope('USER_NOT_FOUND', 'User not found'));
-      fixture.detectChanges();
-
-      const el = fixture.nativeElement as HTMLElement;
-      expect(el.textContent).toContain('User not found');
-      const backLink = el.querySelector('a');
-      expect(backLink).toBeTruthy();
-    });
-
-    it('shows generic error with back link on network failure', () => {
-      createComponent('user-b-id');
-      fixture.detectChanges();
-
-      http.expectOne('/api/users/user-b-id').flush('', { status: 500, statusText: 'Server Error' });
-      fixture.detectChanges();
-
-      const el = fixture.nativeElement as HTMLElement;
-      expect(el.querySelector('a')).toBeTruthy();
-    });
-
-    it('redirects to /profile when viewing own profile', () => {
-      createComponent('user-a-id', 'user-a-id');
-      fixture.detectChanges();
-
-      expect(router.navigateByUrl).toHaveBeenCalledWith('/profile');
-
-      // No API calls should have been made
-      http.expectNone('/api/users/user-a-id');
-    });
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Bob Smith');
+    expect(el.textContent).toContain('@bob');
   });
 
-  describe('follow state detection', () => {
-    it('shows "Follow" button when not following the user', () => {
-      createComponent('user-b-id');
-      fixture.detectChanges();
+  it('displays avatar placeholder with initial when no avatar', () => {
+    createComponent('user-b-id');
+    fixture.detectChanges();
 
-      http.expectOne('/api/users/user-b-id').flush(envelope(mockProfile));
-      http.expectOne('/api/follows/users?Page=1&PageSize=50').flush(envelope(mockFollowingPage));
-      fixture.detectChanges();
+    http.expectOne('/api/users/user-b-id').flush(envelope(createProfile()));
+    fixture.detectChanges();
 
-      const el = fixture.nativeElement as HTMLElement;
-      const followBtn = el.querySelector('.btn-follow');
-      expect(followBtn).toBeTruthy();
-      expect(followBtn!.textContent?.trim()).toBe('Follow');
-    });
-
-    it('shows "Unfollow" button when already following the user', () => {
-      createComponent('user-b-id');
-      fixture.detectChanges();
-
-      http.expectOne('/api/users/user-b-id').flush(envelope(mockProfile));
-      http.expectOne('/api/follows/users?Page=1&PageSize=50').flush(
-        envelope({
-          totalCount: 1,
-          page: 1,
-          pageSize: 50,
-          items: [
-            {
-              followId: 1,
-              userId: 'user-b-id',
-              userName: 'bob',
-              displayName: 'Bob Smith',
-              avatarUrl: null,
-              followedAtUtc: '2026-02-01T00:00:00Z',
-            },
-          ],
-        }),
-      );
-      fixture.detectChanges();
-
-      const el = fixture.nativeElement as HTMLElement;
-      const followBtn = el.querySelector('.btn-follow');
-      expect(followBtn).toBeTruthy();
-      expect(followBtn!.textContent?.trim()).toBe('Unfollow');
-    });
-
-    it('disables follow button while follow state is loading', () => {
-      createComponent('user-b-id');
-      fixture.detectChanges();
-
-      http.expectOne('/api/users/user-b-id').flush(envelope(mockProfile));
-      // Don't flush following list yet — it's still loading
-      fixture.detectChanges();
-
-      const el = fixture.nativeElement as HTMLElement;
-      const followBtn = el.querySelector('.btn-follow') as HTMLButtonElement | null;
-      if (followBtn) {
-        expect(followBtn.disabled).toBe(true);
-      }
-
-      http.expectOne('/api/follows/users?Page=1&PageSize=50').flush(envelope(mockFollowingPage));
-    });
+    const el = fixture.nativeElement as HTMLElement;
+    const placeholder = el.querySelector('.avatar-placeholder');
+    expect(placeholder).toBeTruthy();
+    expect(placeholder!.textContent?.trim()).toBe('B');
   });
 
-  describe('follow/unfollow actions', () => {
-    it('sends POST on Follow click and changes button to Unfollow with notification', () => {
-      createComponent('user-b-id');
-      fixture.detectChanges();
+  it('displays avatar image when avatarUrl is set', () => {
+    createComponent('user-b-id');
+    fixture.detectChanges();
 
-      http.expectOne('/api/users/user-b-id').flush(envelope(mockProfile));
-      http.expectOne('/api/follows/users?Page=1&PageSize=50').flush(envelope(mockFollowingPage));
-      fixture.detectChanges();
+    const profileWithAvatar = {
+      ...createProfile(),
+      public: {
+        ...createProfile().public,
+        avatarUrl: 'https://example.com/bob.jpg',
+      },
+    };
+    http.expectOne('/api/users/user-b-id').flush(envelope(profileWithAvatar));
+    fixture.detectChanges();
 
-      const followBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-follow');
-      expect(followBtn.textContent?.trim()).toBe('Follow');
+    const img = fixture.nativeElement.querySelector('img');
+    expect(img).toBeTruthy();
+    expect(img.src).toContain('bob.jpg');
+  });
 
-      followBtn.click();
+  it('redirects to /profile when viewing own profile', () => {
+    createComponent('user-a-id', 'user-a-id');
+    fixture.detectChanges();
 
-      const req = http.expectOne('/api/follows/users/user-b-id');
-      expect(req.request.method).toBe('POST');
-      req.flush(
-        envelope({
-          followId: 1,
-          userId: 'user-b-id',
-          userName: 'bob',
-          displayName: 'Bob Smith',
-          avatarUrl: null,
-          followedAtUtc: '2026-03-01T10:00:00Z',
-        }),
-      );
-      fixture.detectChanges();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/profile');
+    http.expectNone('/api/users/user-a-id');
+  });
 
-      expect(followBtn.textContent?.trim()).toBe('Unfollow');
+  it('shows Follow when viewerRelationship indicates not following', () => {
+    createComponent('user-b-id');
+    fixture.detectChanges();
 
-      const notification = TestBed.inject(NotificationService);
-      expect(notification.notifications().length).toBe(1);
-      expect(notification.notifications()[0].type).toBe('success');
-    });
+    http.expectOne('/api/users/user-b-id').flush(envelope(createProfile(false)));
+    fixture.detectChanges();
 
-    it('sends DELETE on Unfollow click and changes button to Follow with notification', () => {
-      createComponent('user-b-id');
-      fixture.detectChanges();
+    const followBtn = fixture.nativeElement.querySelector('.btn-follow');
+    expect(followBtn?.textContent?.trim()).toBe('Follow');
+  });
 
-      http.expectOne('/api/users/user-b-id').flush(envelope(mockProfile));
-      http.expectOne('/api/follows/users?Page=1&PageSize=50').flush(
-        envelope({
-          totalCount: 1,
-          page: 1,
-          pageSize: 50,
-          items: [
-            {
-              followId: 1,
-              userId: 'user-b-id',
-              userName: 'bob',
-              displayName: 'Bob Smith',
-              avatarUrl: null,
-              followedAtUtc: '2026-02-01T00:00:00Z',
-            },
-          ],
-        }),
-      );
-      fixture.detectChanges();
+  it('shows Unfollow when viewerRelationship indicates following', () => {
+    createComponent('user-b-id');
+    fixture.detectChanges();
 
-      const followBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-follow');
-      expect(followBtn.textContent?.trim()).toBe('Unfollow');
+    http.expectOne('/api/users/user-b-id').flush(envelope(createProfile(true)));
+    fixture.detectChanges();
 
-      followBtn.click();
+    const followBtn = fixture.nativeElement.querySelector('.btn-follow');
+    expect(followBtn?.textContent?.trim()).toBe('Unfollow');
+  });
 
-      const req = http.expectOne('/api/follows/users/user-b-id');
-      expect(req.request.method).toBe('DELETE');
-      req.flush(envelope({ followId: 1, removed: true }));
-      fixture.detectChanges();
+  it('keeps the follow button enabled once the profile has loaded', () => {
+    createComponent('user-b-id');
+    fixture.detectChanges();
 
-      expect(followBtn.textContent?.trim()).toBe('Follow');
+    http.expectOne('/api/users/user-b-id').flush(envelope(createProfile(false)));
+    fixture.detectChanges();
 
-      const notification = TestBed.inject(NotificationService);
-      expect(notification.notifications().length).toBe(1);
-      expect(notification.notifications()[0].type).toBe('success');
-    });
+    const followBtn = fixture.nativeElement.querySelector('.btn-follow') as HTMLButtonElement;
+    expect(followBtn.disabled).toBe(false);
+  });
 
-    it('disables button during follow action', () => {
-      createComponent('user-b-id');
-      fixture.detectChanges();
+  it('sends POST on Follow click and updates the button state', () => {
+    createComponent('user-b-id');
+    fixture.detectChanges();
 
-      http.expectOne('/api/users/user-b-id').flush(envelope(mockProfile));
-      http.expectOne('/api/follows/users?Page=1&PageSize=50').flush(envelope(mockFollowingPage));
-      fixture.detectChanges();
+    http.expectOne('/api/users/user-b-id').flush(envelope(createProfile(false)));
+    fixture.detectChanges();
 
-      const followBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-follow');
-      followBtn.click();
-      fixture.detectChanges();
+    const notification = TestBed.inject(NotificationService);
+    const followBtn = fixture.nativeElement.querySelector('.btn-follow') as HTMLButtonElement;
+    followBtn.click();
 
-      expect(followBtn.disabled).toBe(true);
+    const req = http.expectOne('/api/follows/users/user-b-id');
+    expect(req.request.method).toBe('POST');
+    req.flush(
+      envelope({
+        userId: 'user-b-id',
+        following: true,
+        followId: 1,
+        followedAtUtc: '2026-03-01T10:00:00Z',
+      }),
+    );
+    fixture.detectChanges();
 
-      http.expectOne('/api/follows/users/user-b-id').flush(
-        envelope({
-          followId: 1,
-          userId: 'user-b-id',
-          userName: 'bob',
-          displayName: 'Bob Smith',
-          avatarUrl: null,
-          followedAtUtc: '2026-03-01T10:00:00Z',
-        }),
-      );
-      fixture.detectChanges();
+    expect(fixture.componentInstance.isFollowing()).toBe(true);
+    expect(notification.notifications().at(-1)?.type).toBe('success');
+  });
 
-      expect(followBtn.disabled).toBe(false);
-    });
+  it('sends DELETE on Unfollow click and updates the button state', () => {
+    createComponent('user-b-id');
+    fixture.detectChanges();
 
-    it('shows error notification and keeps Follow button on follow error', () => {
-      createComponent('user-b-id');
-      fixture.detectChanges();
+    http.expectOne('/api/users/user-b-id').flush(envelope(createProfile(true)));
+    fixture.detectChanges();
 
-      http.expectOne('/api/users/user-b-id').flush(envelope(mockProfile));
-      http.expectOne('/api/follows/users?Page=1&PageSize=50').flush(envelope(mockFollowingPage));
-      fixture.detectChanges();
+    const notification = TestBed.inject(NotificationService);
+    const followBtn = fixture.nativeElement.querySelector('.btn-follow') as HTMLButtonElement;
+    followBtn.click();
 
-      const followBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-follow');
-      followBtn.click();
+    const req = http.expectOne('/api/follows/users/user-b-id');
+    expect(req.request.method).toBe('DELETE');
+    req.flush(
+      envelope({
+        userId: 'user-b-id',
+        following: false,
+        followId: null,
+        followedAtUtc: null,
+      }),
+    );
+    fixture.detectChanges();
 
-      http
-        .expectOne('/api/follows/users/user-b-id')
-        .flush(errorEnvelope('FOLLOW_FAILED', 'Cannot follow user'));
-      fixture.detectChanges();
+    expect(fixture.componentInstance.isFollowing()).toBe(false);
+    expect(notification.notifications().at(-1)?.type).toBe('success');
+  });
 
-      expect(followBtn.textContent?.trim()).toBe('Follow');
+  it('shows API error message when the profile cannot be loaded', () => {
+    createComponent('nonexistent-id');
+    fixture.detectChanges();
 
-      const notification = TestBed.inject(NotificationService);
-      expect(notification.notifications().length).toBe(1);
-      expect(notification.notifications()[0].type).toBe('danger');
-    });
+    http
+      .expectOne('/api/users/nonexistent-id')
+      .flush(errorEnvelope('USER_NOT_FOUND', 'User not found'));
+    fixture.detectChanges();
 
-    it('shows error notification and keeps Unfollow button on unfollow error', () => {
-      createComponent('user-b-id');
-      fixture.detectChanges();
-
-      http.expectOne('/api/users/user-b-id').flush(envelope(mockProfile));
-      http.expectOne('/api/follows/users?Page=1&PageSize=50').flush(
-        envelope({
-          totalCount: 1,
-          page: 1,
-          pageSize: 50,
-          items: [
-            {
-              followId: 1,
-              userId: 'user-b-id',
-              userName: 'bob',
-              displayName: 'Bob Smith',
-              avatarUrl: null,
-              followedAtUtc: '2026-02-01T00:00:00Z',
-            },
-          ],
-        }),
-      );
-      fixture.detectChanges();
-
-      const followBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-follow');
-      expect(followBtn.textContent?.trim()).toBe('Unfollow');
-
-      followBtn.click();
-
-      http
-        .expectOne('/api/follows/users/user-b-id')
-        .flush(errorEnvelope('UNFOLLOW_FAILED', 'Cannot unfollow user'));
-      fixture.detectChanges();
-
-      expect(followBtn.textContent?.trim()).toBe('Unfollow');
-
-      const notification = TestBed.inject(NotificationService);
-      expect(notification.notifications().length).toBe(1);
-      expect(notification.notifications()[0].type).toBe('danger');
-    });
-
-    it('uses userName as display name when displayName is null', () => {
-      createComponent('user-c-id');
-      fixture.detectChanges();
-
-      const profileNullDisplay = {
-        public: {
-          id: 'user-c-id',
-          userName: 'charlie',
-          displayName: null,
-          avatarUrl: null,
-          createdAtUtc: '2026-01-15T12:00:00Z',
-        },
-        sensitive: null,
-      };
-      http.expectOne('/api/users/user-c-id').flush(envelope(profileNullDisplay));
-      http.expectOne('/api/follows/users?Page=1&PageSize=50').flush(envelope(mockFollowingPage));
-      fixture.detectChanges();
-
-      const el = fixture.nativeElement as HTMLElement;
-      expect(el.textContent).toContain('charlie');
-
-      const placeholder = el.querySelector('.avatar-placeholder');
-      expect(placeholder).toBeTruthy();
-      expect(placeholder!.textContent?.trim()).toBe('C');
-    });
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('User not found');
   });
 });

@@ -68,28 +68,12 @@ describe('SubjectDetail', () => {
       { key: 'year', value: '2010', note: null },
     ],
     createdAt: '2026-01-15T10:30:00Z',
-  };
-
-  const mockFollowPage = {
-    totalCount: 1,
-    page: 1,
-    pageSize: 50,
-    items: [
-      {
-        followId: 10,
-        subjectId: 1,
-        subjectName: 'Inception',
-        subjectSlug: 'inception',
-        followedAtUtc: '2026-02-01T00:00:00Z',
-      },
-    ],
-  };
-
-  const emptyFollowPage = {
-    totalCount: 0,
-    page: 1,
-    pageSize: 50,
-    items: [],
+    viewerRelationship: {
+      subjectId: 1,
+      following: false,
+      followId: null,
+      followedAtUtc: null,
+    },
   };
 
   const mockAggregate = {
@@ -135,8 +119,8 @@ describe('SubjectDetail', () => {
   }
 
   function flushFollowState(followed = false) {
-    const page = followed ? mockFollowPage : emptyFollowPage;
-    http.expectOne('/api/follows/subjects?Page=1&PageSize=50').flush(envelope(page));
+    fixture.componentInstance.isFollowing.set(followed);
+    fixture.componentInstance.followLoading.set(false);
     fixture.detectChanges();
   }
 
@@ -329,10 +313,9 @@ describe('SubjectDetail', () => {
       expect(req.request.method).toBe('POST');
       req.flush(
         envelope({
-          followId: 10,
           subjectId: 1,
-          subjectName: 'Inception',
-          subjectSlug: 'inception',
+          following: true,
+          followId: 10,
           followedAtUtc: '2026-03-01T00:00:00Z',
         }),
       );
@@ -357,7 +340,14 @@ describe('SubjectDetail', () => {
 
       const req = http.expectOne('/api/follows/subjects/1');
       expect(req.request.method).toBe('DELETE');
-      req.flush(envelope({ followId: 10, removed: true }));
+      req.flush(
+        envelope({
+          subjectId: 1,
+          following: false,
+          followId: null,
+          followedAtUtc: null,
+        }),
+      );
       fixture.detectChanges();
 
       expect(fixture.componentInstance.isFollowing()).toBe(false);
@@ -386,16 +376,13 @@ describe('SubjectDetail', () => {
       expect(notification.notifications()[0].type).toBe('danger');
     });
 
-    it('disables button while follow state is loading', () => {
+    it('keeps the follow button enabled after detail loads viewer relationship', () => {
       createComponent('user');
       fixture.detectChanges();
       flushDetail();
       flushAggregate();
 
       const btn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-follow');
-      expect(btn.disabled).toBe(true);
-
-      flushFollowState(false);
       expect(btn.disabled).toBe(false);
     });
   });

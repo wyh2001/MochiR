@@ -62,19 +62,26 @@ describe('SubjectTypeList', () => {
   }
 
   function flushFollowState(followedIds: number[] = []) {
-    const page = {
-      totalCount: followedIds.length,
-      page: 1,
-      pageSize: 50,
-      items: followedIds.map((id) => ({
-        followId: id,
-        subjectTypeId: id,
-        subjectTypeKey: `type-${id}`,
-        subjectTypeDisplayName: `Type ${id}`,
-        followedAtUtc: '2026-02-01T00:00:00Z',
-      })),
-    };
-    http.expectOne('/api/follows/subject-types?Page=1&PageSize=50').flush(envelope(page));
+    const requests = http.match(
+      (request) => request.url === '/api/follows/subject-types/relationships',
+    );
+    if (requests.length === 0) {
+      fixture.detectChanges();
+      return;
+    }
+
+    const req = requests[0];
+    const ids = req.request.params.getAll('subjectTypeIds') ?? [];
+    req.flush(
+      envelope(
+        ids.map((id) => ({
+          subjectTypeId: Number(id),
+          following: followedIds.includes(Number(id)),
+          followId: followedIds.includes(Number(id)) ? Number(id) : null,
+          followedAtUtc: followedIds.includes(Number(id)) ? '2026-02-01T00:00:00Z' : null,
+        })),
+      ),
+    );
     fixture.detectChanges();
   }
 
@@ -186,10 +193,9 @@ describe('SubjectTypeList', () => {
       expect(req.request.method).toBe('POST');
       req.flush(
         envelope({
-          followId: 10,
           subjectTypeId: 1,
-          subjectTypeKey: 'movie',
-          subjectTypeDisplayName: 'Movie',
+          following: true,
+          followId: 10,
           followedAtUtc: '2026-03-01T00:00:00Z',
         }),
       );
@@ -213,7 +219,14 @@ describe('SubjectTypeList', () => {
 
       const req = http.expectOne('/api/follows/subject-types/1');
       expect(req.request.method).toBe('DELETE');
-      req.flush(envelope({ followId: 10, removed: true }));
+      req.flush(
+        envelope({
+          subjectTypeId: 1,
+          following: false,
+          followId: null,
+          followedAtUtc: null,
+        }),
+      );
       fixture.detectChanges();
 
       expect(fixture.componentInstance.followedTypeIds().has(1)).toBe(false);
@@ -316,6 +329,7 @@ describe('SubjectTypeList', () => {
       req.flush(envelope({ id: 1, deleted: true }));
 
       flushList([{ id: 2, key: 'book', displayName: 'Book' }]);
+      flushFollowState([]);
 
       const rows = fixture.nativeElement.querySelectorAll('tbody tr');
       expect(rows.length).toBe(1);

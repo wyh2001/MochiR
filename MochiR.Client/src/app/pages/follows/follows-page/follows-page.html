@@ -142,5 +142,21 @@
         </table>
       }
     }
+
+    @if (currentTotalPages() > 1) {
+      <nav>
+        <ul class="pagination">
+          <li class="page-item" [class.disabled]="currentPage() === 1">
+            <button class="page-link" (click)="onPreviousPage()">Previous</button>
+          </li>
+          <li class="page-item disabled">
+            <span class="page-link">Page {{ currentPage() }} of {{ currentTotalPages() }}</span>
+          </li>
+          <li class="page-item" [class.disabled]="currentPage() >= currentTotalPages()">
+            <button class="page-link" (click)="onNextPage()">Next</button>
+          </li>
+        </ul>
+      </nav>
+    }
   }
 </div>

@@ -2,8 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpContext } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { UserDirectoryResponseDto } from '../../api/models/user-directory-response-dto';
-import { FollowUserSummaryDto } from '../../api/models/follow-user-summary-dto';
-import { FollowDeletionResultDto } from '../../api/models/follow-deletion-result-dto';
+import { FollowUserRelationshipDto } from '../../api/models/follow-user-relationship-dto';
 import { FollowUserPageDto } from '../../api/models/follow-user-page-dto';
 
 @Injectable({ providedIn: 'root' })
@@ -14,12 +13,20 @@ export class UserFollowService {
     return this.http.get<UserDirectoryResponseDto>(`/api/users/${userId}`);
   }
 
-  followUser(userId: string, context?: HttpContext): Observable<FollowUserSummaryDto> {
-    return this.http.post<FollowUserSummaryDto>(`/api/follows/users/${userId}`, {}, { context });
+  followUser(userId: string, context?: HttpContext): Observable<FollowUserRelationshipDto> {
+    return this.http.post<FollowUserRelationshipDto>(
+      `/api/follows/users/${userId}`,
+      {},
+      {
+        context,
+      },
+    );
   }
 
-  unfollowUser(userId: string, context?: HttpContext): Observable<FollowDeletionResultDto> {
-    return this.http.delete<FollowDeletionResultDto>(`/api/follows/users/${userId}`, { context });
+  unfollowUser(userId: string, context?: HttpContext): Observable<FollowUserRelationshipDto> {
+    return this.http.delete<FollowUserRelationshipDto>(`/api/follows/users/${userId}`, {
+      context,
+    });
   }
 
   getFollowing(page?: number, pageSize?: number): Observable<FollowUserPageDto> {
@@ -27,5 +34,16 @@ export class UserFollowService {
     if (page != null) params['Page'] = page.toString();
     if (pageSize != null) params['PageSize'] = pageSize.toString();
     return this.http.get<FollowUserPageDto>('/api/follows/users', { params });
+  }
+
+  getRelationships(userIds: string[]): Observable<FollowUserRelationshipDto[]> {
+    const params: Record<string, string | string[]> = {};
+    if (userIds.length > 0) {
+      params['userIds'] = userIds;
+    }
+
+    return this.http.get<FollowUserRelationshipDto[]>('/api/follows/users/relationships', {
+      params,
+    });
   }
 }

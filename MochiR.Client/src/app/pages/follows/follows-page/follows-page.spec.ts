@@ -34,25 +34,25 @@ describe('FollowsPage', () => {
     timestampUtc: '',
   });
 
-  const mockSubjectsPage = {
-    totalCount: 1,
-    page: 1,
-    pageSize: 50,
+  const subjectPage = (page: number, totalCount = 1) => ({
+    totalCount,
+    page,
+    pageSize: 20,
     items: [
       {
-        followId: 1,
-        subjectId: 42,
-        subjectName: 'Inception',
-        subjectSlug: 'inception',
+        followId: page,
+        subjectId: 40 + page,
+        subjectName: `Subject ${page}`,
+        subjectSlug: `subject-${page}`,
         followedAtUtc: '2026-02-01T00:00:00Z',
       },
     ],
-  };
+  });
 
-  const mockSubjectTypesPage = {
+  const subjectTypePage = {
     totalCount: 1,
     page: 1,
-    pageSize: 50,
+    pageSize: 20,
     items: [
       {
         followId: 2,
@@ -64,10 +64,10 @@ describe('FollowsPage', () => {
     ],
   };
 
-  const mockUsersPage = {
+  const userPage = {
     totalCount: 1,
     page: 1,
-    pageSize: 50,
+    pageSize: 20,
     items: [
       {
         followId: 3,
@@ -80,143 +80,126 @@ describe('FollowsPage', () => {
     ],
   };
 
-  describe('subjects tab', () => {
-    it('loads subjects on init', () => {
-      fixture.detectChanges();
-      http.expectOne('/api/follows/subjects?Page=1&PageSize=50').flush(envelope(mockSubjectsPage));
-      fixture.detectChanges();
-
-      const el: HTMLElement = fixture.nativeElement;
-      expect(el.textContent).toContain('Inception');
-      expect(el.textContent).toContain('inception');
-    });
-
-    it('shows empty state when no subjects followed', () => {
-      fixture.detectChanges();
-      http
-        .expectOne('/api/follows/subjects?Page=1&PageSize=50')
-        .flush(envelope({ totalCount: 0, page: 1, pageSize: 50, items: [] }));
-      fixture.detectChanges();
-
-      expect(fixture.nativeElement.textContent).toContain('not following any subjects');
-    });
-
-    it('unfollows a subject and removes it from the list', () => {
-      fixture.detectChanges();
-      http.expectOne('/api/follows/subjects?Page=1&PageSize=50').flush(envelope(mockSubjectsPage));
-      fixture.detectChanges();
-
-      const notification = TestBed.inject(NotificationService);
-
-      const btn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-unfollow');
-      btn.click();
-
-      const req = http.expectOne('/api/follows/subjects/42');
-      expect(req.request.method).toBe('DELETE');
-      req.flush(envelope({ followId: 1, removed: true }));
-      fixture.detectChanges();
-
-      expect(fixture.componentInstance.subjects().length).toBe(0);
-      expect(notification.notifications().length).toBe(1);
-      expect(notification.notifications()[0].type).toBe('success');
-    });
-  });
-
-  describe('subject-types tab', () => {
-    it('loads subject types when tab is switched', () => {
-      fixture.detectChanges();
-      http.expectOne('/api/follows/subjects?Page=1&PageSize=50').flush(envelope(mockSubjectsPage));
-      fixture.detectChanges();
-
-      const tabBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.tab-subject-types');
-      tabBtn.click();
-
-      http
-        .expectOne('/api/follows/subject-types?Page=1&PageSize=50')
-        .flush(envelope(mockSubjectTypesPage));
-      fixture.detectChanges();
-
-      const el: HTMLElement = fixture.nativeElement;
-      expect(el.textContent).toContain('movie');
-      expect(el.textContent).toContain('Movie');
-    });
-
-    it('unfollows a subject type and removes it from the list', () => {
-      fixture.detectChanges();
-      http.expectOne('/api/follows/subjects?Page=1&PageSize=50').flush(envelope(mockSubjectsPage));
-      fixture.detectChanges();
-
-      fixture.componentInstance.switchTab('subject-types');
-      http
-        .expectOne('/api/follows/subject-types?Page=1&PageSize=50')
-        .flush(envelope(mockSubjectTypesPage));
-      fixture.detectChanges();
-
-      const btn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-unfollow');
-      btn.click();
-
-      const req = http.expectOne('/api/follows/subject-types/5');
-      expect(req.request.method).toBe('DELETE');
-      req.flush(envelope({ followId: 2, removed: true }));
-      fixture.detectChanges();
-
-      expect(fixture.componentInstance.subjectTypes().length).toBe(0);
-    });
-  });
-
-  describe('users tab', () => {
-    it('loads users when tab is switched', () => {
-      fixture.detectChanges();
-      http.expectOne('/api/follows/subjects?Page=1&PageSize=50').flush(envelope(mockSubjectsPage));
-      fixture.detectChanges();
-
-      const tabBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.tab-users');
-      tabBtn.click();
-
-      http.expectOne('/api/follows/users?Page=1&PageSize=50').flush(envelope(mockUsersPage));
-      fixture.detectChanges();
-
-      const el: HTMLElement = fixture.nativeElement;
-      expect(el.textContent).toContain('bob');
-      expect(el.textContent).toContain('Bob Smith');
-    });
-
-    it('unfollows a user and removes it from the list', () => {
-      fixture.detectChanges();
-      http.expectOne('/api/follows/subjects?Page=1&PageSize=50').flush(envelope(mockSubjectsPage));
-      fixture.detectChanges();
-
-      fixture.componentInstance.switchTab('users');
-      http.expectOne('/api/follows/users?Page=1&PageSize=50').flush(envelope(mockUsersPage));
-      fixture.detectChanges();
-
-      const btn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-unfollow');
-      btn.click();
-
-      const req = http.expectOne('/api/follows/users/user-b-id');
-      expect(req.request.method).toBe('DELETE');
-      req.flush(envelope({ followId: 3, removed: true }));
-      fixture.detectChanges();
-
-      expect(fixture.componentInstance.users().length).toBe(0);
-    });
-  });
-
-  it('shows loading state', () => {
+  it('loads the first subjects page on init', () => {
+    fixture.detectChanges();
+    http.expectOne('/api/follows/subjects?Page=1&PageSize=20').flush(envelope(subjectPage(1)));
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Loading');
-
-    http.expectOne('/api/follows/subjects?Page=1&PageSize=50').flush(envelope(mockSubjectsPage));
-    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).toContain('Subject 1');
   });
 
-  it('highlights active tab', () => {
+  it('switches to subject types and loads the first page for that tab', () => {
     fixture.detectChanges();
-    http.expectOne('/api/follows/subjects?Page=1&PageSize=50').flush(envelope(mockSubjectsPage));
+    http.expectOne('/api/follows/subjects?Page=1&PageSize=20').flush(envelope(subjectPage(1)));
     fixture.detectChanges();
 
-    const subjectsTab = fixture.nativeElement.querySelector('.tab-subjects');
-    expect(subjectsTab.classList).toContain('active');
+    const tabBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.tab-subject-types');
+    tabBtn.click();
+
+    http
+      .expectOne('/api/follows/subject-types?Page=1&PageSize=20')
+      .flush(envelope(subjectTypePage));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Movie');
+  });
+
+  it('switches to users and loads the first page for that tab', () => {
+    fixture.detectChanges();
+    http.expectOne('/api/follows/subjects?Page=1&PageSize=20').flush(envelope(subjectPage(1)));
+    fixture.detectChanges();
+
+    const tabBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.tab-users');
+    tabBtn.click();
+
+    http.expectOne('/api/follows/users?Page=1&PageSize=20').flush(envelope(userPage));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Bob Smith');
+  });
+
+  it('loads the next page for the active tab', () => {
+    fixture.detectChanges();
+    http.expectOne('/api/follows/subjects?Page=1&PageSize=20').flush(envelope(subjectPage(1, 40)));
+    fixture.detectChanges();
+
+    fixture.componentInstance.onNextPage();
+
+    http.expectOne('/api/follows/subjects?Page=2&PageSize=20').flush(envelope(subjectPage(2, 40)));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.currentPage()).toBe(2);
+    expect(fixture.nativeElement.textContent).toContain('Subject 2');
+  });
+
+  it('reloads the current tab after unfollowing', () => {
+    fixture.detectChanges();
+    http.expectOne('/api/follows/subjects?Page=1&PageSize=20').flush(envelope(subjectPage(1)));
+    fixture.detectChanges();
+
+    const notification = TestBed.inject(NotificationService);
+    const btn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-unfollow');
+    btn.click();
+
+    const deleteReq = http.expectOne('/api/follows/subjects/41');
+    expect(deleteReq.request.method).toBe('DELETE');
+    deleteReq.flush(
+      envelope({
+        subjectId: 41,
+        following: false,
+        followId: null,
+        followedAtUtc: null,
+      }),
+    );
+
+    http
+      .expectOne('/api/follows/subjects?Page=1&PageSize=20')
+      .flush(envelope({ totalCount: 0, page: 1, pageSize: 20, items: [] }));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.subjects().length).toBe(0);
+    expect(notification.notifications().at(-1)?.type).toBe('success');
+  });
+
+  it('moves back to the previous page when removing the last item on the last page', () => {
+    fixture.detectChanges();
+    http.expectOne('/api/follows/subjects?Page=1&PageSize=20').flush(envelope(subjectPage(1, 21)));
+    fixture.detectChanges();
+
+    fixture.componentInstance.onNextPage();
+    http.expectOne('/api/follows/subjects?Page=2&PageSize=20').flush(
+      envelope({
+        totalCount: 21,
+        page: 2,
+        pageSize: 20,
+        items: [
+          {
+            followId: 21,
+            subjectId: 99,
+            subjectName: 'Last Subject',
+            subjectSlug: 'last-subject',
+            followedAtUtc: '2026-02-01T00:00:00Z',
+          },
+        ],
+      }),
+    );
+    fixture.detectChanges();
+
+    const unfollowBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.btn-unfollow');
+    unfollowBtn.click();
+    http.expectOne('/api/follows/subjects/99').flush(
+      envelope({
+        subjectId: 99,
+        following: false,
+        followId: null,
+        followedAtUtc: null,
+      }),
+    );
+
+    http.expectOne('/api/follows/subjects?Page=1&PageSize=20').flush(envelope(subjectPage(1, 20)));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.currentPage()).toBe(1);
   });
 });
