@@ -27,6 +27,38 @@ namespace MochiR.Api.Endpoints
             .WithDescription("GET /api/subject-types. Returns 200 with all subject types ordered by id.")
             .WithOpenApi();
 
+            group.MapGet("/{id:int}", async (int id, ApplicationDbContext db, HttpContext httpContext, CancellationToken ct) =>
+            {
+                var subjectType = await db.SubjectTypes
+                    .AsNoTracking()
+                    .Where(st => st.Id == id)
+                    .Select(st => new SubjectTypeDetailDto(
+                        st.Id,
+                        st.Key,
+                        st.DisplayName,
+                        st.Settings
+                            .OrderBy(setting => setting.Key)
+                            .Select(setting => new SubjectTypeSettingDto(setting.Key, setting.Value, setting.Note))
+                            .ToList()))
+                    .FirstOrDefaultAsync(ct);
+
+                if (subjectType is null)
+                {
+                    return ApiResults.Failure(
+                        "SUBJECT_TYPE_NOT_FOUND",
+                        "Subject type not found.",
+                        httpContext,
+                        StatusCodes.Status404NotFound);
+                }
+
+                return ApiResults.Ok(subjectType, httpContext);
+            })
+            .Produces<ApiResponse<SubjectTypeDetailDto>>(StatusCodes.Status200OK)
+            .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound)
+            .WithSummary("Get a subject type.")
+            .WithDescription("GET /api/subject-types/{id}. Returns 200 with the full subject type details including settings, or 404 when the subject type does not exist.")
+            .WithOpenApi();
+
             group.MapPost("/", async (CreateSubjectTypeDto dto, ApplicationDbContext db, HttpContext httpContext, CancellationToken ct) =>
             {
                 var normalizedKey = dto.Key.Trim();
@@ -167,6 +199,7 @@ namespace MochiR.Api.Endpoints
         internal record SubjectTypeSettingDto(string Key, string? Value, string? Note);
         internal record CreateSubjectTypeDto(string Key, string DisplayName, IReadOnlyList<SubjectTypeSettingDto>? Settings);
         internal record UpdateSubjectTypeDto(string Key, string DisplayName, IReadOnlyList<SubjectTypeSettingDto>? Settings);
+        internal record SubjectTypeDetailDto(int Id, string Key, string DisplayName, IReadOnlyList<SubjectTypeSettingDto> Settings);
         private record SubjectTypeSummaryDto(int Id, string Key, string DisplayName);
         private record SubjectTypeDeleteResultDto(int Id, bool Deleted);
     }

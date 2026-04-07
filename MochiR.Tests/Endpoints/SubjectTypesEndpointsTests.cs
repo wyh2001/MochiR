@@ -33,6 +33,40 @@ public sealed class SubjectTypesEndpointsTests : IClassFixture<CustomWebApplicat
     }
 
     [Fact]
+    public async Task GetSubjectTypeById_ReturnsSettings()
+    {
+        var subjectType = await CreateSubjectTypeAsync("detail-key", withSettings: true);
+
+        using var client = factory.CreateClientWithCookies();
+        var response = await client.GetAsync($"/api/subject-types/{subjectType.Id}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(json.GetProperty("success").GetBoolean());
+
+        var data = json.GetProperty("data");
+        Assert.Equal(subjectType.Id, data.GetProperty("id").GetInt32());
+        Assert.Equal("detail-key", data.GetProperty("key").GetString());
+
+        var settings = data.GetProperty("settings").EnumerateArray().ToList();
+        Assert.Single(settings);
+        Assert.Equal("campus", settings[0].GetProperty("key").GetString());
+        Assert.Equal("Main", settings[0].GetProperty("value").GetString());
+    }
+
+    [Fact]
+    public async Task GetSubjectTypeById_NotFound_ReturnsFailure()
+    {
+        using var client = factory.CreateClientWithCookies();
+        var response = await client.GetAsync("/api/subject-types/999999");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.False(json.GetProperty("success").GetBoolean());
+        Assert.Equal("SUBJECT_TYPE_NOT_FOUND", json.GetProperty("error").GetProperty("code").GetString());
+    }
+
+    [Fact]
     public async Task PostSubjectType_WithoutAuthentication_ReturnsUnauthorized()
     {
         using var client = factory.CreateClientWithCookies();
