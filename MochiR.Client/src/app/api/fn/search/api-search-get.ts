@@ -8,13 +8,11 @@ import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
 import { ApiResponseOfSearchResponseDto } from '../../models/api-response-of-search-response-dto';
-import { NullableOfSearchResource } from '../../models/nullable-of-search-resource';
-import { NullableOfSearchSort } from '../../models/nullable-of-search-sort';
 
 export interface ApiSearchGet$Params {
   query: string;
-  type?: NullableOfSearchResource;
-  sort?: NullableOfSearchSort;
+  type?: number;
+  sort?: number;
   limit?: number;
   cursor?: string;
 }

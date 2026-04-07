@@ -33,6 +33,10 @@ export type { ApiAuthPasswordResetRequestPost$Params as ApiAuthPasswordResetRequ
 export { apiAuthPasswordResetRequestPost as apiAuthPasswordResetRequestPost } from './fn/auth/api-auth-password-reset-request-post';
 export type { ApiAuthPasswordResetConfirmPost$Params as ApiAuthPasswordResetConfirmPost$Params } from './fn/auth/api-auth-password-reset-confirm-post';
 export { apiAuthPasswordResetConfirmPost as apiAuthPasswordResetConfirmPost } from './fn/auth/api-auth-password-reset-confirm-post';
+export type { ApiSetupStatusGet$Params as ApiSetupStatusGet$Params } from './fn/setup/api-setup-status-get';
+export { apiSetupStatusGet as apiSetupStatusGet } from './fn/setup/api-setup-status-get';
+export type { ApiSetupAdminPost$Params as ApiSetupAdminPost$Params } from './fn/setup/api-setup-admin-post';
+export { apiSetupAdminPost as apiSetupAdminPost } from './fn/setup/api-setup-admin-post';
 export type { ApiMeGet$Params as ApiMeGet$Params } from './fn/self/api-me-get';
 export { apiMeGet as apiMeGet } from './fn/self/api-me-get';
 export type { ApiMePatch$Params as ApiMePatch$Params } from './fn/self/api-me-patch';
@@ -89,6 +93,8 @@ export type { ApiSubjectTypesGet$Params as ApiSubjectTypesGet$Params } from './f
 export { apiSubjectTypesGet as apiSubjectTypesGet } from './fn/subject-types/api-subject-types-get';
 export type { ApiSubjectTypesPost$Params as ApiSubjectTypesPost$Params } from './fn/subject-types/api-subject-types-post';
 export { apiSubjectTypesPost as apiSubjectTypesPost } from './fn/subject-types/api-subject-types-post';
+export type { ApiSubjectTypesIdGet$Params as ApiSubjectTypesIdGet$Params } from './fn/subject-types/api-subject-types-id-get';
+export { apiSubjectTypesIdGet as apiSubjectTypesIdGet } from './fn/subject-types/api-subject-types-id-get';
 export type { ApiSubjectTypesIdPut$Params as ApiSubjectTypesIdPut$Params } from './fn/subject-types/api-subject-types-id-put';
 export { apiSubjectTypesIdPut as apiSubjectTypesIdPut } from './fn/subject-types/api-subject-types-id-put';
 export type { ApiSubjectTypesIdDelete$Params as ApiSubjectTypesIdDelete$Params } from './fn/subject-types/api-subject-types-id-delete';
