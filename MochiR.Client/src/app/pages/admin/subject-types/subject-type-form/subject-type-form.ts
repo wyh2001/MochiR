@@ -27,6 +27,7 @@ export class SubjectTypeForm implements OnInit {
 
   readonly settings: FormArray<FormGroup> = this.fb.array<FormGroup>([]);
 
+  readonly loading = signal(false);
   readonly submitting = signal(false);
   readonly serverError = signal<string | null>(null);
   readonly isEditMode = signal(false);
@@ -35,18 +36,47 @@ export class SubjectTypeForm implements OnInit {
 
   ngOnInit(): void {
     const idParam = this.route.snapshot.params['id'];
-    if (idParam) {
-      this.editId = Number(idParam);
-      this.isEditMode.set(true);
-
-      const state = history.state as Record<string, string> | undefined;
-      if (state?.['key'] && state?.['displayName']) {
-        this.form.patchValue({
-          key: state['key'],
-          displayName: state['displayName'],
-        });
-      }
+    if (!idParam) {
+      return;
     }
+
+    this.editId = Number(idParam);
+    this.isEditMode.set(true);
+    this.loading.set(true);
+
+    this.subjectTypeService.getById(this.editId).subscribe({
+      next: (detail) => {
+        if (!detail) {
+          this.loading.set(false);
+          this.serverError.set('Failed to load subject type.');
+          return;
+        }
+
+        this.form.patchValue({
+          key: detail.key,
+          displayName: detail.displayName,
+        });
+        this.settings.clear();
+        for (const setting of detail.settings) {
+          this.settings.push(
+            this.fb.group({
+              key: [setting.key, Validators.required],
+              value: [setting.value ?? ''],
+              note: [setting.note ?? ''],
+            }),
+          );
+        }
+        this.loading.set(false);
+      },
+      error: (err: unknown) => {
+        this.loading.set(false);
+        if (isApiError(err)) {
+          this.serverError.set(err.message);
+        } else {
+          this.serverError.set('Failed to load subject type.');
+        }
+      },
+    });
   }
 
   addSetting(): void {

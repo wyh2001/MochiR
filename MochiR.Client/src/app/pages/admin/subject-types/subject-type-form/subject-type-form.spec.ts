@@ -151,15 +151,6 @@ describe('SubjectTypeForm', () => {
     let notification: NotificationService;
 
     beforeEach(async () => {
-      // Mock history.state for pre-population
-      Object.defineProperty(window, 'history', {
-        value: {
-          ...window.history,
-          state: { key: 'movie', displayName: 'Movie' },
-        },
-        writable: true,
-      });
-
       await TestBed.configureTestingModule({
         imports: [SubjectTypeForm],
         providers: [
@@ -180,6 +171,20 @@ describe('SubjectTypeForm', () => {
       http = TestBed.inject(HttpTestingController);
       notification = TestBed.inject(NotificationService);
       fixture.detectChanges();
+
+      http.expectOne('/api/subject-types/1').flush({
+        success: true,
+        data: {
+          id: 1,
+          key: 'movie',
+          displayName: 'Movie',
+          settings: [{ key: 'campus', value: 'Main', note: 'seed' }],
+        },
+        error: null,
+        traceId: '',
+        timestampUtc: '',
+      });
+      fixture.detectChanges();
     });
 
     afterEach(() => http.verify());
@@ -189,13 +194,15 @@ describe('SubjectTypeForm', () => {
       expect(el.querySelector('h2')?.textContent).toContain('Edit');
     });
 
-    it('pre-populates form from history state', () => {
+    it('pre-populates form from API detail', () => {
       const component = fixture.componentInstance;
       expect(component.form.getRawValue().key).toBe('movie');
       expect(component.form.getRawValue().displayName).toBe('Movie');
+      expect(component.settings.length).toBe(1);
+      expect(component.settings.at(0).get('key')?.value).toBe('campus');
     });
 
-    it('submits PUT request with id on update', () => {
+    it('submits PUT request with id on update and preserves settings', () => {
       const component = fixture.componentInstance;
       component.form.patchValue({ displayName: 'Movies' });
 
@@ -206,7 +213,7 @@ describe('SubjectTypeForm', () => {
       expect(req.request.body).toEqual({
         key: 'movie',
         displayName: 'Movies',
-        settings: [],
+        settings: [{ key: 'campus', value: 'Main', note: 'seed' }],
       });
 
       req.flush({
@@ -219,6 +226,34 @@ describe('SubjectTypeForm', () => {
 
       expect(notification.notifications().length).toBe(1);
       expect(notification.notifications()[0].message).toContain('updated');
+    });
+
+    it('loads existing settings into the form', () => {
+      const rows = fixture.nativeElement.querySelectorAll('.setting-row');
+      expect(rows.length).toBe(1);
+      const inputs = rows[0].querySelectorAll('input');
+      expect((inputs[0] as HTMLInputElement).value).toBe('campus');
+      expect((inputs[1] as HTMLInputElement).value).toBe('Main');
+      expect((inputs[2] as HTMLInputElement).value).toBe('seed');
+    });
+
+    it('shows an error when the detail response is unexpectedly empty', async () => {
+      http.verify();
+
+      fixture = TestBed.createComponent(SubjectTypeForm);
+      http = TestBed.inject(HttpTestingController);
+      fixture.detectChanges();
+
+      http.expectOne('/api/subject-types/1').flush({
+        success: true,
+        data: null,
+        error: null,
+        traceId: '',
+        timestampUtc: '',
+      });
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.serverError()).toBe('Failed to load subject type.');
     });
 
     it('displays server error on update failure', () => {

@@ -58,6 +58,49 @@ describe('SubjectTypeService', () => {
     });
   });
 
+  describe('getById', () => {
+    it('returns subject type details from GET /api/subject-types/{id}', () => {
+      const mockData = {
+        id: 1,
+        key: 'movie',
+        displayName: 'Movie',
+        settings: [{ key: 'campus', value: 'Main', note: 'default' }],
+      };
+
+      let result: unknown;
+      service.getById(1).subscribe((data) => (result = data));
+
+      http.expectOne('/api/subject-types/1').flush({
+        success: true,
+        data: mockData,
+        error: null,
+        traceId: '',
+        timestampUtc: '',
+      });
+
+      expect(result).toEqual(mockData);
+    });
+
+    it('throws error on detail API failure', () => {
+      let error: unknown;
+      service.getById(999).subscribe({ error: (err) => (error = err) });
+
+      http.expectOne('/api/subject-types/999').flush({
+        success: false,
+        data: null,
+        error: { code: 'SUBJECT_TYPE_NOT_FOUND', message: 'Not found', details: null },
+        traceId: '',
+        timestampUtc: '',
+      });
+
+      expect(error).toEqual({
+        code: 'SUBJECT_TYPE_NOT_FOUND',
+        message: 'Not found',
+        details: null,
+      });
+    });
+  });
+
   describe('create', () => {
     it('sends POST /api/subject-types with DTO and returns result', () => {
       const dto = { key: 'movie', displayName: 'Movie', settings: null };

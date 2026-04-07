@@ -7,10 +7,8 @@
         <div class="alert alert-danger">{{ serverError() }}</div>
       }
 
-      @if (isEditMode()) {
-        <div class="alert alert-info">
-          Settings cannot be pre-loaded from the list view. Add settings below if needed.
-        </div>
+      @if (loading()) {
+        <div class="alert alert-info">Loading subject type...</div>
       }
 
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
@@ -47,7 +45,11 @@
         <app-settings-editor [settings]="settings" />
 
         <div class="d-flex gap-2">
-          <button type="submit" class="btn btn-primary" [disabled]="form.invalid || submitting()">
+          <button
+            type="submit"
+            class="btn btn-primary"
+            [disabled]="form.invalid || loading() || submitting()"
+          >
             {{ isEditMode() ? 'Save' : 'Create' }}
           </button>
           <a routerLink="/subject-types" class="btn btn-secondary">Cancel</a>

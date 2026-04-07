@@ -5,6 +5,7 @@ import { SubjectTypeSummaryDto } from '../../api/models/subject-type-summary-dto
 import { CreateSubjectTypeDto } from '../../api/models/create-subject-type-dto';
 import { UpdateSubjectTypeDto } from '../../api/models/update-subject-type-dto';
 import { SubjectTypeDeleteResultDto } from '../../api/models/subject-type-delete-result-dto';
+import { SubjectTypeDetailDto } from '../../api/models/subject-type-detail-dto';
 
 @Injectable({ providedIn: 'root' })
 export class SubjectTypeService {
@@ -12,6 +13,10 @@ export class SubjectTypeService {
 
   getAll(): Observable<SubjectTypeSummaryDto[]> {
     return this.http.get<SubjectTypeSummaryDto[]>('/api/subject-types');
+  }
+
+  getById(id: number): Observable<SubjectTypeDetailDto> {
+    return this.http.get<SubjectTypeDetailDto>(`/api/subject-types/${id}`);
   }
 
   create(dto: CreateSubjectTypeDto, context?: HttpContext): Observable<SubjectTypeSummaryDto> {
