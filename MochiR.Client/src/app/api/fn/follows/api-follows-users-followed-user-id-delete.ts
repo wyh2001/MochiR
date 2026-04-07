@@ -7,13 +7,13 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { ApiResponseOfFollowDeletionResultDto } from '../../models/api-response-of-follow-deletion-result-dto';
+import { ApiResponseOfFollowUserRelationshipDto } from '../../models/api-response-of-follow-user-relationship-dto';
 
 export interface ApiFollowsUsersFollowedUserIdDelete$Params {
   followedUserId: string;
 }
 
-export function apiFollowsUsersFollowedUserIdDelete(http: HttpClient, rootUrl: string, params: ApiFollowsUsersFollowedUserIdDelete$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfFollowDeletionResultDto>> {
+export function apiFollowsUsersFollowedUserIdDelete(http: HttpClient, rootUrl: string, params: ApiFollowsUsersFollowedUserIdDelete$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfFollowUserRelationshipDto>> {
   const rb = new RequestBuilder(rootUrl, apiFollowsUsersFollowedUserIdDelete.PATH, 'delete');
   if (params) {
     rb.path('followedUserId', params.followedUserId, {});
@@ -24,7 +24,7 @@ export function apiFollowsUsersFollowedUserIdDelete(http: HttpClient, rootUrl: s
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<ApiResponseOfFollowDeletionResultDto>;
+      return r as StrictHttpResponse<ApiResponseOfFollowUserRelationshipDto>;
     })
   );
 }

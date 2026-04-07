@@ -7,13 +7,13 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { ApiResponseOfFollowUserSummaryDto } from '../../models/api-response-of-follow-user-summary-dto';
+import { ApiResponseOfFollowUserRelationshipDto } from '../../models/api-response-of-follow-user-relationship-dto';
 
 export interface ApiFollowsUsersFollowedUserIdPost$Params {
   followedUserId: string;
 }
 
-export function apiFollowsUsersFollowedUserIdPost(http: HttpClient, rootUrl: string, params: ApiFollowsUsersFollowedUserIdPost$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfFollowUserSummaryDto>> {
+export function apiFollowsUsersFollowedUserIdPost(http: HttpClient, rootUrl: string, params: ApiFollowsUsersFollowedUserIdPost$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseOfFollowUserRelationshipDto>> {
   const rb = new RequestBuilder(rootUrl, apiFollowsUsersFollowedUserIdPost.PATH, 'post');
   if (params) {
     rb.path('followedUserId', params.followedUserId, {});
@@ -24,7 +24,7 @@ export function apiFollowsUsersFollowedUserIdPost(http: HttpClient, rootUrl: str
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<ApiResponseOfFollowUserSummaryDto>;
+      return r as StrictHttpResponse<ApiResponseOfFollowUserRelationshipDto>;
     })
   );
 }
