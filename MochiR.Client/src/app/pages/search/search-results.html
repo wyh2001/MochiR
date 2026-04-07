@@ -64,7 +64,11 @@
                 >
                   {{ result.type }}
                 </span>
-                <a [href]="getResultLink(result)" class="text-decoration-none fw-semibold">
+                <a
+                  [routerLink]="getResultCommands(result)"
+                  [queryParams]="getResultQueryParams(result)"
+                  class="text-decoration-none fw-semibold"
+                >
                   {{ result.title }}
                 </a>
               </div>

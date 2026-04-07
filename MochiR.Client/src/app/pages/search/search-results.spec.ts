@@ -80,7 +80,7 @@ describe('SearchResults', () => {
     router = TestBed.inject(Router);
   }
 
-  afterEach(() => http.verify());
+  afterEach(() => http.verify({ ignoreCancelled: true }));
 
   describe('US1: Search Results Page', () => {
     it('pre-fills query from URL param and fetches results', () => {
@@ -274,6 +274,68 @@ describe('SearchResults', () => {
       const items = el.querySelectorAll('.list-group-item');
       expect(items.length).toBe(1);
       expect(items[0].textContent).toContain('The Matrix');
+    });
+
+    it('ignores a stale response after the query changes', () => {
+      createComponent({ q: 'inception' });
+      fixture.detectChanges();
+
+      const firstRequest = http.expectOne(
+        (r) => r.url === '/api/search' && r.params.get('Query') === 'inception',
+      );
+
+      queryParams$.next({ q: 'matrix' });
+      fixture.detectChanges();
+
+      const secondRequest = http.expectOne(
+        (r) => r.url === '/api/search' && r.params.get('Query') === 'matrix',
+      );
+
+      secondRequest.flush(
+        envelope({
+          results: [
+            {
+              type: 'Subject',
+              subjectId: 11,
+              reviewId: null,
+              title: 'The Matrix',
+              subtitle: 'Movie',
+              excerpt: 'Neo discovers...',
+              score: 0.9,
+              createdAtUtc: '2026-01-10T10:00:00Z',
+            },
+          ],
+          sort: 'Relevance',
+          type: 'All',
+          nextCursor: null,
+        }),
+      );
+      fixture.detectChanges();
+
+      expect(firstRequest.cancelled).toBe(true);
+
+      const el = fixture.nativeElement as HTMLElement;
+      const items = el.querySelectorAll('.list-group-item');
+      expect(items.length).toBe(1);
+      expect(items[0].textContent).toContain('The Matrix');
+    });
+
+    it('clearing the query cancels the active search and shows the prompt', () => {
+      createComponent({ q: 'inception' });
+      fixture.detectChanges();
+
+      const request = http.expectOne(
+        (r) => r.url === '/api/search' && r.params.get('Query') === 'inception',
+      );
+
+      queryParams$.next({});
+      fixture.detectChanges();
+
+      expect(request.cancelled).toBe(true);
+
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.textContent).toContain('Enter a search term');
+      expect(el.querySelectorAll('.list-group-item').length).toBe(0);
     });
   });
 
@@ -475,7 +537,7 @@ describe('SearchResults', () => {
       });
     });
 
-    it('empty input does not trigger debounced navigation', () => {
+    it('empty input clears query params after debounce', () => {
       createComponent({ q: 'test' });
       fixture.detectChanges();
 
@@ -490,15 +552,20 @@ describe('SearchResults', () => {
       input.dispatchEvent(new Event('input'));
       vi.advanceTimersByTime(300);
 
-      expect(navigateSpy).not.toHaveBeenCalled();
+      expect(navigateSpy).toHaveBeenCalledWith(['/search'], {
+        queryParams: {},
+        replaceUrl: true,
+      });
     });
 
-    it('Enter submits immediately without waiting for debounce', () => {
-      createComponent({});
+    it('Enter submits immediately without waiting for debounce and preserves filters', () => {
+      createComponent({ q: 'test', type: 'reviews', sort: 'latest' });
       fixture.detectChanges();
 
-      const navigateByUrlSpy = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
-      vi.spyOn(router, 'navigate').mockResolvedValue(true);
+      http.expectOne((r) => r.url === '/api/search').flush(envelope(mockSearchResponse));
+      fixture.detectChanges();
+
+      const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
       const el = fixture.nativeElement as HTMLElement;
       const input = el.querySelector('.search-input') as HTMLInputElement;
 
@@ -510,9 +577,14 @@ describe('SearchResults', () => {
       form.dispatchEvent(new Event('submit'));
       fixture.detectChanges();
 
-      expect(navigateByUrlSpy).toHaveBeenCalledWith('/search?q=inception');
+      expect(navigateSpy).toHaveBeenCalledWith(['/search'], {
+        queryParams: { q: 'inception', type: 'reviews', sort: 'latest' },
+        replaceUrl: true,
+      });
 
       vi.advanceTimersByTime(300);
+
+      expect(navigateSpy).toHaveBeenCalledTimes(1);
     });
   });
 

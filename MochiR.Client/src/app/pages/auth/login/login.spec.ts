@@ -72,6 +72,7 @@ describe('Login', () => {
     component.onSubmit();
 
     http.expectOne('/api/auth/login').flush(null);
+    expect(spy).not.toHaveBeenCalled();
 
     // Profile fetch after login
     http.expectOne('/api/me').flush({

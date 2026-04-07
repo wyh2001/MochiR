@@ -21,10 +21,14 @@ describe('AuthService', () => {
   afterEach(() => controller.verify());
 
   describe('login', () => {
-    it('calls POST /api/auth/login and then fetches profile', () => {
-      service.login({ userNameOrEmail: 'test', password: 'pass' }).subscribe();
+    it('calls POST /api/auth/login and waits for profile before completing', () => {
+      let completed = false;
+      service
+        .login({ userNameOrEmail: 'test', password: 'pass' })
+        .subscribe(() => (completed = true));
 
       controller.expectOne('/api/auth/login').flush(null);
+      expect(completed).toBe(false);
 
       const profileReq = controller.expectOne('/api/me');
       profileReq.flush({
@@ -45,6 +49,7 @@ describe('AuthService', () => {
         isAdmin: false,
       });
 
+      expect(completed).toBe(true);
       expect(authState.isAuthenticated()).toBe(true);
       expect(authState.user()?.userName).toBe('test');
     });

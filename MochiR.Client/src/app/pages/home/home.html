@@ -22,12 +22,22 @@
     }
   </ul>
 
-  @if (loading()) {
+  @if (activeTab() === 'following' && followingLoading()) {
     <div class="text-center py-4">
       <div class="spinner-border spinner-border-sm" role="status"></div>
       <span class="ms-2">Loading...</span>
     </div>
-  } @else if (error()) {
+  } @else if (activeTab() === 'following' && followingError()) {
+    <div class="alert alert-danger">
+      <p class="mb-2">{{ followingError() }}</p>
+      <button class="btn btn-sm btn-danger btn-retry" (click)="retry()">Retry</button>
+    </div>
+  } @else if (activeTab() === 'latest' && loading()) {
+    <div class="text-center py-4">
+      <div class="spinner-border spinner-border-sm" role="status"></div>
+      <span class="ms-2">Loading...</span>
+    </div>
+  } @else if (activeTab() === 'latest' && error()) {
     <div class="alert alert-danger">
       <p class="mb-2">{{ error() }}</p>
       <button class="btn btn-sm btn-danger btn-retry" (click)="retry()">Retry</button>
@@ -72,7 +82,11 @@
                 <small class="text-muted">{{ item.createdAt | date: 'yyyy-MM-dd' }}</small>
               </div>
               <div class="mb-1">
-                <a [href]="'/reviews?subjectId=' + item.subjectId" class="text-decoration-none">
+                <a
+                  [routerLink]="['/reviews']"
+                  [queryParams]="{ subjectId: item.subjectId }"
+                  class="text-decoration-none"
+                >
                   {{ item.subjectName }}
                 </a>
                 @if (item.overallRating !== null) {

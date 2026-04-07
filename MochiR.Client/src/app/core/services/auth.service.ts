@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpContext } from '@angular/common/http';
-import { Observable, of, map, tap, catchError } from 'rxjs';
+import { Observable, of, map, tap, catchError, switchMap } from 'rxjs';
 import { AuthStateService, UserProfile } from './auth-state.service';
 import { SKIP_AUTH_REDIRECT } from '../interceptors/auth-redirect.interceptor';
 import { SelfProfileDto } from '../../api/models/self-profile-dto';
@@ -18,7 +18,7 @@ export class AuthService {
     const ctx = (context ?? new HttpContext()).set(SKIP_AUTH_REDIRECT, true);
     return this.http
       .post<void>('/api/auth/login', dto, { context: ctx })
-      .pipe(tap(() => this.fetchProfile()));
+      .pipe(switchMap(() => this.fetchProfile(ctx)));
   }
 
   register(dto: RegisterDto, context?: HttpContext): Observable<void> {
@@ -43,26 +43,19 @@ export class AuthService {
   }
 
   bootstrap(): Observable<void> {
-    return this.http
-      .get<SelfProfileDto>('/api/me', { context: new HttpContext().set(SKIP_AUTH_REDIRECT, true) })
-      .pipe(
-        tap((profile) => this.authState.setUser(this.mapProfile(profile))),
-        map(() => undefined),
-        catchError(() => {
-          this.authState.clear();
-          return of(undefined);
-        }),
-      );
+    return this.fetchProfile(new HttpContext().set(SKIP_AUTH_REDIRECT, true)).pipe(
+      catchError(() => {
+        this.authState.clear();
+        return of(undefined);
+      }),
+    );
   }
 
-  private fetchProfile(): void {
-    this.http
-      .get<SelfProfileDto>('/api/me')
-      .pipe(
-        tap((profile) => this.authState.setUser(this.mapProfile(profile))),
-        catchError(() => of(undefined)),
-      )
-      .subscribe();
+  private fetchProfile(context = new HttpContext()): Observable<void> {
+    return this.http.get<SelfProfileDto>('/api/me', { context }).pipe(
+      tap((profile) => this.authState.setUser(this.mapProfile(profile))),
+      map(() => undefined),
+    );
   }
 
   private mapProfile(dto: SelfProfileDto): UserProfile {

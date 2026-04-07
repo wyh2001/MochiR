@@ -356,5 +356,128 @@ describe('Home', () => {
 
       expect(el.textContent).toContain("You're not following anyone yet");
     });
+
+    it('shows an error instead of the empty state when following feed fails', () => {
+      createComponent(true);
+      fixture.detectChanges();
+
+      http.expectOne('/api/reviews/latest').flush(envelope(mockLatestPage));
+      http.expectOne('/api/feed').flush(errorEnvelope('INTERNAL_ERROR', 'Feed unavailable'));
+      fixture.detectChanges();
+
+      const el = fixture.nativeElement as HTMLElement;
+      const followingTab = Array.from(el.querySelectorAll('.nav-link')).find((t) =>
+        t.textContent?.includes('Following'),
+      ) as HTMLButtonElement;
+      followingTab.click();
+      fixture.detectChanges();
+
+      expect(el.textContent).toContain('Feed unavailable');
+      expect(el.textContent).not.toContain("You're not following anyone yet");
+    });
+
+    it('retries the following feed after an error', () => {
+      createComponent(true);
+      fixture.detectChanges();
+
+      http.expectOne('/api/reviews/latest').flush(envelope(mockLatestPage));
+      http.expectOne('/api/feed').flush(errorEnvelope('INTERNAL_ERROR', 'Feed unavailable'));
+      fixture.detectChanges();
+
+      const el = fixture.nativeElement as HTMLElement;
+      const followingTab = Array.from(el.querySelectorAll('.nav-link')).find((t) =>
+        t.textContent?.includes('Following'),
+      ) as HTMLButtonElement;
+      followingTab.click();
+      fixture.detectChanges();
+
+      const retryBtn = el.querySelector('button.btn-retry') as HTMLButtonElement;
+      retryBtn.click();
+
+      http.expectOne('/api/feed').flush(envelope(mockFeedPage));
+      fixture.detectChanges();
+
+      expect(el.querySelectorAll('.list-group-item').length).toBe(1);
+      expect(el.textContent).toContain('Interstellar');
+    });
+
+    it('loads following feed when auth state becomes available after init', () => {
+      createComponent(false);
+      fixture.detectChanges();
+
+      http.expectOne('/api/reviews/latest').flush(envelope(mockLatestPage));
+      fixture.detectChanges();
+
+      authState.setUser({
+        id: 'user-a',
+        userName: 'alice',
+        displayName: 'Alice',
+        email: 'alice@test.com',
+        isAdmin: false,
+      });
+      fixture.detectChanges();
+
+      http.expectOne('/api/feed').flush(envelope(mockFeedPage));
+      fixture.detectChanges();
+
+      const followingTab = Array.from(
+        (fixture.nativeElement as HTMLElement).querySelectorAll('.nav-link'),
+      ).find((t) => t.textContent?.includes('Following'));
+      expect(followingTab).toBeTruthy();
+    });
+
+    it('reloads the following feed when the authenticated user changes', () => {
+      createComponent(true);
+      fixture.detectChanges();
+
+      flushBothFeeds();
+      fixture.detectChanges();
+
+      authState.setUser({
+        id: 'user-b',
+        userName: 'brenda',
+        displayName: 'Brenda',
+        email: 'brenda@test.com',
+        isAdmin: false,
+      });
+      fixture.detectChanges();
+
+      http.expectOne('/api/feed').flush(
+        envelope({
+          totalCount: 1,
+          page: 1,
+          pageSize: 20,
+          items: [
+            {
+              reviewId: 4,
+              createdAtUtc: '2026-01-17T08:00:00Z',
+              subjectId: 22,
+              subjectName: 'Arrival',
+              subjectSlug: 'arrival',
+              subjectTypeId: 1,
+              title: 'Thoughtful sci-fi',
+              content: 'A great second feed',
+              authorId: 'user4',
+              authorUserName: 'carol',
+              authorDisplayName: 'Carol Smith',
+              authorAvatarUrl: null,
+            },
+          ],
+          nextCursor: null,
+          hasMore: false,
+        }),
+      );
+      fixture.detectChanges();
+
+      const el = fixture.nativeElement as HTMLElement;
+      const followingTab = Array.from(el.querySelectorAll('.nav-link')).find((t) =>
+        t.textContent?.includes('Following'),
+      ) as HTMLButtonElement;
+      followingTab.click();
+      fixture.detectChanges();
+
+      expect(el.textContent).toContain('Arrival');
+      expect(el.textContent).not.toContain('Interstellar');
+    });
   });
 });
