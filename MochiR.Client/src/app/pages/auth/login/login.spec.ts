@@ -71,26 +71,18 @@ describe('Login', () => {
     component.form.setValue({ userNameOrEmail: 'testuser', password: 'password123' });
     component.onSubmit();
 
-    http.expectOne('/api/auth/login').flush(null);
-    expect(spy).not.toHaveBeenCalled();
-
-    // Profile fetch after login
-    http.expectOne('/api/me').flush({
-      id: '1',
-      userName: 'testuser',
-      displayName: 'Test',
-      email: 'test@test.com',
-      emailConfirmed: true,
-      phoneNumber: null,
-      phoneNumberConfirmed: false,
-      avatarUrl: null,
-      twoFactorEnabled: false,
-      lockoutEnabled: true,
-      lockoutEnd: null,
-      createdAtUtc: '2026-01-01T00:00:00Z',
-      followersCount: 0,
-      followingCount: 0,
-      roles: [],
+    http.expectOne('/api/auth/login').flush({
+      success: true,
+      data: {
+        id: '1',
+        userName: 'testuser',
+        displayName: 'Test',
+        email: 'test@test.com',
+        isAdmin: false,
+      },
+      error: null,
+      traceId: '',
+      timestampUtc: '',
     });
 
     expect(spy).toHaveBeenCalledWith('/');
@@ -152,24 +144,18 @@ describe('Login', () => {
     expect(btn.disabled).toBe(true);
     expect(component.submitting()).toBe(true);
 
-    http.expectOne('/api/auth/login').flush(null);
-
-    http.expectOne('/api/me').flush({
-      id: '1',
-      userName: 'testuser',
-      displayName: 'Test',
-      email: 'test@test.com',
-      emailConfirmed: true,
-      phoneNumber: null,
-      phoneNumberConfirmed: false,
-      avatarUrl: null,
-      twoFactorEnabled: false,
-      lockoutEnabled: true,
-      lockoutEnd: null,
-      createdAtUtc: '2026-01-01T00:00:00Z',
-      followersCount: 0,
-      followingCount: 0,
-      roles: [],
+    http.expectOne('/api/auth/login').flush({
+      success: true,
+      data: {
+        id: '1',
+        userName: 'testuser',
+        displayName: 'Test',
+        email: 'test@test.com',
+        isAdmin: false,
+      },
+      error: null,
+      traceId: '',
+      timestampUtc: '',
     });
 
     expect(component.submitting()).toBe(false);

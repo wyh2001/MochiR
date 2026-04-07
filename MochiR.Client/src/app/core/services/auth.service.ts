@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpContext } from '@angular/common/http';
-import { Observable, of, map, tap, catchError, switchMap } from 'rxjs';
+import { Observable, of, map, tap, catchError } from 'rxjs';
+import { LoginResponseDto } from '../../api/models/login-response-dto';
 import { AuthStateService, UserProfile } from './auth-state.service';
 import { SKIP_AUTH_REDIRECT } from '../interceptors/auth-redirect.interceptor';
 import { SelfProfileDto } from '../../api/models/self-profile-dto';
@@ -16,9 +17,10 @@ export class AuthService {
 
   login(dto: LoginDto, context?: HttpContext): Observable<void> {
     const ctx = (context ?? new HttpContext()).set(SKIP_AUTH_REDIRECT, true);
-    return this.http
-      .post<void>('/api/auth/login', dto, { context: ctx })
-      .pipe(switchMap(() => this.fetchProfile(ctx)));
+    return this.http.post<LoginResponseDto>('/api/auth/login', dto, { context: ctx }).pipe(
+      tap((profile) => this.authState.setUser(this.mapProfile(profile))),
+      map(() => undefined),
+    );
   }
 
   register(dto: RegisterDto, context?: HttpContext): Observable<void> {
@@ -58,7 +60,9 @@ export class AuthService {
     );
   }
 
-  private mapProfile(dto: SelfProfileDto): UserProfile {
+  private mapProfile(
+    dto: Pick<SelfProfileDto, 'id' | 'userName' | 'displayName' | 'email' | 'isAdmin'>,
+  ): UserProfile {
     return {
       id: dto.id,
       userName: dto.userName ?? '',

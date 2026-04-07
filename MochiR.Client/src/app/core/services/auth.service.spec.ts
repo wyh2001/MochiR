@@ -21,31 +21,17 @@ describe('AuthService', () => {
   afterEach(() => controller.verify());
 
   describe('login', () => {
-    it('calls POST /api/auth/login and waits for profile before completing', () => {
+    it('calls POST /api/auth/login and populates auth state from the response', () => {
       let completed = false;
       service
         .login({ userNameOrEmail: 'test', password: 'pass' })
         .subscribe(() => (completed = true));
 
-      controller.expectOne('/api/auth/login').flush(null);
-      expect(completed).toBe(false);
-
-      const profileReq = controller.expectOne('/api/me');
-      profileReq.flush({
+      controller.expectOne('/api/auth/login').flush({
         id: '1',
         userName: 'test',
         displayName: 'Test User',
         email: 'test@test.com',
-        emailConfirmed: true,
-        phoneNumber: null,
-        phoneNumberConfirmed: false,
-        avatarUrl: null,
-        twoFactorEnabled: false,
-        lockoutEnabled: true,
-        lockoutEnd: null,
-        createdAtUtc: '2026-01-01T00:00:00Z',
-        followersCount: 0,
-        followingCount: 0,
         isAdmin: false,
       });
 
