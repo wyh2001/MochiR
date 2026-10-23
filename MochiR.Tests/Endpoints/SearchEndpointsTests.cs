@@ -135,6 +135,7 @@ public sealed class SearchEndpointsTests
             Title = "Best coffee in town",
             Excerpt = "A delightful coffee experience.",
             Content = "Coffee lovers should visit this place.",
+            Status = ReviewStatus.Approved,
             CreatedAt = DateTime.UtcNow.AddMinutes(2)
         };
 
@@ -147,6 +148,7 @@ public sealed class SearchEndpointsTests
             Title = "Cozy coffee corner",
             Excerpt = "Lovely coffee aroma everywhere.",
             Content = "Great coffee and atmosphere.",
+            Status = ReviewStatus.Approved,
             CreatedAt = DateTime.UtcNow.AddMinutes(3)
         };
 

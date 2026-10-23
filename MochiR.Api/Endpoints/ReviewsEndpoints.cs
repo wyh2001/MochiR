@@ -4,6 +4,7 @@ using MochiR.Api.Entities;
 using MochiR.Api.Dtos;
 using MochiR.Api.Infrastructure;
 using MochiR.Api.Infrastructure.Validation;
+using MochiR.Api.Services.Reviews;
 using System.Security.Claims;
 
 namespace MochiR.Api.Endpoints
@@ -37,7 +38,7 @@ namespace MochiR.Api.Endpoints
 
                 var baseQuery = db.Reviews
                     .AsNoTracking()
-                    .Where(review => !review.IsDeleted && review.Status == ReviewStatus.Approved);
+                    .WherePublic();
 
                 var totalCount = await baseQuery.CountAsync(cancellationToken);
 
@@ -105,7 +106,7 @@ namespace MochiR.Api.Endpoints
                 var currentUserId = userManager.GetUserId(user);
                 var baseQuery = db.Reviews
                     .AsNoTracking()
-                    .Where(review => !review.IsDeleted);
+                    .WhereVisibleTo(currentUserId, user.IsInRole(AppRoles.Admin));
 
                 if (subjectId.HasValue)
                 {
@@ -122,7 +123,7 @@ namespace MochiR.Api.Endpoints
             })
             .Produces<ApiResponse<IReadOnlyList<ReviewSummaryDto>>>(StatusCodes.Status200OK)
             .WithSummary("List reviews with optional filters.")
-            .WithDescription("GET /api/reviews. Supports optional subjectId and userId query parameters. Returns 200 with review summaries for matching reviews, including pending entries.")
+            .WithDescription("GET /api/reviews. Supports optional subjectId and userId query parameters. Public callers see approved reviews; authors also see their own unpublished reviews, and admins see all statuses.")
             .WithOpenApi();
 
             group.MapPost("/", async (
@@ -364,7 +365,7 @@ namespace MochiR.Api.Endpoints
                         StatusCodes.Status401Unauthorized);
                 }
 
-                var review = await db.Reviews.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+                var review = await db.Reviews.WherePublic().FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
                 if (review is null || review.IsDeleted)
                 {
                     return ApiResults.Failure(
@@ -425,7 +426,7 @@ namespace MochiR.Api.Endpoints
                         StatusCodes.Status401Unauthorized);
                 }
 
-                var review = await db.Reviews.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+                var review = await db.Reviews.WherePublic().FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
                 if (review is null || review.IsDeleted)
                 {
                     return ApiResults.Failure(
@@ -459,6 +460,7 @@ namespace MochiR.Api.Endpoints
                 var currentUserId = userManager.GetUserId(user);
                 var review = await db.Reviews
                     .AsNoTracking()
+                    .WhereVisibleTo(currentUserId, user.IsInRole(AppRoles.Admin))
                     .Include(r => r.Subject)
                     .Include(r => r.User)
                     .Include(r => r.Tags)
@@ -521,7 +523,7 @@ namespace MochiR.Api.Endpoints
             .Produces<ApiResponse<ReviewDetailDto>>(StatusCodes.Status200OK)
             .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound)
             .WithSummary("Get review details.")
-            .WithDescription("GET /api/reviews/{id}. Returns 200 with the full review, including subject data, author info, ratings, and media. Responds with 404 if the review does not exist or has been deleted.")
+            .WithDescription("GET /api/reviews/{id}. Public callers see approved reviews. Authors can also read their own unpublished reviews; admins can read all statuses. Returns 404 when the review does not exist, has been deleted, or is not visible to the caller.")
             .WithOpenApi();
         }
 

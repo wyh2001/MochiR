@@ -4,6 +4,7 @@ using MochiR.Api.Entities;
 using MochiR.Api.Dtos;
 using MochiR.Api.Infrastructure;
 using MochiR.Api.Infrastructure.Validation;
+using MochiR.Api.Services.Reviews;
 
 namespace MochiR.Api.Endpoints
 {
@@ -64,7 +65,7 @@ namespace MochiR.Api.Endpoints
 
                 var feedBaseQuery = db.Reviews
                     .AsNoTracking()
-                    .Where(r => !r.IsDeleted && r.Status == ReviewStatus.Approved)
+                    .WherePublic()
                     .Where(r =>
                         (followedUserIds.Count > 0 && followedUserIds.Contains(r.UserId)) ||
                         (followedSubjectIds.Count > 0 && followedSubjectIds.Contains(r.SubjectId)) ||

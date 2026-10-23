@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MochiR.Api.Dtos;
 using MochiR.Api.Infrastructure;
+using MochiR.Api.Services.Reviews;
 
 namespace MochiR.Api.Services.Search;
 
@@ -50,7 +51,8 @@ public sealed class SearchService(ApplicationDbContext dbContext) : ISearchServi
 
         var reviewQuery = dbContext.Reviews
             .AsNoTracking()
-            .Where(review => !review.IsDeleted && review.Subject != null && !review.Subject.IsDeleted && review.SearchVector != null && review.SearchVector.Matches(EF.Functions.WebSearchToTsQuery("simple", query)))
+            .WherePublic()
+            .Where(review => review.Subject != null && !review.Subject.IsDeleted && review.SearchVector != null && review.SearchVector.Matches(EF.Functions.WebSearchToTsQuery("simple", query)))
             .Select(review => new SearchProjection(
                 SearchResultType.Review,
                 1,
